@@ -14,7 +14,139 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bb_bank_drafts: {
+        Row: {
+          admin_controls: Json
+          branding: Json
+          country_code: string | null
+          created_at: string
+          current_step: number
+          features: Json
+          id: string
+          identity: Json
+          mode: string
+          owner_id: string
+          simulation: Json
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_controls?: Json
+          branding?: Json
+          country_code?: string | null
+          created_at?: string
+          current_step?: number
+          features?: Json
+          id?: string
+          identity?: Json
+          mode?: string
+          owner_id: string
+          simulation?: Json
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_controls?: Json
+          branding?: Json
+          country_code?: string | null
+          created_at?: string
+          current_step?: number
+          features?: Json
+          id?: string
+          identity?: Json
+          mode?: string
+          owner_id?: string
+          simulation?: Json
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bb_bank_drafts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "bb_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bb_countries: {
+        Row: {
+          code: string
+          currency: string
+          default_language: string
+          flag_emoji: string
+          name: string
+          timezone: string
+        }
+        Insert: {
+          code: string
+          currency: string
+          default_language: string
+          flag_emoji: string
+          name: string
+          timezone: string
+        }
+        Update: {
+          code?: string
+          currency?: string
+          default_language?: string
+          flag_emoji?: string
+          name?: string
+          timezone?: string
+        }
+        Relationships: []
+      }
+      bb_templates: {
+        Row: {
+          accent_color: string
+          category: string
+          country_code: string
+          created_at: string
+          description: string
+          id: string
+          name: string
+          pages: Json
+          primary_color: string
+          secondary_color: string
+        }
+        Insert: {
+          accent_color: string
+          category: string
+          country_code: string
+          created_at?: string
+          description: string
+          id?: string
+          name: string
+          pages?: Json
+          primary_color: string
+          secondary_color: string
+        }
+        Update: {
+          accent_color?: string
+          category?: string
+          country_code?: string
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          pages?: Json
+          primary_color?: string
+          secondary_color?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bb_templates_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "bb_countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
