@@ -1,24 +1,31 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+      <div className="max-w-xl space-y-6 text-center">
+        <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          TheMixWeb
+        </div>
+        <h1 className="text-4xl font-bold sm:text-5xl">Build a bank in minutes</h1>
+        <p className="text-muted-foreground">
+          Multi-tenant website generation for retail, commercial, corporate, private,
+          digital and investment banking.
+        </p>
+        <div className="flex justify-center gap-3">
+          <Button asChild size="lg">
+            <Link to="/bank-builder">Create New Bank</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link to="/auth">Sign in</Link>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
