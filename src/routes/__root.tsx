@@ -77,14 +77,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "TheMixWeb — Multi-tenant bank website generator" },
+      { name: "description", content: "TheMixWeb builds branded, tenant-ready banking websites: pick a template, brand it, and configure features in minutes." },
+      { property: "og:title", content: "TheMixWeb — Bank website generator" },
+      { property: "og:description", content: "Multi-tenant bank website generation platform." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
