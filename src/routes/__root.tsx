@@ -79,10 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "TheMixWeb — Multi-tenant bank website generator" },
       { name: "description", content: "TheMixWeb builds branded, tenant-ready banking websites: pick a template, brand it, and configure features in minutes." },
-      { property: "og:title", content: "TheMixWeb — Bank website generator" },
-      { property: "og:description", content: "Multi-tenant bank website generation platform." },
+      { property: "og:title", content: "TheMixWeb — Multi-tenant bank website generator" },
+      { property: "og:description", content: "TheMixWeb builds branded, tenant-ready banking websites: pick a template, brand it, and configure features in minutes." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "TheMixWeb — Multi-tenant bank website generator" },
+      { name: "twitter:description", content: "TheMixWeb builds branded, tenant-ready banking websites: pick a template, brand it, and configure features in minutes." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/be7c5f03-e98b-4876-93af-2244d79b4908/id-preview-ffff32da--bc0464e2-51ae-4a51-b6d5-7f218eb40594.lovable.app-1783258386060.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/be7c5f03-e98b-4876-93af-2244d79b4908/id-preview-ffff32da--bc0464e2-51ae-4a51-b6d5-7f218eb40594.lovable.app-1783258386060.png" },
     ],
     links: [
       {
