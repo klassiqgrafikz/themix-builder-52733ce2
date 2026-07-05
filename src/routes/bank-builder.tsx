@@ -136,9 +136,9 @@ function Wizard() {
     enabled: step >= 2,
   });
   const templatesQ = useQuery({
-    queryKey: ["bb-templates", draft?.country_code ?? null],
-    queryFn: () => listTemplatesFn({ data: { country_code: draft?.country_code ?? null } }),
-    enabled: step >= 3 && !!draft?.country_code,
+    queryKey: ["bb-templates", "all"],
+    queryFn: () => listTemplatesFn({ data: { country_code: null } }),
+    enabled: step >= 3,
   });
 
   const startMut = useMutation({
