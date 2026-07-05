@@ -136,9 +136,9 @@ function Wizard() {
     enabled: step >= 2,
   });
   const templatesQ = useQuery({
-    queryKey: ["bb-templates", draft?.country_code ?? null],
-    queryFn: () => listTemplatesFn({ data: { country_code: draft?.country_code ?? null } }),
-    enabled: step >= 3 && !!draft?.country_code,
+    queryKey: ["bb-templates", "all"],
+    queryFn: () => listTemplatesFn({ data: { country_code: null } }),
+    enabled: step >= 3,
   });
 
   const startMut = useMutation({
@@ -225,21 +225,34 @@ function Wizard() {
             {step === 3 && (
               <Step3
                 templates={(templatesQ.data as BankTemplate[]) ?? []}
+                countries={(countriesQ.data as BankCountry[]) ?? []}
                 loading={templatesQ.isLoading}
                 mode={draft.mode}
+                defaultCountry={draft.country_code}
                 selectedId={draft.template_id}
                 onBack={() => goto(2)}
-                onSelect={(t) =>
+                onSelect={(t) => {
+                  const clonedFeatures: Record<string, boolean> = { ...(draft.features ?? {}) };
+                  for (const f of t.features ?? []) clonedFeatures[f] = true;
                   goto(5, {
                     template_id: t.id,
+                    country_code: t.country_code,
+                    identity: {
+                      ...(draft.identity ?? {}),
+                      country_code: t.country_code,
+                      currency: t.currency,
+                      language: t.language,
+                    },
                     branding: {
                       ...(draft.branding ?? {}),
                       primary_color: t.primary_color,
                       secondary_color: t.secondary_color,
                       accent_color: t.accent_color,
+                      dark_mode: t.theme === "dark",
                     },
-                  })
-                }
+                    features: clonedFeatures,
+                  });
+                }}
                 onSkip={() => goto(5)}
               />
             )}
@@ -404,68 +417,172 @@ function Step2({
 }
 
 /* ------------------ STEP 3 ------------------ */
+/* ------------------ STEP 3 — Global Banking Library ------------------ */
 function Step3({
   templates,
+  countries,
   loading,
   mode,
+  defaultCountry,
   selectedId,
   onBack,
   onSelect,
   onSkip,
 }: {
   templates: BankTemplate[];
+  countries: BankCountry[];
   loading: boolean;
   mode: "template" | "custom";
+  defaultCountry: string | null;
   selectedId: string | null;
   onBack: () => void;
   onSelect: (t: BankTemplate) => void;
   onSkip: () => void;
 }) {
-  const [cat, setCat] = useState<string | "all">("all");
+  const [q, setQ] = useState("");
+  const [country, setCountry] = useState<string>(defaultCountry ?? "all");
+  const [region, setRegion] = useState<string>("all");
+  const [category, setCategory] = useState<string>("all");
+  const [currency, setCurrency] = useState<string>("all");
+  const [language, setLanguage] = useState<string>("all");
+  const [theme, setTheme] = useState<string>("all");
   const [preview, setPreview] = useState<BankTemplate | null>(null);
-  const filtered = templates.filter((t) => cat === "all" || t.category === cat);
+
+  const countryByCode = useMemo(
+    () => Object.fromEntries(countries.map((c) => [c.code, c])),
+    [countries],
+  );
+
+  const regions = useMemo(
+    () => Array.from(new Set(countries.map((c) => c.region))).sort(),
+    [countries],
+  );
+  const currencies = useMemo(
+    () => Array.from(new Set(templates.map((t) => t.currency))).sort(),
+    [templates],
+  );
+  const languages = useMemo(
+    () => Array.from(new Set(templates.map((t) => t.language))).sort(),
+    [templates],
+  );
+
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return templates.filter((t) => {
+      const c = countryByCode[t.country_code];
+      if (country !== "all" && t.country_code !== country) return false;
+      if (region !== "all" && t.region !== region) return false;
+      if (category !== "all" && t.category !== category) return false;
+      if (currency !== "all" && t.currency !== currency) return false;
+      if (language !== "all" && t.language !== language) return false;
+      if (theme !== "all" && t.theme !== theme) return false;
+      if (!query) return true;
+      return (
+        t.name.toLowerCase().includes(query) ||
+        t.category.toLowerCase().includes(query) ||
+        t.region.toLowerCase().includes(query) ||
+        (c?.name.toLowerCase().includes(query) ?? false) ||
+        t.country_code.toLowerCase().includes(query)
+      );
+    });
+  }, [templates, countryByCode, q, country, region, category, currency, language, theme]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, BankTemplate[]>();
+    for (const t of filtered) {
+      const arr = map.get(t.country_code) ?? [];
+      arr.push(t);
+      map.set(t.country_code, arr);
+    }
+    return Array.from(map.entries())
+      .map(([code, list]) => ({ country: countryByCode[code], list }))
+      .filter((g) => g.country)
+      .sort((a, b) => a.country.name.localeCompare(b.country.name));
+  }, [filtered, countryByCode]);
+
+  const resetFilters = () => {
+    setQ(""); setCountry("all"); setRegion("all"); setCategory("all");
+    setCurrency("all"); setLanguage("all"); setTheme("all");
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Template Marketplace</h1>
-          <p className="mt-2 text-muted-foreground">Choose a template to start from.</p>
+          <h1 className="text-3xl font-bold">Global Banking Library</h1>
+          <p className="mt-2 text-muted-foreground">
+            {templates.length} templates across {regions.length} regions. Search, filter, preview, then clone one.
+          </p>
         </div>
         {mode === "custom" && (
-          <Button variant="outline" onClick={onSkip}>
-            Skip — build from scratch
-          </Button>
+          <Button variant="outline" onClick={onSkip}>Skip — build from scratch</Button>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <CategoryChip active={cat === "all"} onClick={() => setCat("all")}>
-          All
-        </CategoryChip>
-        {CATEGORY_OPTIONS.map((c) => (
-          <CategoryChip key={c} active={cat === c} onClick={() => setCat(c)}>
-            {c}
-          </CategoryChip>
-        ))}
-      </div>
+      <Card>
+        <CardContent className="space-y-3 p-4">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Search bank name, country, region, or category…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <FilterSelect label="Country" value={country} onChange={setCountry}
+              options={[{ v: "all", l: "All countries" }, ...countries.map((c) => ({ v: c.code, l: `${c.flag_emoji} ${c.name}` }))]} />
+            <FilterSelect label="Region" value={region} onChange={setRegion}
+              options={[{ v: "all", l: "All regions" }, ...regions.map((r) => ({ v: r, l: r }))]} />
+            <FilterSelect label="Category" value={category} onChange={setCategory}
+              options={[{ v: "all", l: "All categories" }, ...CATEGORY_OPTIONS.map((c) => ({ v: c, l: c }))]} />
+            <FilterSelect label="Currency" value={currency} onChange={setCurrency}
+              options={[{ v: "all", l: "All" }, ...currencies.map((c) => ({ v: c, l: c }))]} />
+            <FilterSelect label="Language" value={language} onChange={setLanguage}
+              options={[{ v: "all", l: "All" }, ...languages.map((l) => ({ v: l, l: l.toUpperCase() }))]} />
+            <FilterSelect label="Theme" value={theme} onChange={setTheme}
+              options={[{ v: "all", l: "All" }, { v: "light", l: "Light" }, { v: "dark", l: "Dark" }]} />
+          </div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>{filtered.length} of {templates.length} templates</span>
+            <button className="underline" onClick={resetFilters}>Reset filters</button>
+          </div>
+        </CardContent>
+      </Card>
 
       {loading ? (
         <div className="text-muted-foreground">Loading templates…</div>
-      ) : filtered.length === 0 ? (
+      ) : grouped.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-          No templates available for this country/category yet.
+          No templates match these filters.
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((t) => (
-            <TemplateCard
-              key={t.id}
-              t={t}
-              active={selectedId === t.id}
-              onPreview={() => setPreview(t)}
-              onUse={() => onSelect(t)}
-            />
+        <div className="space-y-10">
+          {grouped.map(({ country: c, list }) => (
+            <section key={c.code} className="space-y-4">
+              <div className="flex items-center gap-3 border-b pb-2">
+                <span className="text-3xl">{c.flag_emoji}</span>
+                <div>
+                  <h2 className="text-xl font-semibold">{c.name}</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {c.region} · {c.currency} · {c.default_language.toUpperCase()} · {list.length} templates
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {list.map((t) => (
+                  <TemplateCard
+                    key={t.id}
+                    t={t}
+                    country={c}
+                    active={selectedId === t.id}
+                    onPreview={() => setPreview(t)}
+                    onUse={() => onSelect(t)}
+                  />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}
@@ -473,6 +590,7 @@ function Step3({
       <NavRow onBack={onBack} hideNext />
       <TemplatePreviewModal
         template={preview}
+        country={preview ? countryByCode[preview.country_code] : undefined}
         onClose={() => setPreview(null)}
         onUse={(t) => {
           setPreview(null);
@@ -483,87 +601,93 @@ function Step3({
   );
 }
 
-function CategoryChip({
-  active,
-  onClick,
-  children,
+function FilterSelect({
+  label, value, onChange, options,
 }: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { v: string; l: string }[];
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "rounded-full border px-3 py-1 text-sm transition",
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-card hover:bg-accent",
-      )}
-    >
-      {children}
-    </button>
+    <div className="space-y-1">
+      <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+        <SelectContent className="max-h-72">
+          {options.map((o) => (
+            <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
 function TemplateCard({
   t,
+  country,
   active,
   onPreview,
   onUse,
 }: {
   t: BankTemplate;
+  country: BankCountry;
   active: boolean;
   onPreview: () => void;
   onUse: () => void;
 }) {
+  const updated = new Date(t.updated_at);
+  const daysAgo = Math.floor((Date.now() - updated.getTime()) / (1000 * 60 * 60 * 24));
+  const isRecent = daysAgo <= 30;
   return (
-    <Card className={cn("overflow-hidden", active && "ring-2 ring-primary")}>
+    <Card className={cn("overflow-hidden transition hover:shadow-lg", active && "ring-2 ring-primary")}>
       <div
         className="relative h-40"
-        style={{
-          background: `linear-gradient(135deg, ${t.primary_color}, ${t.secondary_color})`,
-        }}
+        style={{ background: `linear-gradient(135deg, ${t.primary_color}, ${t.secondary_color})` }}
       >
         <div className="absolute inset-0 flex flex-col justify-between p-4 text-white">
-          <div className="text-xs opacity-80">{t.category}</div>
+          <div className="flex items-start justify-between">
+            <div className="text-xs opacity-80">{t.category}</div>
+            <div className="flex flex-col items-end gap-1">
+              {t.is_premium && <Badge className="bg-amber-500 text-white hover:bg-amber-500">Premium</Badge>}
+              {isRecent && <Badge className="bg-emerald-500 text-white hover:bg-emerald-500">Updated</Badge>}
+            </div>
+          </div>
           <div>
-            <div className="text-lg font-bold">{t.name}</div>
-            <div
-              className="mt-2 h-2 w-16 rounded-full"
-              style={{ backgroundColor: t.accent_color }}
-            />
+            <div className="text-lg font-bold leading-tight">{t.name}</div>
+            <div className="mt-1 text-xs opacity-90">{country.flag_emoji} {country.name}</div>
+            <div className="mt-2 h-2 w-16 rounded-full" style={{ backgroundColor: t.accent_color }} />
           </div>
         </div>
       </div>
       <CardContent className="space-y-3 p-4">
-        <p className="text-sm text-muted-foreground line-clamp-2">{t.description}</p>
+        <p className="line-clamp-2 text-sm text-muted-foreground">{t.description}</p>
+        <div className="flex flex-wrap gap-1 text-xs">
+          <Badge variant="outline">{t.currency}</Badge>
+          <Badge variant="outline">{t.language.toUpperCase()}</Badge>
+          <Badge variant="outline">{t.theme === "dark" ? "Dark" : "Light"}</Badge>
+          {t.mobile_support && <Badge variant="outline">Responsive</Badge>}
+        </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Monitor className="h-3 w-3" />
           <Tablet className="h-3 w-3" />
           <Smartphone className="h-3 w-3" />
-          <span>· {t.pages.length} pages</span>
+          <span>· {t.pages.length} pages · {t.features.length} features</span>
         </div>
         <div className="flex flex-wrap gap-1">
-          {t.pages.slice(0, 4).map((p) => (
-            <Badge key={p} variant="secondary" className="text-xs">
-              {p}
-            </Badge>
+          {t.features.slice(0, 4).map((f) => (
+            <Badge key={f} variant="secondary" className="text-xs">{f}</Badge>
           ))}
-          {t.pages.length > 4 && (
-            <Badge variant="outline" className="text-xs">
-              +{t.pages.length - 4}
-            </Badge>
+          {t.features.length > 4 && (
+            <Badge variant="outline" className="text-xs">+{t.features.length - 4}</Badge>
           )}
         </div>
         <div className="flex gap-2 pt-1">
           <Button variant="outline" size="sm" onClick={onPreview} className="flex-1">
             <Eye className="mr-1 h-4 w-4" /> Preview
           </Button>
-          <Button size="sm" onClick={onUse} className="flex-1">
-            Use Template
-          </Button>
+          <Button size="sm" onClick={onUse} className="flex-1">Use Template</Button>
         </div>
       </CardContent>
     </Card>
@@ -573,29 +697,44 @@ function TemplateCard({
 /* ------------------ STEP 4 (modal) ------------------ */
 function TemplatePreviewModal({
   template,
+  country,
   onClose,
   onUse,
 }: {
   template: BankTemplate | null;
+  country?: BankCountry;
   onClose: () => void;
   onUse: (t: BankTemplate) => void;
 }) {
   const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  const [page, setPage] = useState("Homepage");
+  const [pageIndex, setPageIndex] = useState(0);
+  const [animKey, setAnimKey] = useState(0);
+
   useEffect(() => {
-    if (template) setPage(template.pages[0] ?? "Homepage");
+    if (template) {
+      setPageIndex(0);
+      setAnimKey((k) => k + 1);
+    }
   }, [template]);
 
   if (!template) return null;
+  const pages = template.pages;
+  const page = pages[pageIndex] ?? pages[0];
   const frameWidth = device === "desktop" ? 960 : device === "tablet" ? 640 : 320;
+  const goPrev = () => { setPageIndex((i) => (i - 1 + pages.length) % pages.length); setAnimKey((k) => k + 1); };
+  const goNext = () => { setPageIndex((i) => (i + 1) % pages.length); setAnimKey((k) => k + 1); };
 
   return (
     <Dialog open={!!template} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-6xl">
-        <DialogHeader>
-          <DialogTitle>{template.name} — Preview</DialogTitle>
+      <DialogContent className="max-w-[95vw] p-0 sm:max-w-6xl">
+        <DialogHeader className="border-b p-4">
+          <DialogTitle className="flex flex-wrap items-center gap-2">
+            <span>{template.name}</span>
+            {country && <span className="text-sm font-normal text-muted-foreground">— {country.flag_emoji} {country.name}</span>}
+            {template.is_premium && <Badge className="bg-amber-500 text-white hover:bg-amber-500">Premium</Badge>}
+          </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
           <Tabs value={device} onValueChange={(v) => setDevice(v as typeof device)}>
             <TabsList>
               <TabsTrigger value="desktop"><Monitor className="mr-1 h-4 w-4" />Desktop</TabsTrigger>
@@ -603,30 +742,42 @@ function TemplatePreviewModal({
               <TabsTrigger value="mobile"><Smartphone className="mr-1 h-4 w-4" />Mobile</TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="ml-auto flex flex-wrap gap-1">
-            {template.pages.map((p) => (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                className={cn(
-                  "rounded-md border px-2 py-1 text-xs",
-                  page === p ? "border-primary bg-primary text-primary-foreground" : "bg-card",
-                )}
-              >
-                {p}
-              </button>
-            ))}
+          <div className="ml-auto flex items-center gap-1">
+            <Button size="icon" variant="outline" onClick={goPrev} aria-label="Previous page">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-[8rem] text-center text-sm font-medium">
+              {page} <span className="text-muted-foreground">({pageIndex + 1}/{pages.length})</span>
+            </div>
+            <Button size="icon" variant="outline" onClick={goNext} aria-label="Next page">
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
-        <div className="max-h-[60vh] overflow-auto rounded-lg bg-muted p-4">
+        <div className="flex flex-wrap gap-1 border-b px-4 py-2">
+          {pages.map((p, i) => (
+            <button
+              key={p}
+              onClick={() => { setPageIndex(i); setAnimKey((k) => k + 1); }}
+              className={cn(
+                "rounded-md border px-2 py-1 text-xs transition",
+                i === pageIndex ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-accent",
+              )}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+        <div className="max-h-[60vh] overflow-auto bg-muted p-4">
           <div
-            className="mx-auto overflow-hidden rounded-lg border bg-background shadow-sm"
+            key={animKey}
+            className="mx-auto overflow-hidden rounded-lg border bg-background shadow-sm animate-fade-in"
             style={{ maxWidth: frameWidth }}
           >
             <TemplatePagePreview template={template} page={page} />
           </div>
         </div>
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 border-t p-4">
           <Button variant="outline" onClick={onClose}>Close</Button>
           <Button onClick={() => onUse(template)}>Use this template</Button>
         </div>
@@ -641,8 +792,9 @@ function TemplatePagePreview({ template, page }: { template: BankTemplate; page:
     "--ts": template.secondary_color,
     "--ta": template.accent_color,
   } as React.CSSProperties;
+  const dark = template.theme === "dark";
   return (
-    <div style={style} className="min-h-[400px] w-full">
+    <div style={style} className={cn("min-h-[400px] w-full", dark && "bg-neutral-950 text-neutral-100")}>
       <div
         className="flex items-center justify-between px-4 py-3 text-sm text-white"
         style={{ backgroundColor: template.primary_color }}
@@ -655,15 +807,11 @@ function TemplatePagePreview({ template, page }: { template: BankTemplate; page:
           <>
             <div
               className="h-32 rounded-lg"
-              style={{
-                background: `linear-gradient(135deg, ${template.primary_color}, ${template.secondary_color})`,
-              }}
+              style={{ background: `linear-gradient(135deg, ${template.primary_color}, ${template.secondary_color})` }}
             />
             <div className="grid grid-cols-3 gap-2">
               {["Save", "Send", "Invest"].map((k) => (
-                <div key={k} className="rounded border p-3 text-center text-xs">
-                  {k}
-                </div>
+                <div key={k} className="rounded border p-3 text-center text-xs">{k}</div>
               ))}
             </div>
           </>
@@ -671,44 +819,57 @@ function TemplatePagePreview({ template, page }: { template: BankTemplate; page:
         {page === "Dashboard" && (
           <>
             <div className="rounded-lg border p-4">
-              <div className="text-xs text-muted-foreground">Total balance</div>
-              <div className="text-2xl font-bold">$24,850.32</div>
-              <div
-                className="mt-2 h-1 w-24 rounded"
-                style={{ backgroundColor: template.accent_color }}
-              />
+              <div className="text-xs opacity-70">Total balance</div>
+              <div className="text-2xl font-bold">{template.currency} 24,850.32</div>
+              <div className="mt-2 h-1 w-24 rounded" style={{ backgroundColor: template.accent_color }} />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded border p-3 text-xs">Recent</div>
-              <div className="rounded border p-3 text-xs">Cards</div>
+              <div className="rounded border p-3 text-xs">Recent activity</div>
+              <div className="rounded border p-3 text-xs">Cards on file</div>
             </div>
           </>
         )}
-        {["Login", "Registration"].includes(page) && (
+        {(page === "Login" || page === "Registration") && (
           <div className="space-y-2 rounded-lg border p-4">
             <div className="text-sm font-medium">{page} form</div>
             <div className="h-8 rounded bg-muted" />
             <div className="h-8 rounded bg-muted" />
-            <div
-              className="h-8 rounded"
-              style={{ backgroundColor: template.primary_color }}
-            />
+            <div className="h-8 rounded" style={{ backgroundColor: template.primary_color }} />
           </div>
         )}
-        {!["Homepage", "Dashboard", "Login", "Registration"].includes(page) && (
+        {page === "Transfer" && (
+          <div className="space-y-2 rounded-lg border p-4">
+            <div className="text-sm font-medium">Send money</div>
+            <div className="h-8 rounded bg-muted" />
+            <div className="h-8 rounded bg-muted" />
+            <div className="h-10 rounded" style={{ backgroundColor: template.accent_color }} />
+          </div>
+        )}
+        {page === "Cards" && (
+          <div className="grid grid-cols-2 gap-3">
+            {[0, 1].map((i) => (
+              <div
+                key={i}
+                className="h-24 rounded-xl p-3 text-xs text-white"
+                style={{ background: `linear-gradient(135deg, ${template.primary_color}, ${template.accent_color})` }}
+              >
+                •••• 4{i}12
+              </div>
+            ))}
+          </div>
+        )}
+        {(page === "Transactions" || page === "Statements" || page === "Notifications" || page === "Profile") && (
           <div className="space-y-2">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="flex items-center justify-between rounded border p-3">
                 <div>
                   <div className="text-sm font-medium">{page} item {i + 1}</div>
-                  <div className="text-xs text-muted-foreground">Sample content</div>
+                  <div className="text-xs opacity-70">Sample content</div>
                 </div>
                 <div
                   className="h-6 w-14 rounded text-center text-xs leading-6 text-white"
                   style={{ backgroundColor: template.accent_color }}
-                >
-                  View
-                </div>
+                >View</div>
               </div>
             ))}
           </div>
@@ -717,6 +878,7 @@ function TemplatePagePreview({ template, page }: { template: BankTemplate; page:
     </div>
   );
 }
+
 
 /* ------------------ STEP 5 ------------------ */
 function Step5({

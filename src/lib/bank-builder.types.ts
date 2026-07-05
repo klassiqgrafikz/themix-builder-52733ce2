@@ -5,6 +5,7 @@ export type BankCountry = {
   timezone: string;
   default_language: string;
   flag_emoji: string;
+  region: string;
 };
 
 export type BankTemplate = {
@@ -17,6 +18,14 @@ export type BankTemplate = {
   secondary_color: string;
   accent_color: string;
   pages: string[];
+  region: string;
+  currency: string;
+  language: string;
+  theme: "light" | "dark";
+  features: string[];
+  mobile_support: boolean;
+  is_premium: boolean;
+  updated_at: string;
 };
 
 export type BankIdentity = {

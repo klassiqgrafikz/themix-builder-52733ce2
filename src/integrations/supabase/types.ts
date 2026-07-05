@@ -80,6 +80,7 @@ export type Database = {
           default_language: string
           flag_emoji: string
           name: string
+          region: string
           timezone: string
         }
         Insert: {
@@ -88,6 +89,7 @@ export type Database = {
           default_language: string
           flag_emoji: string
           name: string
+          region: string
           timezone: string
         }
         Update: {
@@ -96,6 +98,7 @@ export type Database = {
           default_language?: string
           flag_emoji?: string
           name?: string
+          region?: string
           timezone?: string
         }
         Relationships: []
@@ -106,36 +109,60 @@ export type Database = {
           category: string
           country_code: string
           created_at: string
+          currency: string
           description: string
+          features: Json
           id: string
+          is_premium: boolean
+          language: string
+          mobile_support: boolean
           name: string
           pages: Json
           primary_color: string
+          region: string
           secondary_color: string
+          theme: string
+          updated_at: string
         }
         Insert: {
           accent_color: string
           category: string
           country_code: string
           created_at?: string
+          currency: string
           description: string
+          features?: Json
           id?: string
+          is_premium?: boolean
+          language: string
+          mobile_support?: boolean
           name: string
           pages?: Json
           primary_color: string
+          region: string
           secondary_color: string
+          theme?: string
+          updated_at?: string
         }
         Update: {
           accent_color?: string
           category?: string
           country_code?: string
           created_at?: string
+          currency?: string
           description?: string
+          features?: Json
           id?: string
+          is_premium?: boolean
+          language?: string
+          mobile_support?: boolean
           name?: string
           pages?: Json
           primary_color?: string
+          region?: string
           secondary_color?: string
+          theme?: string
+          updated_at?: string
         }
         Relationships: [
           {
