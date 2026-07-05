@@ -225,21 +225,34 @@ function Wizard() {
             {step === 3 && (
               <Step3
                 templates={(templatesQ.data as BankTemplate[]) ?? []}
+                countries={(countriesQ.data as BankCountry[]) ?? []}
                 loading={templatesQ.isLoading}
                 mode={draft.mode}
+                defaultCountry={draft.country_code}
                 selectedId={draft.template_id}
                 onBack={() => goto(2)}
-                onSelect={(t) =>
+                onSelect={(t) => {
+                  const clonedFeatures: Record<string, boolean> = { ...(draft.features ?? {}) };
+                  for (const f of t.features ?? []) clonedFeatures[f] = true;
                   goto(5, {
                     template_id: t.id,
+                    country_code: t.country_code,
+                    identity: {
+                      ...(draft.identity ?? {}),
+                      country_code: t.country_code,
+                      currency: t.currency,
+                      language: t.language,
+                    },
                     branding: {
                       ...(draft.branding ?? {}),
                       primary_color: t.primary_color,
                       secondary_color: t.secondary_color,
                       accent_color: t.accent_color,
+                      dark_mode: t.theme === "dark",
                     },
-                  })
-                }
+                    features: clonedFeatures,
+                  });
+                }}
                 onSkip={() => goto(5)}
               />
             )}
