@@ -114,9 +114,12 @@ function BankBuilderPage() {
 }
 
 function Wizard() {
-  const [step, setStep] = useState(1);
-  const [draftId, setDraftId] = useState<string | null>(null);
+  const search = Route.useSearch();
+  const initialDraftId = search.draftId ?? null;
+  const [step, setStep] = useState(initialDraftId ? 5 : 1);
+  const [draftId, setDraftId] = useState<string | null>(initialDraftId);
   const [mode, setMode] = useState<"template" | "custom">("template");
+  const [resumed, setResumed] = useState(false);
 
   const getDraftFn = useServerFn(getDraft);
   const createDraftFn = useServerFn(createDraft);
@@ -132,6 +135,13 @@ function Wizard() {
     enabled: !!draftId,
   });
   const draft = draftQ.data as BankDraft | undefined;
+
+  useEffect(() => {
+    if (!resumed && initialDraftId && draft) {
+      setStep(Math.max(5, draft.current_step || 5));
+      setResumed(true);
+    }
+  }, [initialDraftId, draft, resumed]);
 
   const countriesQ = useQuery({
     queryKey: ["bb-countries"],
