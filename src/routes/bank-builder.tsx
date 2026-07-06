@@ -57,13 +57,16 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/bank-builder")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    draftId: typeof s.draftId === "string" ? s.draftId : undefined,
+  }),
   head: () => ({
     meta: [
-      { title: "Create New Bank — TheMixWeb" },
+      { title: "Launch New Bank — TheMixWeb" },
       {
         name: "description",
         content:
-          "Bank Builder wizard: pick a template, brand it, configure features, simulation and admin controls.",
+          "Launch New Bank wizard: pick a Blueprint, brand it, configure modules, simulation and admin controls.",
       },
     ],
   }),

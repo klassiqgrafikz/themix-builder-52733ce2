@@ -12,9 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LaunchRouteImport } from './routes/launch'
 import { Route as BankBuilderRouteImport } from './routes/bank-builder'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LaunchIndexRouteImport } from './routes/launch.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as LaunchCategoryRouteImport } from './routes/launch.$category'
+import { Route as AdminSectionRouteImport } from './routes/admin.$section'
 import { Route as LaunchCategoryIndexRouteImport } from './routes/launch.$category.index'
 import { Route as LaunchCategoryCountryRouteImport } from './routes/launch.$category.$country'
 
@@ -33,6 +36,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,10 +51,20 @@ const LaunchIndexRoute = LaunchIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LaunchRoute,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const LaunchCategoryRoute = LaunchCategoryRouteImport.update({
   id: '/$category',
   path: '/$category',
   getParentRoute: () => LaunchRoute,
+} as any)
+const AdminSectionRoute = AdminSectionRouteImport.update({
+  id: '/$section',
+  path: '/$section',
+  getParentRoute: () => AdminRoute,
 } as any)
 const LaunchCategoryIndexRoute = LaunchCategoryIndexRouteImport.update({
   id: '/',
@@ -61,10 +79,13 @@ const LaunchCategoryCountryRoute = LaunchCategoryCountryRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
   '/launch': typeof LaunchRouteWithChildren
+  '/admin/$section': typeof AdminSectionRoute
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/launch/$category/': typeof LaunchCategoryIndexRoute
@@ -73,6 +94,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
+  '/admin/$section': typeof AdminSectionRoute
+  '/admin': typeof AdminIndexRoute
   '/launch': typeof LaunchIndexRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/launch/$category': typeof LaunchCategoryIndexRoute
@@ -80,10 +103,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
   '/launch': typeof LaunchRouteWithChildren
+  '/admin/$section': typeof AdminSectionRoute
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/launch/$category/': typeof LaunchCategoryIndexRoute
@@ -92,10 +118,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/auth'
     | '/bank-builder'
     | '/launch'
+    | '/admin/$section'
     | '/launch/$category'
+    | '/admin/'
     | '/launch/'
     | '/launch/$category/$country'
     | '/launch/$category/'
@@ -104,16 +133,21 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/bank-builder'
+    | '/admin/$section'
+    | '/admin'
     | '/launch'
     | '/launch/$category/$country'
     | '/launch/$category'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/auth'
     | '/bank-builder'
     | '/launch'
+    | '/admin/$section'
     | '/launch/$category'
+    | '/admin/'
     | '/launch/'
     | '/launch/$category/$country'
     | '/launch/$category/'
@@ -121,6 +155,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   BankBuilderRoute: typeof BankBuilderRoute
   LaunchRoute: typeof LaunchRouteWithChildren
@@ -149,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -163,12 +205,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LaunchIndexRouteImport
       parentRoute: typeof LaunchRoute
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/launch/$category': {
       id: '/launch/$category'
       path: '/$category'
       fullPath: '/launch/$category'
       preLoaderRoute: typeof LaunchCategoryRouteImport
       parentRoute: typeof LaunchRoute
+    }
+    '/admin/$section': {
+      id: '/admin/$section'
+      path: '/$section'
+      fullPath: '/admin/$section'
+      preLoaderRoute: typeof AdminSectionRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/launch/$category/': {
       id: '/launch/$category/'
@@ -186,6 +242,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteChildren {
+  AdminSectionRoute: typeof AdminSectionRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminSectionRoute: AdminSectionRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface LaunchCategoryRouteChildren {
   LaunchCategoryCountryRoute: typeof LaunchCategoryCountryRoute
@@ -216,6 +284,7 @@ const LaunchRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   BankBuilderRoute: BankBuilderRoute,
   LaunchRoute: LaunchRouteWithChildren,
