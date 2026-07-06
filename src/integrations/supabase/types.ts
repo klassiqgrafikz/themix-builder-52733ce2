@@ -73,6 +73,30 @@ export type Database = {
           },
         ]
       }
+      bb_blueprint_categories: {
+        Row: {
+          description: string
+          icon: string
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          description: string
+          icon: string
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          description?: string
+          icon?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       bb_countries: {
         Row: {
           code: string
@@ -103,9 +127,37 @@ export type Database = {
         }
         Relationships: []
       }
+      bb_modules: {
+        Row: {
+          default_pages: Json
+          description: string
+          group_name: string
+          key: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          default_pages?: Json
+          description: string
+          group_name: string
+          key: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          default_pages?: Json
+          description?: string
+          group_name?: string
+          key?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       bb_templates: {
         Row: {
           accent_color: string
+          blueprint_category: string | null
           category: string
           country_code: string
           created_at: string
@@ -118,14 +170,19 @@ export type Database = {
           mobile_support: boolean
           name: string
           pages: Json
+          popularity: number
           primary_color: string
+          recommended: boolean
           region: string
           secondary_color: string
+          supported_modules: string[]
           theme: string
           updated_at: string
+          version: string
         }
         Insert: {
           accent_color: string
+          blueprint_category?: string | null
           category: string
           country_code: string
           created_at?: string
@@ -138,14 +195,19 @@ export type Database = {
           mobile_support?: boolean
           name: string
           pages?: Json
+          popularity?: number
           primary_color: string
+          recommended?: boolean
           region: string
           secondary_color: string
+          supported_modules?: string[]
           theme?: string
           updated_at?: string
+          version?: string
         }
         Update: {
           accent_color?: string
+          blueprint_category?: string | null
           category?: string
           country_code?: string
           created_at?: string
@@ -158,13 +220,24 @@ export type Database = {
           mobile_support?: boolean
           name?: string
           pages?: Json
+          popularity?: number
           primary_color?: string
+          recommended?: boolean
           region?: string
           secondary_color?: string
+          supported_modules?: string[]
           theme?: string
           updated_at?: string
+          version?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bb_templates_blueprint_category_fkey"
+            columns: ["blueprint_category"]
+            isOneToOne: false
+            referencedRelation: "bb_blueprint_categories"
+            referencedColumns: ["slug"]
+          },
           {
             foreignKeyName: "bb_templates_country_code_fkey"
             columns: ["country_code"]

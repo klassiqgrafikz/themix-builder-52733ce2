@@ -5,6 +5,8 @@ import type {
   BankCountry,
   BankTemplate,
   BankDraft,
+  BlueprintCategory,
+  BankModule,
 } from "./bank-builder.types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,6 +34,43 @@ export const listTemplates = createServerFn({ method: "GET" })
     return (rows ?? []) as BankTemplate[];
   });
 
+export const listBlueprintCategories = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<BlueprintCategory[]> => {
+    const { data, error } = await anyClient(context.supabase)
+      .from("bb_blueprint_categories")
+      .select("*")
+      .order("sort_order");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as BlueprintCategory[];
+  });
+
+export const listModules = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<BankModule[]> => {
+    const { data, error } = await anyClient(context.supabase)
+      .from("bb_modules")
+      .select("*")
+      .order("sort_order");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as BankModule[];
+  });
+
+export const listBlueprints = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { category?: string | null; country?: string | null }) => d)
+  .handler(async ({ context, data }): Promise<BankTemplate[]> => {
+    let q = anyClient(context.supabase)
+      .from("bb_templates")
+      .select("*")
+      .order("popularity", { ascending: false });
+    if (data.category) q = q.eq("blueprint_category", data.category);
+    if (data.country) q = q.eq("country_code", data.country);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as BankTemplate[];
+  });
+
 export const createDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { mode: "template" | "custom" }) =>
@@ -45,6 +84,50 @@ export const createDraft = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     return row as BankDraft;
+  });
+
+export const useBlueprint = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { blueprintId: string }) =>
+    z.object({ blueprintId: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ context, data }): Promise<{ draftId: string }> => {
+    const sb = anyClient(context.supabase);
+    const { data: t, error: tErr } = await sb
+      .from("bb_templates")
+      .select("*")
+      .eq("id", data.blueprintId)
+      .single();
+    if (tErr || !t) throw new Error(tErr?.message ?? "Blueprint not found");
+
+    const features: Record<string, boolean> = {};
+    for (const m of (t.supported_modules ?? []) as string[]) features[m] = true;
+
+    const { data: row, error } = await sb
+      .from("bb_bank_drafts")
+      .insert({
+        owner_id: context.userId,
+        mode: "template",
+        template_id: t.id,
+        country_code: t.country_code,
+        current_step: 5,
+        identity: {
+          country_code: t.country_code,
+          currency: t.currency,
+          language: t.language,
+        },
+        branding: {
+          primary_color: t.primary_color,
+          secondary_color: t.secondary_color,
+          accent_color: t.accent_color,
+          dark_mode: t.theme === "dark",
+        },
+        features,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { draftId: row.id as string };
   });
 
 export const getDraft = createServerFn({ method: "GET" })

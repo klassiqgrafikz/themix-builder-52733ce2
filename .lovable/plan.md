@@ -1,68 +1,67 @@
-# Bank Builder Wizard
+# Phase 2 — Blueprint Library, Launch New Bank, Global Admin
 
-A 10-step wizard at `/bank-builder` that persists progress to Lovable Cloud (Supabase) after each step and ends with a saved (unpublished) bank configuration.
+Refactor the Bank Builder into a three-level Blueprint Library and an 8-step Launch New Bank wizard, plus a global platform admin shell. Preserves existing auth, tenant tables, DB relationships, and the underlying draft persistence.
 
 ## Scope guardrails
-- No changes to existing auth, tenant routing, dashboard, or existing DB tables.
-- New tables only, all prefixed `bb_` (bank builder) to avoid collisions.
-- Wizard is self-contained under `src/routes/bank-builder/` and `src/components/bank-builder/`.
+- No changes to `auth`, tenant routing, or existing non-`bb_` tables.
+- Reuse `bb_bank_drafts` (identity/branding/features/simulation/admin_controls jsonb) — no schema break.
+- Add new tables only: `bb_blueprint_categories`, `bb_modules`. Extend `bb_templates` with `blueprint_*` metadata (kept name for continuity; treated as "Blueprint" in UI).
 
-## Routes (TanStack Router, file-based)
+## Data model changes (one migration)
+- `bb_blueprint_categories(slug pk, name, description, icon, sort_order)` — seeded with 13 categories (Retail, Commercial, Corporate, Investment, Private, Digital, Credit Union, Cooperative, Islamic, Neo, Wealth Mgmt, Microfinance, International).
+- `bb_modules(key pk, group_name, label, description, default_pages jsonb, sort_order)` — seeded with the full module list (Core Banking, Customer Services, Communication, Digital Services groups).
+- `ALTER TABLE bb_templates ADD` columns: `blueprint_category` (fk slug), `version text`, `popularity int`, `recommended bool`, `desktop_preview jsonb`, `mobile_preview jsonb`, `supported_modules text[]`. Backfill `blueprint_category` from existing `category`.
+- Reseed templates so every (category × country) combo listed in the spec has 2–3 blueprints with country-inspired naming.
+- RLS unchanged (owner-only drafts; read-only catalog to authenticated). GRANTs on all new tables.
+
+## Route architecture
 ```
-src/routes/bank-builder/
-  route.tsx                 // layout: stepper header + <Outlet/>
-  index.tsx                 // Step 1: start (Template vs Custom)
-  $draftId.country.tsx      // Step 2
-  $draftId.template.tsx     // Step 3
-  $draftId.identity.tsx     // Step 5
-  $draftId.branding.tsx     // Step 6
-  $draftId.features.tsx     // Step 7
-  $draftId.simulation.tsx   // Step 8
-  $draftId.admin.tsx        // Step 9
-  $draftId.review.tsx       // Step 10
+/launch                              → Level 1: Blueprint categories grid
+/launch/$categorySlug                → Level 2: Country grid
+/launch/$categorySlug/$countryCode   → Level 3: Blueprints for cat+country
+/launch/wizard/$draftId              → Steps 4–8 (identity → generate)
+/admin                               → Global admin shell (index: overview)
+/admin/customers, /admin/balances, /admin/transactions,
+/admin/simulation, /admin/restrictions, /admin/freeze,
+/admin/notifications, /admin/chat, /admin/support,
+/admin/audit, /admin/activity, /admin/analytics,
+/admin/roles, /admin/settings, /admin/banks
 ```
-Step 4 (template preview) is a modal opened from Step 3, not a route.
+`/bank-builder` → 301-style client redirect to `/launch` for continuity.
 
-A draft row is created on Step 1 continue; `draftId` threads through the URL so refresh/back works and every step navigation writes to Supabase.
+## UI components (`src/components/launch/`, `src/components/admin/`)
+- `BlueprintCategoryGrid`, `CountryPicker`, `BlueprintGrid`, `BlueprintCard` (preview, badges: Recommended / Premium / version / popularity), `BlueprintCompareDrawer`, `BlueprintPreviewModal` (device toggle + page tabs: Home, Login, Register, Dashboard, Accounts, Cards, Transfers, Settings, Support).
+- `LaunchWizardShell` (steps 4–8 stepper), `ModuleSelector` (grouped toggles from `bb_modules`), `ReviewSummary`, `GenerateBankPanel`.
+- `AdminShell` (sidebar with the 15 sections, top bank switcher, `<Outlet/>`), placeholder page bodies that read from the current tenant selection (data wired later — pages render with empty-state UI, not fake rows).
 
-## Data model (new tables, RLS on, owner = auth.uid())
-- `bb_bank_drafts` — one row per draft: `id, owner_id, mode ('template'|'custom'), country_code, template_id, identity jsonb, branding jsonb, features jsonb, simulation jsonb, admin_controls jsonb, current_step int, status ('draft'|'saved'), created_at, updated_at`.
-- `bb_templates` — catalog: `id, name, country_code, category, thumbnail_url, pages jsonb, preview jsonb (desktop/tablet/mobile config), created_at`.
-- `bb_countries` — reference list: `code, name, currency, timezone, default_language, flag_emoji`.
+## Server functions (extend `src/lib/bank-builder.functions.ts`)
+- `listBlueprintCategories()`, `listCountriesForCategory(categorySlug)`, `listBlueprints({ category, country })`.
+- `listModules()`, `useBlueprint({ blueprintId })` → creates draft, clones blueprint into `identity/branding/features` + `template_id`, returns `{ draftId }`.
+- Keep existing `createDraft/getDraft/updateDraft/finalizeDraft/listDrafts`.
+- All authenticated via `requireSupabaseAuth`.
 
-Templates and countries seeded via migration (real rows, not static JSON in code). Thumbnails/previews rendered from live component + branding tokens — no placeholder image files.
+## Launch New Bank flow
+1. Category (Level 1 route)
+2. Country (Level 2 route)
+3. Blueprint (Level 3 route) → `useBlueprint` clones and routes to wizard
+4. Identity (bank name, country, currency, language, timezone, region, subdomain w/ slugify + uniqueness check on `identity->>subdomain`)
+5. Branding (logo/favicon/hero upload to existing `bank-builder-assets` bucket, colors, typography)
+6. Bank Modules (grouped selector from `bb_modules`; enabled modules stored in `features` jsonb keyed by module key)
+7. Review
+8. Generate → `finalizeDraft` sets `status='saved'` (no real DNS/tenant provisioning; that stays out of scope per prior phases)
 
-RLS:
-- `bb_bank_drafts`: owner-only select/insert/update/delete via `auth.uid() = owner_id`.
-- `bb_countries`, `bb_templates`: `SELECT` to `authenticated` (read-only catalog).
-
-Grants added per public-schema rules.
-
-## Components
-- `WizardShell` — sticky top progress bar (Step X of 10), Back / Continue.
-- `StepCard`, `OptionCard`, `ToggleCard`, `ColorField`, `FileDrop` (logo/favicon/hero — Supabase Storage bucket `bank-builder-assets`, private, owner-scoped RLS).
-- `CountryGrid` (searchable), `TemplateGrid` (filter by country + category chips).
-- `TemplatePreviewModal` — device toggle (Desktop/Tablet/Mobile) + page tabs (Home/Login/Register/Dashboard/Transfer/Cards/Transactions/Profile/Notifications/Statements) rendering a live React preview themed by branding tokens.
-- `ReviewSummary` — grouped read-only view of every selection.
-
-## Persistence flow
-- On every Continue: `updateDraft` server function writes the step's slice + bumps `current_step`, then navigates.
-- Subdomain auto-generated from bank name (slugified, uniqueness check against `bb_bank_drafts.identity->>subdomain`), shown as `<slug>.themixweb.app`.
-- Step 10 "Generate Bank" sets `status='saved'` — does NOT publish, does NOT touch tenant tables.
-
-## Server functions (`src/lib/bank-builder.functions.ts`)
-All use `requireSupabaseAuth`:
-- `createDraft`, `getDraft`, `updateDraft`, `listCountries`, `listTemplates(countryCode?)`, `checkSubdomain`, `finalizeDraft`.
+## Global Admin
+- New `/admin` shell with sidebar nav for all 15 tools. Each page renders a titled empty-state ("Select a bank to manage its <domain>") and a bank switcher fed by `listDrafts()`. No fake data, no changes to existing dashboard. Sim/admin toggles from the wizard remain the source of which tools are exposed per bank.
 
 ## Mobile responsive
-Grid layouts collapse to single column < sm; stepper condenses to "Step X / 10 — Title"; modal previews use device-frame scaling.
+- Category & country grids collapse to 1-col; blueprint cards to single column; wizard stepper condenses to "Step X / 8 — Title"; admin sidebar becomes a Sheet drawer under `sm`.
 
 ## Out of scope (explicit)
-- Actual tenant provisioning / DNS / publish.
-- Editing existing auth or tenant routing files.
-- Any changes to existing tables.
+- Real tenant provisioning / DNS / custom domains.
+- Live customer/transaction data wiring for admin pages (UI shells only).
+- Changes to existing auth, dashboard, tenant tables.
 
 ## Technical notes
-- Enable Lovable Cloud first (required for Supabase). One migration adds the 3 tables + seed data + storage bucket + RLS + grants.
-- TypeScript types generated from Supabase; wizard-specific types in `src/lib/bank-builder.types.ts`.
-- No fake APIs — all reads/writes go through server functions to Supabase.
+- One Supabase migration: new tables, ALTER + backfill, reseed blueprints, GRANTs, RLS.
+- New TS types added to `src/lib/bank-builder.types.ts` (`BlueprintCategory`, `BankModule`, extended `BankTemplate`).
+- `/bank-builder` route kept as a thin redirect to `/launch` so old links don't 404.
