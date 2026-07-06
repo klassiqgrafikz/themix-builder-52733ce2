@@ -9,10 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LaunchRouteImport } from './routes/launch'
 import { Route as BankBuilderRouteImport } from './routes/bank-builder'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LaunchIndexRouteImport } from './routes/launch.index'
+import { Route as LaunchCategoryRouteImport } from './routes/launch.$category'
+import { Route as LaunchCategoryIndexRouteImport } from './routes/launch.$category.index'
+import { Route as LaunchCategoryCountryRouteImport } from './routes/launch.$category.$country'
 
+const LaunchRoute = LaunchRouteImport.update({
+  id: '/launch',
+  path: '/launch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BankBuilderRoute = BankBuilderRouteImport.update({
   id: '/bank-builder',
   path: '/bank-builder',
@@ -28,39 +38,103 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LaunchIndexRoute = LaunchIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LaunchRoute,
+} as any)
+const LaunchCategoryRoute = LaunchCategoryRouteImport.update({
+  id: '/$category',
+  path: '/$category',
+  getParentRoute: () => LaunchRoute,
+} as any)
+const LaunchCategoryIndexRoute = LaunchCategoryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LaunchCategoryRoute,
+} as any)
+const LaunchCategoryCountryRoute = LaunchCategoryCountryRouteImport.update({
+  id: '/$country',
+  path: '/$country',
+  getParentRoute: () => LaunchCategoryRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
+  '/launch': typeof LaunchRouteWithChildren
+  '/launch/$category': typeof LaunchCategoryRouteWithChildren
+  '/launch/': typeof LaunchIndexRoute
+  '/launch/$category/$country': typeof LaunchCategoryCountryRoute
+  '/launch/$category/': typeof LaunchCategoryIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
+  '/launch': typeof LaunchIndexRoute
+  '/launch/$category/$country': typeof LaunchCategoryCountryRoute
+  '/launch/$category': typeof LaunchCategoryIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
+  '/launch': typeof LaunchRouteWithChildren
+  '/launch/$category': typeof LaunchCategoryRouteWithChildren
+  '/launch/': typeof LaunchIndexRoute
+  '/launch/$category/$country': typeof LaunchCategoryCountryRoute
+  '/launch/$category/': typeof LaunchCategoryIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/bank-builder'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/bank-builder'
+    | '/launch'
+    | '/launch/$category'
+    | '/launch/'
+    | '/launch/$category/$country'
+    | '/launch/$category/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/bank-builder'
-  id: '__root__' | '/' | '/auth' | '/bank-builder'
+  to:
+    | '/'
+    | '/auth'
+    | '/bank-builder'
+    | '/launch'
+    | '/launch/$category/$country'
+    | '/launch/$category'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/bank-builder'
+    | '/launch'
+    | '/launch/$category'
+    | '/launch/'
+    | '/launch/$category/$country'
+    | '/launch/$category/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   BankBuilderRoute: typeof BankBuilderRoute
+  LaunchRoute: typeof LaunchRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/launch': {
+      id: '/launch'
+      path: '/launch'
+      fullPath: '/launch'
+      preLoaderRoute: typeof LaunchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bank-builder': {
       id: '/bank-builder'
       path: '/bank-builder'
@@ -82,13 +156,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/launch/': {
+      id: '/launch/'
+      path: '/'
+      fullPath: '/launch/'
+      preLoaderRoute: typeof LaunchIndexRouteImport
+      parentRoute: typeof LaunchRoute
+    }
+    '/launch/$category': {
+      id: '/launch/$category'
+      path: '/$category'
+      fullPath: '/launch/$category'
+      preLoaderRoute: typeof LaunchCategoryRouteImport
+      parentRoute: typeof LaunchRoute
+    }
+    '/launch/$category/': {
+      id: '/launch/$category/'
+      path: '/'
+      fullPath: '/launch/$category/'
+      preLoaderRoute: typeof LaunchCategoryIndexRouteImport
+      parentRoute: typeof LaunchCategoryRoute
+    }
+    '/launch/$category/$country': {
+      id: '/launch/$category/$country'
+      path: '/$country'
+      fullPath: '/launch/$category/$country'
+      preLoaderRoute: typeof LaunchCategoryCountryRouteImport
+      parentRoute: typeof LaunchCategoryRoute
+    }
   }
 }
+
+interface LaunchCategoryRouteChildren {
+  LaunchCategoryCountryRoute: typeof LaunchCategoryCountryRoute
+  LaunchCategoryIndexRoute: typeof LaunchCategoryIndexRoute
+}
+
+const LaunchCategoryRouteChildren: LaunchCategoryRouteChildren = {
+  LaunchCategoryCountryRoute: LaunchCategoryCountryRoute,
+  LaunchCategoryIndexRoute: LaunchCategoryIndexRoute,
+}
+
+const LaunchCategoryRouteWithChildren = LaunchCategoryRoute._addFileChildren(
+  LaunchCategoryRouteChildren,
+)
+
+interface LaunchRouteChildren {
+  LaunchCategoryRoute: typeof LaunchCategoryRouteWithChildren
+  LaunchIndexRoute: typeof LaunchIndexRoute
+}
+
+const LaunchRouteChildren: LaunchRouteChildren = {
+  LaunchCategoryRoute: LaunchCategoryRouteWithChildren,
+  LaunchIndexRoute: LaunchIndexRoute,
+}
+
+const LaunchRouteWithChildren =
+  LaunchRoute._addFileChildren(LaunchRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   BankBuilderRoute: BankBuilderRoute,
+  LaunchRoute: LaunchRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
