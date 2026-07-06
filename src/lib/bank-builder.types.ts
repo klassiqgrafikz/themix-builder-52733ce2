@@ -26,6 +26,28 @@ export type BankTemplate = {
   mobile_support: boolean;
   is_premium: boolean;
   updated_at: string;
+  blueprint_category: string | null;
+  version: string;
+  popularity: number;
+  recommended: boolean;
+  supported_modules: string[];
+};
+
+export type BlueprintCategory = {
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  sort_order: number;
+};
+
+export type BankModule = {
+  key: string;
+  group_name: string;
+  label: string;
+  description: string;
+  default_pages: string[];
+  sort_order: number;
 };
 
 export type BankIdentity = {
@@ -123,3 +145,26 @@ export const CATEGORY_OPTIONS = [
   "Digital Banking",
   "Investment Banking",
 ] as const;
+
+export const ADMIN_SECTIONS: {
+  slug: string;
+  label: string;
+  description: string;
+  icon: string;
+}[] = [
+  { slug: "customers", label: "Customer Management", description: "Manage customer records across every generated bank.", icon: "Users" },
+  { slug: "balances", label: "Balance Manager", description: "Adjust simulated balances for any customer.", icon: "Wallet" },
+  { slug: "transactions", label: "Transaction Manager", description: "Create, edit and reverse simulated transactions.", icon: "ArrowLeftRight" },
+  { slug: "simulation", label: "Simulation Engine", description: "Configure balance, transaction and scheduled event simulations.", icon: "Cpu" },
+  { slug: "restrictions", label: "Restriction Engine", description: "Set account restriction dates and rules.", icon: "ShieldAlert" },
+  { slug: "freeze", label: "Account Freeze", description: "Freeze and unfreeze customer accounts.", icon: "Snowflake" },
+  { slug: "notifications", label: "Notification Center", description: "Send in-app, email and SMS notifications.", icon: "Bell" },
+  { slug: "chat", label: "Live Chat", description: "Configure live chat routing and templates.", icon: "MessageSquare" },
+  { slug: "support", label: "Support Settings", description: "Support ticket categories and SLAs.", icon: "LifeBuoy" },
+  { slug: "audit", label: "Audit Logs", description: "Immutable audit trail of platform actions.", icon: "FileCheck2" },
+  { slug: "activity", label: "Activity Logs", description: "Customer and admin activity across banks.", icon: "Activity" },
+  { slug: "analytics", label: "Analytics", description: "Usage, growth and simulation analytics.", icon: "BarChart3" },
+  { slug: "roles", label: "Roles & Permissions", description: "Roles and per-bank permissions.", icon: "KeyRound" },
+  { slug: "settings", label: "System Settings", description: "Platform-wide configuration.", icon: "Settings" },
+  { slug: "banks", label: "Banks", description: "All generated tenant banks.", icon: "Building2" },
+];
