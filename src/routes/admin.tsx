@@ -110,9 +110,16 @@ function BankSwitcher() {
   const fn = useServerFn(listDrafts);
   const q = useQuery({ queryKey: ["bb-drafts"], queryFn: () => fn() });
   const drafts = (q.data as BankDraft[]) ?? [];
-  const [pick, setPick] = useState<string>("");
+  const path = useRouterState({ select: (s) => s.location.pathname });
+  const match = path.match(/^\/banks\/([^/]+)/);
+  const currentId = match?.[1] ?? "";
   return (
-    <Select value={pick} onValueChange={setPick}>
+    <Select
+      value={currentId}
+      onValueChange={(id) => {
+        if (id) window.location.assign(`/banks/${id}`);
+      }}
+    >
       <SelectTrigger className="h-9 w-56 text-xs">
         <SelectValue placeholder={drafts.length ? "Select a bank…" : "No banks yet"} />
       </SelectTrigger>
