@@ -8,7 +8,6 @@ import {
   getDraft,
   updateDraft,
   finalizeDraft,
-  listTemplates,
 } from "@/lib/bank-builder.functions";
 import {
   type BankBranding,
@@ -16,7 +15,6 @@ import {
   type BankDraft,
   type BankIdentity,
   type BankModule,
-  type BankTemplate,
 } from "@/lib/bank-builder.types";
 import { RequireAuth } from "@/components/launch/require-auth";
 import { Button } from "@/components/ui/button";
