@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listDrafts } from "@/lib/bank-builder.functions";
-import { ADMIN_SECTIONS, type BankDraft } from "@/lib/bank-builder.types";
-import { Card, CardContent } from "@/components/ui/card";
+import { ADMIN_SECTIONS, type BankDraft, type BankIdentity } from "@/lib/bank-builder.types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import * as Icons from "lucide-react";
 
 export const Route = createFileRoute("/admin/")({
@@ -19,20 +20,56 @@ function AdminOverview() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Global Administration</h1>
+        <h1 className="text-3xl font-bold">Platform Administration</h1>
         <p className="mt-2 text-muted-foreground">
           One centralized control plane for every bank generated on TheMixWeb.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Generated banks" value={saved} />
+        <StatCard label="Published banks" value={saved} />
         <StatCard label="Drafts in progress" value={drafts.length - saved} />
         <StatCard label="Total tenants" value={drafts.length} />
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Generated banks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {drafts.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No banks yet. Launch your first bank to get started.</div>
+          ) : (
+            <div className="divide-y">
+              {drafts.map((d) => {
+                const identity = (d.identity ?? {}) as Partial<BankIdentity>;
+                const url = identity.subdomain ? `${identity.subdomain}.themixweb.app` : "—";
+                return (
+                  <Link
+                    key={d.id}
+                    to="/banks/$id"
+                    params={{ id: d.id }}
+                    className="flex items-center justify-between gap-3 py-3 hover:bg-muted/40"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">
+                        {identity.bank_name || "Untitled draft"}
+                      </div>
+                      <div className="truncate font-mono text-xs text-muted-foreground">{url}</div>
+                    </div>
+                    <Badge variant={d.status === "saved" ? "default" : "secondary"}>
+                      {d.status === "saved" ? "Published" : "Draft"}
+                    </Badge>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div>
-        <h2 className="mb-3 text-lg font-semibold">Tools</h2>
+        <h2 className="mb-3 text-lg font-semibold">Platform Tools</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {ADMIN_SECTIONS.map((s) => {
             const Icon =
