@@ -670,5 +670,3 @@ function NavRow({
   );
 }
 
-// Silence unused-import warnings for optional server fns kept for future use.
-void listTemplates;
