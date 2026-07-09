@@ -9,7 +9,7 @@ import {
   listModules,
   listTemplates,
 } from "@/lib/bank-builder.functions";
-import { publishDraft, unpublishDraft } from "@/lib/website/registry.functions";
+import { publishDraft, unpublishDraft, deleteBank, clearRenderingHistory } from "@/lib/website/registry.functions";
 import {
   deleteBankProduct,
   listBankProducts,
@@ -44,7 +44,20 @@ import {
   Rocket,
   RefreshCw,
   PauseCircle,
+  Trash2,
+  History,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 
 export const Route = createFileRoute("/manage/banks/$id")({
