@@ -196,35 +196,60 @@ function DashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <BrandedCard manifest={manifest}>
-          <div className="mb-2 text-sm font-semibold" style={{ color: primary }}>
-            Recent transactions
+          <div className="mb-2 flex items-center justify-between text-sm font-semibold" style={{ color: primary }}>
+            <span>Recent transactions</span>
+            <span className="text-xs opacity-70">{transactions.length}</span>
           </div>
-          <div className="rounded-md border border-dashed p-6 text-center text-sm opacity-70">
-            No transactions yet. Activity will appear here once the transactions module is enabled.
-          </div>
+          {transactions.length === 0 ? (
+            <div className="rounded-md border border-dashed p-6 text-center text-sm opacity-70">
+              No transactions yet.
+            </div>
+          ) : (
+            <ul className="divide-y">
+              {transactions.slice(0, 8).map((t) => (
+                <li key={t.id} className="flex items-center justify-between py-2 text-sm">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">{t.description || t.kind}</div>
+                    <div className="text-xs opacity-70">
+                      {new Date(t.created_at).toLocaleString()} · {t.kind}
+                    </div>
+                  </div>
+                  <div
+                    className="ml-3 whitespace-nowrap font-mono text-sm"
+                    style={{ color: t.direction === "credit" ? "#16a34a" : t.direction === "debit" ? "#dc2626" : undefined }}
+                  >
+                    {t.direction === "debit" ? "-" : t.direction === "credit" ? "+" : ""}
+                    {fmt(t.amount, t.currency)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </BrandedCard>
         <BrandedCard manifest={manifest}>
-          <div className="mb-2 text-sm font-semibold" style={{ color: primary }}>
-            Profile summary
+          <div className="mb-2 flex items-center justify-between text-sm font-semibold" style={{ color: primary }}>
+            <span>Notifications</span>
+            <span className="text-xs opacity-70">{notifications.length}</span>
           </div>
-          <ul className="space-y-1.5 text-sm">
-            <li>
-              <span className="opacity-60">Name: </span>
-              {session.customer.first_name} {session.customer.last_name}
-            </li>
-            <li>
-              <span className="opacity-60">Email: </span>
-              {session.customer.email}
-            </li>
-            <li>
-              <span className="opacity-60">Phone: </span>
-              {session.customer.phone ?? "—"}
-            </li>
-            <li>
-              <span className="opacity-60">Country: </span>
-              {session.customer.country ?? "—"}
-            </li>
-          </ul>
+          {notifications.length === 0 ? (
+            <div className="rounded-md border border-dashed p-6 text-center text-sm opacity-70">
+              You have no notifications.
+            </div>
+          ) : (
+            <ul className="divide-y">
+              {notifications.slice(0, 6).map((n) => (
+                <li key={n.id} className="py-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{n.title}</div>
+                    <span className="text-xs opacity-60">
+                      {new Date(n.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {n.body && <div className="mt-0.5 text-xs opacity-70">{n.body}</div>}
+                </li>
+              ))}
+            </ul>
+          )}
           <Link
             to="/banks/$slug/portal/profile"
             params={{ slug: bank.slug }}
