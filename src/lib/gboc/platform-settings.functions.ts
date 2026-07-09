@@ -1,6 +1,8 @@
 // GBOC platform settings (single-row config controlled from the operations center).
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
 
 export type ChatProvider =
   | "none"
