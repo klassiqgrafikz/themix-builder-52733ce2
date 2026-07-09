@@ -24,9 +24,16 @@ export type Database = {
           features: Json
           id: string
           identity: Json
+          manifest: Json
           mode: string
+          navigation: Json
           owner_id: string
+          published_at: string | null
+          render_logs: Json
+          render_status: string
+          rendered_at: string | null
           simulation: Json
+          slug: string | null
           status: string
           template_id: string | null
           updated_at: string
@@ -40,9 +47,16 @@ export type Database = {
           features?: Json
           id?: string
           identity?: Json
+          manifest?: Json
           mode?: string
+          navigation?: Json
           owner_id: string
+          published_at?: string | null
+          render_logs?: Json
+          render_status?: string
+          rendered_at?: string | null
           simulation?: Json
+          slug?: string | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -56,9 +70,16 @@ export type Database = {
           features?: Json
           id?: string
           identity?: Json
+          manifest?: Json
           mode?: string
+          navigation?: Json
           owner_id?: string
+          published_at?: string | null
+          render_logs?: Json
+          render_status?: string
+          rendered_at?: string | null
           simulation?: Json
+          slug?: string | null
           status?: string
           template_id?: string | null
           updated_at?: string

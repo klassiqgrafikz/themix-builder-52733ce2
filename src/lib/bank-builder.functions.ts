@@ -8,6 +8,13 @@ import type {
   BlueprintCategory,
   BankModule,
 } from "./bank-builder.types";
+import { renderBankInstance } from "./rendering";
+import type {
+  BankConfigurationInput,
+  BlueprintInput,
+  ModuleCatalogEntry,
+} from "./rendering/types";
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyClient = (c: any) => c as any;
@@ -177,12 +184,78 @@ export const finalizeDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }): Promise<BankDraft> => {
-    const { data: row, error } = await anyClient(context.supabase)
+    const sb = anyClient(context.supabase);
+
+    // 1. Load the persisted draft (owned config).
+    const { data: draftRow, error: draftErr } = await sb
       .from("bb_bank_drafts")
-      .update({ status: "saved", current_step: 10 })
+      .select("*")
+      .eq("id", data.id)
+      .single();
+    if (draftErr || !draftRow) throw new Error(draftErr?.message ?? "Draft not found");
+
+    // 2. Load blueprint (read-only) and module catalog.
+    let blueprint: BlueprintInput = null;
+    if (draftRow.template_id) {
+      const { data: bp } = await sb
+        .from("bb_templates")
+        .select("*")
+        .eq("id", draftRow.template_id)
+        .single();
+      blueprint = (bp as BlueprintInput) ?? null;
+    }
+    const { data: modulesRows, error: modErr } = await sb
+      .from("bb_modules")
+      .select("*")
+      .order("sort_order");
+    if (modErr) throw new Error(modErr.message);
+    const catalog = (modulesRows ?? []) as ModuleCatalogEntry[];
+
+    // 3. Mark as rendering so the UI can reflect the transition.
+    await sb
+      .from("bb_bank_drafts")
+      .update({ render_status: "rendering" })
+      .eq("id", data.id);
+
+    // 4. Run the rendering engine.
+    const config: BankConfigurationInput = {
+      id: draftRow.id,
+      owner_id: draftRow.owner_id,
+      mode: draftRow.mode,
+      template_id: draftRow.template_id,
+      country_code: draftRow.country_code,
+      identity: draftRow.identity ?? {},
+      branding: draftRow.branding ?? {},
+      features: draftRow.features ?? {},
+      created_at: draftRow.created_at,
+      updated_at: draftRow.updated_at,
+    };
+
+    const instance = renderBankInstance({
+      config,
+      blueprint,
+      moduleCatalog: catalog,
+      previousStatus: (draftRow.render_status as BankDraft["render_status"]) ?? "draft",
+      previousLogs: Array.isArray(draftRow.render_logs) ? draftRow.render_logs : [],
+    });
+
+    // 5. Persist the generated Bank Instance artifacts.
+    const { data: row, error } = await sb
+      .from("bb_bank_drafts")
+      .update({
+        status: "saved",
+        current_step: 10,
+        slug: instance.slug,
+        manifest: instance.manifest,
+        navigation: instance.navigation,
+        render_logs: instance.logs,
+        render_status: instance.status,
+        rendered_at: new Date().toISOString(),
+      })
       .eq("id", data.id)
       .select("*")
       .single();
     if (error) throw new Error(error.message);
     return row as BankDraft;
   });
+

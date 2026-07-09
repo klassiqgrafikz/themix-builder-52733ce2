@@ -14,12 +14,15 @@ import type {
   BankIdentity,
   BankModule,
   BankTemplate,
+  RenderLogEntry,
+  RenderStatus,
+  WebsiteManifest,
 } from "@/lib/bank-builder.types";
 import { RequireAuth } from "@/components/launch/require-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ExternalLink, Pencil, Eye, Users, BarChart3 } from "lucide-react";
+import { ArrowLeft, Pencil, Users, BarChart3, FileText, Cpu } from "lucide-react";
 
 export const Route = createFileRoute("/banks/$id")({
   head: () => ({
@@ -76,9 +79,10 @@ function BankOverview() {
     .filter(([, on]) => on)
     .map(([k]) => k);
   const enabledModules = modules.filter((m) => enabledKeys.includes(m.key));
-  const url = identity.subdomain ? `${identity.subdomain}.themixweb.app` : null;
-  const publicUrl = url ? `https://${url}` : null;
-  const isPublished = draft.status === "saved";
+  const renderStatus: RenderStatus = draft.render_status ?? "draft";
+  const manifest = isManifest(draft.manifest) ? draft.manifest : null;
+  const navigation = draft.navigation ?? [];
+  const logs = Array.isArray(draft.render_logs) ? draft.render_logs : [];
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -109,12 +113,12 @@ function BankOverview() {
               <h1 className="text-3xl font-bold">{identity.bank_name || "Untitled bank"}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 {country && <span>{country.flag_emoji} {country.name}</span>}
-                {url && <span className="font-mono">· {url}</span>}
+                {draft.slug && <span className="font-mono">· slug: {draft.slug}</span>}
               </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={isPublished ? "Published" : "Draft"} />
+            <RenderStatusBadge status={renderStatus} />
             <Button variant="outline" onClick={() => navigate({ to: "/admin" })}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Admin
             </Button>
@@ -134,16 +138,16 @@ function BankOverview() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle>Domain</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Locale</CardTitle></CardHeader>
             <CardContent className="space-y-1 text-sm">
-              <div className="font-mono">{url ?? "—"}</div>
-              <div className="text-xs text-muted-foreground">
-                {identity.currency ?? "—"} · {identity.language?.toUpperCase() ?? "—"} · {identity.timezone ?? "—"}
+              <div>
+                {identity.currency ?? "—"} · {identity.language?.toUpperCase() ?? "—"}
               </div>
+              <div className="text-xs text-muted-foreground">{identity.timezone ?? "—"}</div>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle>Branding</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Theme</CardTitle></CardHeader>
             <CardContent>
               <div className="flex gap-2">
                 {(["primary_color", "secondary_color", "accent_color"] as const).map((k) => (
@@ -179,36 +183,114 @@ function BankOverview() {
           </CardContent>
         </Card>
 
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Cpu className="h-4 w-4" /> Rendering Engine
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <Row label="Status" value={<RenderStatusBadge status={renderStatus} />} />
+              <Row
+                label="Rendered at"
+                value={draft.rendered_at ? new Date(draft.rendered_at).toLocaleString() : "—"}
+              />
+              <Row
+                label="Public website"
+                value={<span className="text-muted-foreground">Not available yet</span>}
+              />
+              <p className="pt-2 text-xs text-muted-foreground">
+                The publishing engine has not been implemented. The public website will
+                become available after publishing is wired up.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-4 w-4" /> Website Manifest
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {manifest ? (
+                <>
+                  <Row label="Manifest version" value={`v${manifest.version}`} />
+                  <Row label="Pages" value={String(manifest.pages.length)} />
+                  <Row label="Nav items" value={String(navigation.length)} />
+                  <Row label="Modules" value={String(manifest.modules.length)} />
+                  <Row
+                    label="Generated"
+                    value={new Date(manifest.metadata.generated_at).toLocaleString()}
+                  />
+                </>
+              ) : (
+                <div className="text-muted-foreground">
+                  Manifest not yet generated. Run the wizard's Generate step.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {manifest && manifest.pages.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle>Generated Pages</CardTitle></CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-1">
+                {manifest.pages.map((p) => (
+                  <Badge key={p.slug} variant={p.system ? "outline" : "secondary"}>
+                    {p.title}
+                    <span className="ml-1 font-mono text-[10px] opacity-60">{p.path}</span>
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader><CardTitle>Rendering Logs</CardTitle></CardHeader>
+          <CardContent>
+            {logs.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                No render has run yet.
+              </div>
+            ) : (
+              <ol className="space-y-1 font-mono text-xs">
+                {logs.map((l, i) => (
+                  <LogRow key={i} entry={l} />
+                ))}
+              </ol>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader><CardTitle>Manage this bank</CardTitle></CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <ActionButton
-              icon={<Eye className="h-4 w-4" />}
-              label="Preview"
-              onClick={() => publicUrl && window.open(publicUrl, "_blank", "noopener")}
-              disabled={!publicUrl}
-            />
-            <ActionButton
-              icon={<Pencil className="h-4 w-4" />}
-              label="Edit"
+            <Button
+              variant="outline"
+              className="justify-start"
               onClick={() => navigate({ to: "/bank-builder", search: { draftId: id } })}
-            />
-            <ActionButton
-              icon={<Users className="h-4 w-4" />}
-              label="Manage Customers"
+            >
+              <Pencil className="mr-2 h-4 w-4" /> Edit configuration
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start"
               onClick={() => navigate({ to: "/admin/$section", params: { section: "customers" } })}
-            />
-            <ActionButton
-              icon={<BarChart3 className="h-4 w-4" />}
-              label="Analytics"
+            >
+              <Users className="mr-2 h-4 w-4" /> Manage Customers
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start"
               onClick={() => navigate({ to: "/admin" })}
-            />
-            <ActionButton
-              icon={<ExternalLink className="h-4 w-4" />}
-              label="Open Public Site"
-              onClick={() => publicUrl && window.open(publicUrl, "_blank", "noopener")}
-              disabled={!publicUrl}
-            />
+            >
+              <BarChart3 className="mr-2 h-4 w-4" /> Analytics
+            </Button>
           </CardContent>
         </Card>
       </main>
@@ -216,30 +298,50 @@ function BankOverview() {
   );
 }
 
-function StatusBadge({ status }: { status: "Draft" | "Published" | "Suspended" }) {
-  const styles: Record<string, string> = {
-    Draft: "bg-muted text-foreground",
-    Published: "bg-emerald-500 text-white hover:bg-emerald-500",
-    Suspended: "bg-amber-500 text-white hover:bg-amber-500",
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b py-1 last:border-0">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium">{value}</span>
+    </div>
+  );
+}
+
+function LogRow({ entry }: { entry: RenderLogEntry }) {
+  const color =
+    entry.level === "error"
+      ? "text-red-600"
+      : entry.level === "warn"
+        ? "text-amber-600"
+        : "text-emerald-600";
+  return (
+    <li className="flex gap-2">
+      <span className="text-muted-foreground">
+        {new Date(entry.at).toLocaleTimeString()}
+      </span>
+      <span className={color}>[{entry.stage}]</span>
+      <span>{entry.message}</span>
+    </li>
+  );
+}
+
+function RenderStatusBadge({ status }: { status: RenderStatus }) {
+  const styles: Record<RenderStatus, string> = {
+    draft: "bg-muted text-foreground",
+    rendering: "bg-blue-500 text-white hover:bg-blue-500",
+    ready: "bg-emerald-500 text-white hover:bg-emerald-500",
+    published: "bg-primary text-primary-foreground",
+    archived: "bg-neutral-500 text-white hover:bg-neutral-500",
   };
   return <Badge className={styles[status]}>{status}</Badge>;
 }
 
-function ActionButton({
-  icon,
-  label,
-  onClick,
-  disabled,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
+function isManifest(v: unknown): v is WebsiteManifest {
   return (
-    <Button variant="outline" onClick={onClick} disabled={disabled} className="justify-start">
-      <span className="mr-2 inline-flex">{icon}</span>
-      {label}
-    </Button>
+    typeof v === "object" &&
+    v !== null &&
+    "version" in v &&
+    "pages" in v &&
+    "modules" in v
   );
 }

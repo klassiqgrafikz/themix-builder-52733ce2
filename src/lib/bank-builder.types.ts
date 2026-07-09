@@ -77,6 +77,11 @@ export type BankFeatures = Record<string, boolean>;
 export type BankSimulation = Record<string, boolean>;
 export type BankAdminControls = Record<string, boolean>;
 
+import type { NavItem, RenderLogEntry, RenderStatus, WebsiteManifest } from "./rendering/types";
+export type { NavItem, RenderLogEntry, RenderStatus, WebsiteManifest } from "./rendering/types";
+
+
+
 export type BankDraft = {
   id: string;
   owner_id: string;
@@ -90,9 +95,17 @@ export type BankDraft = {
   admin_controls: BankAdminControls;
   current_step: number;
   status: "draft" | "saved";
+  slug: string | null;
+  manifest: WebsiteManifest | Record<string, never>;
+  navigation: NavItem[];
+  render_logs: RenderLogEntry[];
+  render_status: RenderStatus;
+  rendered_at: string | null;
+  published_at: string | null;
   created_at: string;
   updated_at: string;
 };
+
 
 export const FEATURE_OPTIONS = [
   "Customer Registration",
