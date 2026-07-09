@@ -1,7 +1,12 @@
 // Server-only operations engine for the Global Banking Operations Center.
-// Every mutation goes through here so tenant isolation, balance updates,
-// notifications and audit logs stay in a single place.
+//
+// Balance operations and manual transactions are delegated to the Core
+// Banking Engine (`src/lib/cbe`) — this file no longer mutates account
+// balances directly. Account lifecycle (freeze/suspend/close) and
+// restrictions remain here because they are non-financial state changes.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { processFinancialEvent } from "@/lib/cbe";
+import type { FinancialEventType } from "@/lib/cbe";
 import type {
   AccountAction,
   BalanceOp,
@@ -50,7 +55,7 @@ export async function loadAccountForBank(bankId: string, accountId: string) {
   return data;
 }
 
-export async function insertNotification(row: {
+async function insertNotification(row: {
   bank_id: string;
   customer_id: string;
   kind: string;
@@ -69,7 +74,7 @@ export async function insertNotification(row: {
   if (error) throw new Error(error.message);
 }
 
-export async function writeAudit(row: {
+async function writeAudit(row: {
   bank_id: string;
   customer_id?: string | null;
   account_id?: string | null;
@@ -98,13 +103,16 @@ export async function writeAudit(row: {
   if (error) throw new Error(error.message);
 }
 
-function money(n: number): number {
-  return Math.round(Number(n) * 100) / 100;
-}
+// Map GBOC balance ops onto Core Banking Engine event names.
+const BALANCE_OP_TO_EVENT: Record<BalanceOp, FinancialEventType> = {
+  add: "balance.add",
+  deduct: "balance.deduct",
+  set: "balance.set",
+  clear: "balance.clear",
+};
 
 /**
- * Apply a balance operation via the simulation engine:
- * validate → compute deltas → write transaction row → update account balances → notify → audit.
+ * Delegate to the Core Banking Engine. GBOC never touches balances directly.
  */
 export async function applyBalanceOperation(args: {
   actor: { id: string | null; email: string | null };
@@ -115,113 +123,21 @@ export async function applyBalanceOperation(args: {
   reason: string;
   reference?: string | null;
 }) {
-  const account = await loadAccountForBank(args.bank_id, args.account_id);
-  const currentBalance = money(Number(account.current_balance));
-  const currentAvailable = money(Number(account.available_balance));
-  let newBalance = currentBalance;
-  let newAvailable = currentAvailable;
-  let direction: "credit" | "debit" | "neutral" = "neutral";
-  let amount = money(args.amount ?? 0);
-  let kind = "credit_adjustment";
-  let title = "Account update";
-  let body = args.reason;
-
-  switch (args.op) {
-    case "add": {
-      if (amount <= 0) throw new Error("Amount must be greater than zero");
-      newBalance = money(currentBalance + amount);
-      newAvailable = money(currentAvailable + amount);
-      direction = "credit";
-      kind = "credit_adjustment";
-      title = "Your account has been credited";
-      break;
-    }
-    case "deduct": {
-      if (amount <= 0) throw new Error("Amount must be greater than zero");
-      newBalance = money(currentBalance - amount);
-      newAvailable = money(currentAvailable - amount);
-      direction = "debit";
-      kind = "debit_adjustment";
-      title = "Your account has been debited";
-      break;
-    }
-    case "set": {
-      const target = money(args.amount ?? 0);
-      const delta = money(target - currentBalance);
-      amount = Math.abs(delta);
-      newBalance = target;
-      newAvailable = target;
-      direction = delta >= 0 ? "credit" : "debit";
-      kind = "correction";
-      title = "Your balance has been updated";
-      break;
-    }
-    case "clear": {
-      const delta = money(0 - currentBalance);
-      amount = Math.abs(delta);
-      newBalance = 0;
-      newAvailable = 0;
-      direction = delta >= 0 ? "credit" : "debit";
-      kind = "correction";
-      title = "Your balance has been cleared";
-      body = args.reason || "Balance reset by operations.";
-      break;
-    }
-  }
-
-  const { data: tx, error: txErr } = await supabaseAdmin
-    .from("bank_transactions")
-    .insert({
-      bank_id: args.bank_id,
-      customer_id: account.customer_id,
-      account_id: account.id,
-      kind,
-      direction,
-      amount,
-      currency: account.currency,
-      description: args.reason,
-      category: "operations",
-      reference: args.reference ?? null,
-      balance_after: newBalance,
-      available_after: newAvailable,
-      status: "posted",
-      created_by: args.actor.id,
-      metadata: { op: args.op },
-    })
-    .select("*")
-    .single();
-  if (txErr) throw new Error(txErr.message);
-
-  const { error: accErr } = await supabaseAdmin
-    .from("bank_customer_accounts")
-    .update({ current_balance: newBalance, available_balance: newAvailable })
-    .eq("id", account.id);
-  if (accErr) throw new Error(accErr.message);
-
-  await insertNotification({
+  const result = await processFinancialEvent({
+    event: BALANCE_OP_TO_EVENT[args.op],
     bank_id: args.bank_id,
-    customer_id: account.customer_id,
-    kind: direction === "credit" ? "credit" : "debit",
-    title,
-    body,
-    metadata: { transaction_id: tx.id, amount, op: args.op },
-  });
-
-  await writeAudit({
-    bank_id: args.bank_id,
-    customer_id: account.customer_id,
-    account_id: account.id,
-    actor_id: args.actor.id,
-    actor_email: args.actor.email,
-    action: `balance.${args.op}`,
-    previous_value: { current_balance: currentBalance, available_balance: currentAvailable },
-    new_value: { current_balance: newBalance, available_balance: newAvailable },
-    reason: args.reason,
+    account_id: args.account_id,
+    amount: args.amount,
+    description: args.reason,
     reference: args.reference ?? null,
-    metadata: { transaction_id: tx.id, amount },
+    actor: { id: args.actor.id, email: args.actor.email, source: "gboc" },
+    metadata: { gboc_op: args.op },
   });
-
-  return { transaction_id: tx.id, new_balance: newBalance, available_balance: newAvailable };
+  return {
+    transaction_id: result.transaction_id,
+    new_balance: result.new_balance,
+    available_balance: result.new_available,
+  };
 }
 
 export async function applyAccountAction(args: {
@@ -396,8 +312,17 @@ export async function setRestriction(args: {
   return { ok: true, restriction_id: inserted.id };
 }
 
-const CREDIT_KINDS = new Set<TransactionKind>(["deposit", "credit_adjustment", "refund", "interest"]);
-const DEBIT_KINDS = new Set<TransactionKind>(["withdrawal", "debit_adjustment", "fee"]);
+// Map manual GBOC transaction kinds to Core Banking Engine event names.
+const KIND_TO_EVENT: Record<TransactionKind, FinancialEventType> = {
+  deposit: "deposit",
+  withdrawal: "withdrawal",
+  credit_adjustment: "credit_adjustment",
+  debit_adjustment: "debit_adjustment",
+  fee: "fee",
+  refund: "refund",
+  interest: "interest",
+  correction: "correction",
+};
 
 export async function createManualTransaction(args: {
   actor: { id: string | null; email: string | null };
@@ -409,86 +334,16 @@ export async function createManualTransaction(args: {
   category?: string | null;
   reference?: string | null;
 }) {
-  const account = await loadAccountForBank(args.bank_id, args.account_id);
-  const amount = money(args.amount);
-  if (amount <= 0 && args.kind !== "correction") throw new Error("Amount must be greater than zero");
-
-  let direction: "credit" | "debit" | "neutral" = "neutral";
-  let delta = 0;
-  if (CREDIT_KINDS.has(args.kind)) {
-    direction = "credit";
-    delta = amount;
-  } else if (DEBIT_KINDS.has(args.kind)) {
-    direction = "debit";
-    delta = -amount;
-  } else if (args.kind === "correction") {
-    direction = amount >= 0 ? "credit" : "debit";
-    delta = amount;
-  }
-
-  const currentBalance = money(Number(account.current_balance));
-  const currentAvailable = money(Number(account.available_balance));
-  const newBalance = money(currentBalance + delta);
-  const newAvailable = money(currentAvailable + delta);
-
-  const { data: tx, error } = await supabaseAdmin
-    .from("bank_transactions")
-    .insert({
-      bank_id: args.bank_id,
-      customer_id: account.customer_id,
-      account_id: account.id,
-      kind: args.kind,
-      direction,
-      amount: Math.abs(amount),
-      currency: account.currency,
-      description: args.description,
-      category: args.category ?? args.kind,
-      reference: args.reference ?? null,
-      balance_after: newBalance,
-      available_after: newAvailable,
-      status: "posted",
-      created_by: args.actor.id,
-    })
-    .select("*")
-    .single();
-  if (error) throw new Error(error.message);
-
-  if (delta !== 0) {
-    await supabaseAdmin
-      .from("bank_customer_accounts")
-      .update({ current_balance: newBalance, available_balance: newAvailable })
-      .eq("id", account.id);
-  }
-
-  await insertNotification({
+  const result = await processFinancialEvent({
+    event: KIND_TO_EVENT[args.kind],
     bank_id: args.bank_id,
-    customer_id: account.customer_id,
-    kind: direction === "credit" ? "credit" : direction === "debit" ? "debit" : "info",
-    title:
-      direction === "credit"
-        ? "A credit has been posted to your account"
-        : direction === "debit"
-          ? "A debit has been posted to your account"
-          : "A transaction has been posted to your account",
-    body: args.description,
-    metadata: { transaction_id: tx.id, kind: args.kind },
-  });
-  await writeAudit({
-    bank_id: args.bank_id,
-    customer_id: account.customer_id,
-    account_id: account.id,
-    actor_id: args.actor.id,
-    actor_email: args.actor.email,
-    action: `transaction.${args.kind}`,
-    new_value: {
-      amount,
-      direction,
-      description: args.description,
-      balance_after: newBalance,
-    },
-    reason: args.description,
+    account_id: args.account_id,
+    amount: args.amount,
+    description: args.description,
+    category: args.category ?? null,
     reference: args.reference ?? null,
-    metadata: { transaction_id: tx.id },
+    actor: { id: args.actor.id, email: args.actor.email, source: "gboc" },
+    metadata: { gboc_kind: args.kind },
   });
-  return { transaction_id: tx.id, new_balance: newBalance };
+  return { transaction_id: result.transaction_id, new_balance: result.new_balance };
 }
