@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
+import { ChatWidget } from "@/lib/customer/chat-widget";
 import {
   getPlatformSupportConfig,
   getSupportTicket,
