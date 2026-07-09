@@ -8,6 +8,13 @@ import type {
   BlueprintCategory,
   BankModule,
 } from "./bank-builder.types";
+import { renderBankInstance } from "./rendering";
+import type {
+  BankConfigurationInput,
+  BlueprintInput,
+  ModuleCatalogEntry,
+} from "./rendering/types";
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyClient = (c: any) => c as any;
