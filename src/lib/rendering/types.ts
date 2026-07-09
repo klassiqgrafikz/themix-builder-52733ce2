@@ -102,7 +102,9 @@ export type WebsiteManifest = {
     currency: string | null;
     language: string | null;
     timezone: string | null;
+    template_variant: "modern" | "corporate" | "premium";
   };
+
   theme: ThemeSpec;
   brand: BrandAssets;
   modules: ResolvedModule[];
