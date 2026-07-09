@@ -183,8 +183,8 @@ export const deleteBank = createServerFn({ method: "POST" })
         .remove(brandingFiles.map((f) => `${data.id}/${f.name}`));
     }
 
-    // Cascade delete tenant-scoped rows. Best effort — errors are logged but
-    // the draft row is always attempted last so the bank disappears from the UI.
+    // Cascade delete tenant-scoped rows. Errors on any table abort with a
+    // useful message so the UI can surface the exact reason.
     const tenantTables = [
       "bank_account_restrictions",
       "bank_customer_login_history",
@@ -200,15 +200,23 @@ export const deleteBank = createServerFn({ method: "POST" })
       "bank_transactions",
       "bank_customer_accounts",
       "bank_customers",
-      "bp_bank_products",
     ] as const;
     for (const table of tenantTables) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabaseAdmin as any).from(table).delete().eq("bank_id", data.id);
+      const { error: tErr } = await (supabaseAdmin as any).from(table).delete().eq("bank_id", data.id);
+      if (tErr) throw new Error(`Failed clearing ${table}: ${tErr.message}`);
     }
+    // bp_bank_products uses draft_id (not bank_id).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: pErr } = await (supabaseAdmin as any)
+      .from("bp_bank_products")
+      .delete()
+      .eq("draft_id", data.id);
+    if (pErr) throw new Error(`Failed clearing bp_bank_products: ${pErr.message}`);
     if (data.purge_audit) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabaseAdmin as any).from("bank_audit_logs").delete().eq("bank_id", data.id);
+      const { error: aErr } = await (supabaseAdmin as any).from("bank_audit_logs").delete().eq("bank_id", data.id);
+      if (aErr) throw new Error(`Failed clearing bank_audit_logs: ${aErr.message}`);
     }
     // Finally remove the draft (website manifest + navigation + branding + render logs).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
