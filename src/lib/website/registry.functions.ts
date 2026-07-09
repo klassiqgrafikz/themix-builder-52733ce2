@@ -218,26 +218,42 @@ export const deleteBank = createServerFn({ method: "POST" })
       const { error: aErr } = await (supabaseAdmin as any).from("bank_audit_logs").delete().eq("bank_id", data.id);
       if (aErr) throw new Error(`Failed clearing bank_audit_logs: ${aErr.message}`);
     }
-    // Finally remove the draft (website manifest + navigation + branding + render logs).
-    // Use .select() so we can verify the delete actually affected exactly one row.
-    // Without this, an under-privileged client (e.g. a misconfigured service key
-    // acting as anon under RLS) can return { data: [], error: null } and the
-    // caller would falsely report success.
+    // Finally remove the draft. Use the user's RLS-scoped client — the
+    // `owners manage own drafts` policy authorises the owner, and every child
+    // table has ON DELETE CASCADE against bb_bank_drafts(id), so children
+    // (including bank_customers, accounts, transactions, cards, notifications,
+    // support, ledger, restrictions, sessions, audit logs, bp_bank_products)
+    // are removed atomically at the DB layer. Avoids depending on
+    // service-role privileges, which can be absent in some Cloud environments.
+    // Fall back to supabaseAdmin only if the RLS delete somehow removes 0 rows
+    // (e.g. admin acting on behalf of a non-owner).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: deletedRows, error: delErr } = await (supabaseAdmin as any)
+    const primary = await (sb as any)
       .from("bb_bank_drafts")
       .delete()
       .eq("id", data.id)
       .select("id");
+    let deletedCount = Array.isArray(primary.data) ? primary.data.length : 0;
+    let delErr = primary.error;
+
+    if (!delErr && deletedCount === 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fallback = await (supabaseAdmin as any)
+        .from("bb_bank_drafts")
+        .delete()
+        .eq("id", data.id)
+        .select("id");
+      deletedCount = Array.isArray(fallback.data) ? fallback.data.length : 0;
+      delErr = fallback.error;
+    }
     if (delErr) throw new Error(`Failed deleting bank: ${delErr.message}`);
-    const deletedCount = Array.isArray(deletedRows) ? deletedRows.length : 0;
     if (deletedCount !== 1) {
       throw new Error(
-        `Delete reported no error but removed ${deletedCount} rows (expected 1). ` +
-          `The server-side admin client may lack privileges to bypass RLS on bb_bank_drafts.`,
+        `Delete removed ${deletedCount} rows (expected 1). The row may have already been deleted or you may lack permission.`,
       );
     }
-    // Post-delete verification: confirm the row is actually gone.
+    // Post-delete verification via the admin client (bypasses public-read policy
+    // filters and confirms the row is truly gone regardless of render_status).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: stillThere, error: verifyErr } = await (supabaseAdmin as any)
       .from("bb_bank_drafts")
