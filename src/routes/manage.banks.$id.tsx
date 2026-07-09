@@ -58,12 +58,16 @@ function BankOverviewPage() {
 }
 
 function BankOverview() {
-  const { id } = useParams({ from: "/banks/$id" });
+  const { id } = useParams({ from: "/manage/banks/$id" });
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const getDraftFn = useServerFn(getDraft);
   const listCountriesFn = useServerFn(listCountries);
   const listModulesFn = useServerFn(listModules);
   const listTemplatesFn = useServerFn(listTemplates);
+  const finalizeDraftFn = useServerFn(finalizeDraft);
+  const publishDraftFn = useServerFn(publishDraft);
+  const unpublishDraftFn = useServerFn(unpublishDraft);
 
   const draftQ = useQuery({
     queryKey: ["bb-draft", id],
@@ -77,6 +81,27 @@ function BankOverview() {
     queryKey: ["bb-templates", draft?.country_code ?? "all"],
     queryFn: () => listTemplatesFn({ data: { country_code: draft?.country_code ?? null } }),
     enabled: !!draft,
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["bb-draft", id] });
+    qc.invalidateQueries({ queryKey: ["bb-drafts"] });
+  };
+
+  const rerenderMut = useMutation({
+    mutationFn: () => finalizeDraftFn({ data: { id } }),
+    onSuccess: () => { invalidate(); toast.success("Website re-rendered"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Render failed"),
+  });
+  const publishMut = useMutation({
+    mutationFn: () => publishDraftFn({ data: { id } }),
+    onSuccess: () => { invalidate(); toast.success("Bank published"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Publish failed"),
+  });
+  const unpublishMut = useMutation({
+    mutationFn: () => unpublishDraftFn({ data: { id } }),
+    onSuccess: () => { invalidate(); toast.success("Bank unpublished"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Unpublish failed"),
   });
 
   if (draftQ.isLoading || !draft) {
@@ -98,6 +123,11 @@ function BankOverview() {
   const manifest = isManifest(draft.manifest) ? draft.manifest : null;
   const navigation = draft.navigation ?? [];
   const logs = Array.isArray(draft.render_logs) ? draft.render_logs : [];
+  const publicRoute = draft.slug ? `/banks/${draft.slug}` : null;
+  const isPublished = renderStatus === "published" && !!publicRoute;
+  const isReady = renderStatus === "ready";
+  const busy = rerenderMut.isPending || publishMut.isPending || unpublishMut.isPending;
+
 
   return (
     <div className="min-h-screen bg-muted/30">
