@@ -1413,7 +1413,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      whoami_debug: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never
