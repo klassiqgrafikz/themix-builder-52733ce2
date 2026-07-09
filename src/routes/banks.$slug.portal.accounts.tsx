@@ -71,9 +71,10 @@ function AccountsPage() {
         {session.accounts.map((a) => (
           <BrandedCard key={a.id} manifest={manifest}>
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <div className="text-base font-semibold" style={{ color: primary }}>{a.account_name}</div>
                 <div className="mt-1 text-xs opacity-70">#{a.account_number} · {a.account_type} · {a.status}</div>
+                <CountryIdentifierList account={a} country={manifest.bank.country_code ?? ""} />
               </div>
               <div className="text-right">
                 <div className="text-xs uppercase opacity-70">Available</div>
