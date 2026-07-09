@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerSession } from "@/lib/customer/types";
 import { BrandedCard, useRestrictions, isFeatureRestricted } from "@/lib/customer/portal-ui";
+import { isNavEnabled, ProductUnavailable } from "@/lib/customer/product-gating";
 import { lookupDomesticAccount, submitTransfer } from "@/lib/customer/transfers.functions";
 import { listBeneficiaries } from "@/lib/customer/beneficiaries.functions";
 import { Button } from "@/components/ui/button";
