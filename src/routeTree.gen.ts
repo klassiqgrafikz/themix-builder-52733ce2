@@ -17,10 +17,12 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LaunchIndexRouteImport } from './routes/launch.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as LaunchCategoryRouteImport } from './routes/launch.$category'
-import { Route as BanksIdRouteImport } from './routes/banks.$id'
+import { Route as BanksSlugRouteImport } from './routes/banks.$slug'
 import { Route as AdminSectionRouteImport } from './routes/admin.$section'
 import { Route as LaunchCategoryIndexRouteImport } from './routes/launch.$category.index'
+import { Route as ManageBanksIdRouteImport } from './routes/manage.banks.$id'
 import { Route as LaunchCategoryCountryRouteImport } from './routes/launch.$category.$country'
+import { Route as BanksSlugPageRouteImport } from './routes/banks.$slug.$page'
 
 const LaunchRoute = LaunchRouteImport.update({
   id: '/launch',
@@ -62,9 +64,9 @@ const LaunchCategoryRoute = LaunchCategoryRouteImport.update({
   path: '/$category',
   getParentRoute: () => LaunchRoute,
 } as any)
-const BanksIdRoute = BanksIdRouteImport.update({
-  id: '/banks/$id',
-  path: '/banks/$id',
+const BanksSlugRoute = BanksSlugRouteImport.update({
+  id: '/banks/$slug',
+  path: '/banks/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminSectionRoute = AdminSectionRouteImport.update({
@@ -77,10 +79,20 @@ const LaunchCategoryIndexRoute = LaunchCategoryIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LaunchCategoryRoute,
 } as any)
+const ManageBanksIdRoute = ManageBanksIdRouteImport.update({
+  id: '/manage/banks/$id',
+  path: '/manage/banks/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LaunchCategoryCountryRoute = LaunchCategoryCountryRouteImport.update({
   id: '/$country',
   path: '/$country',
   getParentRoute: () => LaunchCategoryRoute,
+} as any)
+const BanksSlugPageRoute = BanksSlugPageRouteImport.update({
+  id: '/$page',
+  path: '/$page',
+  getParentRoute: () => BanksSlugRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -90,11 +102,13 @@ export interface FileRoutesByFullPath {
   '/bank-builder': typeof BankBuilderRoute
   '/launch': typeof LaunchRouteWithChildren
   '/admin/$section': typeof AdminSectionRoute
-  '/banks/$id': typeof BanksIdRoute
+  '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/launch/': typeof LaunchIndexRoute
+  '/banks/$slug/$page': typeof BanksSlugPageRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
+  '/manage/banks/$id': typeof ManageBanksIdRoute
   '/launch/$category/': typeof LaunchCategoryIndexRoute
 }
 export interface FileRoutesByTo {
@@ -102,10 +116,12 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
   '/admin/$section': typeof AdminSectionRoute
-  '/banks/$id': typeof BanksIdRoute
+  '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/admin': typeof AdminIndexRoute
   '/launch': typeof LaunchIndexRoute
+  '/banks/$slug/$page': typeof BanksSlugPageRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
+  '/manage/banks/$id': typeof ManageBanksIdRoute
   '/launch/$category': typeof LaunchCategoryIndexRoute
 }
 export interface FileRoutesById {
@@ -116,11 +132,13 @@ export interface FileRoutesById {
   '/bank-builder': typeof BankBuilderRoute
   '/launch': typeof LaunchRouteWithChildren
   '/admin/$section': typeof AdminSectionRoute
-  '/banks/$id': typeof BanksIdRoute
+  '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/launch/': typeof LaunchIndexRoute
+  '/banks/$slug/$page': typeof BanksSlugPageRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
+  '/manage/banks/$id': typeof ManageBanksIdRoute
   '/launch/$category/': typeof LaunchCategoryIndexRoute
 }
 export interface FileRouteTypes {
@@ -132,11 +150,13 @@ export interface FileRouteTypes {
     | '/bank-builder'
     | '/launch'
     | '/admin/$section'
-    | '/banks/$id'
+    | '/banks/$slug'
     | '/launch/$category'
     | '/admin/'
     | '/launch/'
+    | '/banks/$slug/$page'
     | '/launch/$category/$country'
+    | '/manage/banks/$id'
     | '/launch/$category/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -144,10 +164,12 @@ export interface FileRouteTypes {
     | '/auth'
     | '/bank-builder'
     | '/admin/$section'
-    | '/banks/$id'
+    | '/banks/$slug'
     | '/admin'
     | '/launch'
+    | '/banks/$slug/$page'
     | '/launch/$category/$country'
+    | '/manage/banks/$id'
     | '/launch/$category'
   id:
     | '__root__'
@@ -157,11 +179,13 @@ export interface FileRouteTypes {
     | '/bank-builder'
     | '/launch'
     | '/admin/$section'
-    | '/banks/$id'
+    | '/banks/$slug'
     | '/launch/$category'
     | '/admin/'
     | '/launch/'
+    | '/banks/$slug/$page'
     | '/launch/$category/$country'
+    | '/manage/banks/$id'
     | '/launch/$category/'
   fileRoutesById: FileRoutesById
 }
@@ -171,7 +195,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BankBuilderRoute: typeof BankBuilderRoute
   LaunchRoute: typeof LaunchRouteWithChildren
-  BanksIdRoute: typeof BanksIdRoute
+  BanksSlugRoute: typeof BanksSlugRouteWithChildren
+  ManageBanksIdRoute: typeof ManageBanksIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -232,11 +257,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LaunchCategoryRouteImport
       parentRoute: typeof LaunchRoute
     }
-    '/banks/$id': {
-      id: '/banks/$id'
-      path: '/banks/$id'
-      fullPath: '/banks/$id'
-      preLoaderRoute: typeof BanksIdRouteImport
+    '/banks/$slug': {
+      id: '/banks/$slug'
+      path: '/banks/$slug'
+      fullPath: '/banks/$slug'
+      preLoaderRoute: typeof BanksSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/$section': {
@@ -253,12 +278,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LaunchCategoryIndexRouteImport
       parentRoute: typeof LaunchCategoryRoute
     }
+    '/manage/banks/$id': {
+      id: '/manage/banks/$id'
+      path: '/manage/banks/$id'
+      fullPath: '/manage/banks/$id'
+      preLoaderRoute: typeof ManageBanksIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/launch/$category/$country': {
       id: '/launch/$category/$country'
       path: '/$country'
       fullPath: '/launch/$category/$country'
       preLoaderRoute: typeof LaunchCategoryCountryRouteImport
       parentRoute: typeof LaunchCategoryRoute
+    }
+    '/banks/$slug/$page': {
+      id: '/banks/$slug/$page'
+      path: '/$page'
+      fullPath: '/banks/$slug/$page'
+      preLoaderRoute: typeof BanksSlugPageRouteImport
+      parentRoute: typeof BanksSlugRoute
     }
   }
 }
@@ -302,13 +341,26 @@ const LaunchRouteChildren: LaunchRouteChildren = {
 const LaunchRouteWithChildren =
   LaunchRoute._addFileChildren(LaunchRouteChildren)
 
+interface BanksSlugRouteChildren {
+  BanksSlugPageRoute: typeof BanksSlugPageRoute
+}
+
+const BanksSlugRouteChildren: BanksSlugRouteChildren = {
+  BanksSlugPageRoute: BanksSlugPageRoute,
+}
+
+const BanksSlugRouteWithChildren = BanksSlugRoute._addFileChildren(
+  BanksSlugRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   BankBuilderRoute: BankBuilderRoute,
   LaunchRoute: LaunchRouteWithChildren,
-  BanksIdRoute: BanksIdRoute,
+  BanksSlugRoute: BanksSlugRouteWithChildren,
+  ManageBanksIdRoute: ManageBanksIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

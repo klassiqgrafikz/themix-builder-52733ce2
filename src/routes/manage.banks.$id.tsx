@@ -1,12 +1,15 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
+  finalizeDraft,
   getDraft,
   listCountries,
   listModules,
   listTemplates,
 } from "@/lib/bank-builder.functions";
+import { publishDraft, unpublishDraft } from "@/lib/website/registry.functions";
 import type {
   BankBranding,
   BankCountry,
@@ -22,9 +25,21 @@ import { RequireAuth } from "@/components/launch/require-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pencil, Users, BarChart3, FileText, Cpu } from "lucide-react";
+import {
+  ArrowLeft,
+  Pencil,
+  Users,
+  BarChart3,
+  FileText,
+  Cpu,
+  ExternalLink,
+  Rocket,
+  RefreshCw,
+  PauseCircle,
+} from "lucide-react";
 
-export const Route = createFileRoute("/banks/$id")({
+
+export const Route = createFileRoute("/manage/banks/$id")({
   head: () => ({
     meta: [
       { title: "Bank Overview — TheMixWeb" },
@@ -43,12 +58,16 @@ function BankOverviewPage() {
 }
 
 function BankOverview() {
-  const { id } = useParams({ from: "/banks/$id" });
+  const { id } = useParams({ from: "/manage/banks/$id" });
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const getDraftFn = useServerFn(getDraft);
   const listCountriesFn = useServerFn(listCountries);
   const listModulesFn = useServerFn(listModules);
   const listTemplatesFn = useServerFn(listTemplates);
+  const finalizeDraftFn = useServerFn(finalizeDraft);
+  const publishDraftFn = useServerFn(publishDraft);
+  const unpublishDraftFn = useServerFn(unpublishDraft);
 
   const draftQ = useQuery({
     queryKey: ["bb-draft", id],
@@ -62,6 +81,27 @@ function BankOverview() {
     queryKey: ["bb-templates", draft?.country_code ?? "all"],
     queryFn: () => listTemplatesFn({ data: { country_code: draft?.country_code ?? null } }),
     enabled: !!draft,
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["bb-draft", id] });
+    qc.invalidateQueries({ queryKey: ["bb-drafts"] });
+  };
+
+  const rerenderMut = useMutation({
+    mutationFn: () => finalizeDraftFn({ data: { id } }),
+    onSuccess: () => { invalidate(); toast.success("Website re-rendered"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Render failed"),
+  });
+  const publishMut = useMutation({
+    mutationFn: () => publishDraftFn({ data: { id } }),
+    onSuccess: () => { invalidate(); toast.success("Bank published"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Publish failed"),
+  });
+  const unpublishMut = useMutation({
+    mutationFn: () => unpublishDraftFn({ data: { id } }),
+    onSuccess: () => { invalidate(); toast.success("Bank unpublished"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Unpublish failed"),
   });
 
   if (draftQ.isLoading || !draft) {
@@ -83,6 +123,11 @@ function BankOverview() {
   const manifest = isManifest(draft.manifest) ? draft.manifest : null;
   const navigation = draft.navigation ?? [];
   const logs = Array.isArray(draft.render_logs) ? draft.render_logs : [];
+  const publicRoute = draft.slug ? `/banks/${draft.slug}` : null;
+  const isPublished = renderStatus === "published" && !!publicRoute;
+  const isReady = renderStatus === "ready";
+  const busy = rerenderMut.isPending || publishMut.isPending || unpublishMut.isPending;
+
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -187,23 +232,41 @@ function BankOverview() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Cpu className="h-4 w-4" /> Rendering Engine
+                <Cpu className="h-4 w-4" /> Website Status
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <Row label="Status" value={<RenderStatusBadge status={renderStatus} />} />
+              <Row label="Render status" value={<RenderStatusBadge status={renderStatus} />} />
               <Row
-                label="Rendered at"
+                label="Public route"
+                value={
+                  publicRoute ? (
+                    <span className="font-mono">{publicRoute}</span>
+                  ) : (
+                    <span className="text-muted-foreground">Not generated</span>
+                  )
+                }
+              />
+              <Row
+                label="Last render"
                 value={draft.rendered_at ? new Date(draft.rendered_at).toLocaleString() : "—"}
               />
               <Row
-                label="Public website"
-                value={<span className="text-muted-foreground">Not available yet</span>}
+                label="Publish date"
+                value={draft.published_at ? new Date(draft.published_at).toLocaleString() : "—"}
               />
-              <p className="pt-2 text-xs text-muted-foreground">
-                The publishing engine has not been implemented. The public website will
-                become available after publishing is wired up.
-              </p>
+              {!isPublished && (
+                <p className="pt-2 text-xs text-muted-foreground">
+                  {renderStatus === "draft" &&
+                    "Bank is still a draft. Finish the wizard and click Generate Bank."}
+                  {renderStatus === "rendering" && "Rendering in progress…"}
+                  {renderStatus === "ready" &&
+                    "Website is generated and ready. Click Publish to make it public at /banks/" +
+                      (draft.slug ?? "…") +
+                      "."}
+                  {renderStatus === "archived" && "This bank has been archived."}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -234,6 +297,28 @@ function BankOverview() {
           </Card>
         </div>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Rocket className="h-4 w-4" /> Website Registry
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {isPublished ? (
+              <>
+                <Row label="Registered slug" value={<span className="font-mono">{draft.slug}</span>} />
+                <Row label="Route" value={<span className="font-mono">{publicRoute}</span>} />
+                <Row label="Blueprint" value={template?.name ?? "Custom build"} />
+                <Row label="Status" value={<RenderStatusBadge status="published" />} />
+              </>
+            ) : (
+              <div className="text-muted-foreground">
+                This bank is not yet in the public Website Registry.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {manifest && manifest.pages.length > 0 && (
           <Card>
             <CardHeader><CardTitle>Generated Pages</CardTitle></CardHeader>
@@ -251,12 +336,10 @@ function BankOverview() {
         )}
 
         <Card>
-          <CardHeader><CardTitle>Rendering Logs</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Rendering Timeline</CardTitle></CardHeader>
           <CardContent>
             {logs.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                No render has run yet.
-              </div>
+              <div className="text-sm text-muted-foreground">No render has run yet.</div>
             ) : (
               <ol className="space-y-1 font-mono text-xs">
                 {logs.map((l, i) => (
@@ -270,6 +353,50 @@ function BankOverview() {
         <Card>
           <CardHeader><CardTitle>Manage this bank</CardTitle></CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Button
+              className="justify-start"
+              disabled={!isPublished}
+              onClick={() =>
+                publicRoute && window.open(publicRoute, "_blank", "noopener")
+              }
+              title={
+                isPublished
+                  ? "Open the public banking website"
+                  : "Publish this bank to open its public site"
+              }
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              {isPublished ? "Open Public Site" : "Public site unavailable"}
+            </Button>
+            {isReady && (
+              <Button
+                className="justify-start"
+                disabled={busy}
+                onClick={() => publishMut.mutate()}
+              >
+                <Rocket className="mr-2 h-4 w-4" /> Publish Website
+              </Button>
+            )}
+            {isPublished && (
+              <>
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  disabled={busy}
+                  onClick={() => rerenderMut.mutate()}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" /> Republish Website
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  disabled={busy}
+                  onClick={() => unpublishMut.mutate()}
+                >
+                  <PauseCircle className="mr-2 h-4 w-4" /> Unpublish
+                </Button>
+              </>
+            )}
             <Button
               variant="outline"
               className="justify-start"
@@ -297,6 +424,7 @@ function BankOverview() {
     </div>
   );
 }
+
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (

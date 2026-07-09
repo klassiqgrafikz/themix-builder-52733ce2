@@ -111,7 +111,7 @@ function Wizard({ draftId }: { draftId: string }) {
       qc.invalidateQueries({ queryKey: ["bb-draft", draftId] });
       qc.invalidateQueries({ queryKey: ["bb-drafts"] });
       toast.success("Bank generated and published");
-      navigate({ to: "/banks/$id", params: { id: draftId } });
+      navigate({ to: "/manage/banks/$id", params: { id: draftId } });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to generate"),
   });
