@@ -158,7 +158,7 @@ const FX_RATES = [
   { pair: "USD → CAD", rate: 1.362, change: -0.05 },
 ];
 
-export default function DashboardPage() {
+function DashboardPage() {
   const { bank, session } = useParentData();
   const manifest = bank.manifest;
   const theme = manifest.theme;
