@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
+import { isNavEnabled, ProductUnavailable } from "@/lib/customer/product-gating";
 import {
   addBeneficiary,
   deleteBeneficiary,
