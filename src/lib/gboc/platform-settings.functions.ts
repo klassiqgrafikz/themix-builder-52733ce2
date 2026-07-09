@@ -103,9 +103,13 @@ const updateSchema = z.object({
 });
 
 export const updatePlatformSettings = createServerFn({ method: "POST" })
+  .middleware([
+    (await import("@/integrations/supabase/auth-middleware")).requireSupabaseAuth,
+  ])
   .inputValidator((d: z.input<typeof updateSchema>) => updateSchema.parse(d))
-  .handler(async ({ data }): Promise<PlatformSettings> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  .handler(async ({ data, context }): Promise<PlatformSettings> => {
+    const supabaseAdmin = context.supabase;
+
     // read current settings JSON for merge
     const { data: current } = await supabaseAdmin
       .from("gboc_platform_settings")
