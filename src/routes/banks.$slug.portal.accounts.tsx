@@ -7,6 +7,7 @@ import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerAccount, CustomerSession } from "@/lib/customer/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
 import { openAdditionalAccount } from "@/lib/customer/accounts.functions";
+import { enabledProductsByCategory } from "@/lib/customer/product-gating";
 import {
   countryFieldsToDisplay,
   COUNTRY_FIELD_LABEL,
