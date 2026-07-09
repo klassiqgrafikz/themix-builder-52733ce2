@@ -477,8 +477,11 @@ export type Database = {
       }
       bank_customers: {
         Row: {
+          account_type_preference: string | null
           address: string | null
+          annual_income: number | null
           bank_id: string
+          city: string | null
           country: string | null
           created_at: string
           customer_number: string
@@ -486,11 +489,21 @@ export type Database = {
           email: string
           email_verification_token: string | null
           email_verified: boolean
+          employer_name: string | null
+          employment_status: string | null
           first_name: string
           gender: string | null
           id: string
+          id_document_country: string | null
+          id_document_number: string | null
+          id_document_type: string | null
+          job_title: string | null
           last_name: string
           nationality: string | null
+          next_of_kin_email: string | null
+          next_of_kin_name: string | null
+          next_of_kin_phone: string | null
+          next_of_kin_relationship: string | null
           notification_prefs: Json
           password_hash: string
           password_reset_expires_at: string | null
@@ -499,15 +512,20 @@ export type Database = {
           phone: string | null
           pin_hash: string | null
           pin_salt: string | null
+          postal_code: string | null
           profile_picture_url: string | null
+          state: string | null
           status: string
           two_factor_enabled: boolean
           two_factor_secret: string | null
           updated_at: string
         }
         Insert: {
+          account_type_preference?: string | null
           address?: string | null
+          annual_income?: number | null
           bank_id: string
+          city?: string | null
           country?: string | null
           created_at?: string
           customer_number: string
@@ -515,11 +533,21 @@ export type Database = {
           email: string
           email_verification_token?: string | null
           email_verified?: boolean
+          employer_name?: string | null
+          employment_status?: string | null
           first_name: string
           gender?: string | null
           id?: string
+          id_document_country?: string | null
+          id_document_number?: string | null
+          id_document_type?: string | null
+          job_title?: string | null
           last_name: string
           nationality?: string | null
+          next_of_kin_email?: string | null
+          next_of_kin_name?: string | null
+          next_of_kin_phone?: string | null
+          next_of_kin_relationship?: string | null
           notification_prefs?: Json
           password_hash: string
           password_reset_expires_at?: string | null
@@ -528,15 +556,20 @@ export type Database = {
           phone?: string | null
           pin_hash?: string | null
           pin_salt?: string | null
+          postal_code?: string | null
           profile_picture_url?: string | null
+          state?: string | null
           status?: string
           two_factor_enabled?: boolean
           two_factor_secret?: string | null
           updated_at?: string
         }
         Update: {
+          account_type_preference?: string | null
           address?: string | null
+          annual_income?: number | null
           bank_id?: string
+          city?: string | null
           country?: string | null
           created_at?: string
           customer_number?: string
@@ -544,11 +577,21 @@ export type Database = {
           email?: string
           email_verification_token?: string | null
           email_verified?: boolean
+          employer_name?: string | null
+          employment_status?: string | null
           first_name?: string
           gender?: string | null
           id?: string
+          id_document_country?: string | null
+          id_document_number?: string | null
+          id_document_type?: string | null
+          job_title?: string | null
           last_name?: string
           nationality?: string | null
+          next_of_kin_email?: string | null
+          next_of_kin_name?: string | null
+          next_of_kin_phone?: string | null
+          next_of_kin_relationship?: string | null
           notification_prefs?: Json
           password_hash?: string
           password_reset_expires_at?: string | null
@@ -557,7 +600,9 @@ export type Database = {
           phone?: string | null
           pin_hash?: string | null
           pin_salt?: string | null
+          postal_code?: string | null
           profile_picture_url?: string | null
+          state?: string | null
           status?: string
           two_factor_enabled?: boolean
           two_factor_secret?: string | null

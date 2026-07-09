@@ -5,8 +5,18 @@ import type { CustomerAccount, CustomerProfile, CustomerSession, LoginEvent } fr
 
 // ---- shared shapes ----
 
+const ACCOUNT_TYPE_ENUM = z.enum([
+  "personal",
+  "savings",
+  "current",
+  "business",
+  "joint",
+  "student",
+]);
+
 const registerSchema = z.object({
   slug: z.string().min(1),
+  account_type: ACCOUNT_TYPE_ENUM.default("personal"),
   first_name: z.string().trim().min(1).max(80),
   last_name: z.string().trim().min(1).max(80),
   date_of_birth: z.string().optional().nullable(),
@@ -14,11 +24,26 @@ const registerSchema = z.object({
   email: z.string().trim().email().max(180),
   phone: z.string().trim().max(40).optional().nullable(),
   address: z.string().trim().max(400).optional().nullable(),
+  city: z.string().trim().max(120).optional().nullable(),
+  state: z.string().trim().max(120).optional().nullable(),
+  postal_code: z.string().trim().max(40).optional().nullable(),
   country: z.string().trim().max(80).optional().nullable(),
   nationality: z.string().trim().max(80).optional().nullable(),
+  id_document_type: z.string().trim().max(60).optional().nullable(),
+  id_document_number: z.string().trim().max(80).optional().nullable(),
+  id_document_country: z.string().trim().max(80).optional().nullable(),
+  employment_status: z.string().trim().max(60).optional().nullable(),
+  employer_name: z.string().trim().max(160).optional().nullable(),
+  job_title: z.string().trim().max(120).optional().nullable(),
+  annual_income: z.number().nonnegative().optional().nullable(),
+  next_of_kin_name: z.string().trim().max(160).optional().nullable(),
+  next_of_kin_relationship: z.string().trim().max(80).optional().nullable(),
+  next_of_kin_phone: z.string().trim().max(40).optional().nullable(),
+  next_of_kin_email: z.string().trim().email().max(180).optional().nullable().or(z.literal("")),
   password: z.string().min(8).max(120),
   confirm_password: z.string().min(8).max(120),
 });
+
 
 const loginSchema = z.object({
   slug: z.string().min(1),
@@ -68,99 +93,135 @@ const shapeAccount = (row: any): CustomerAccount => ({
 
 export const registerCustomer = createServerFn({ method: "POST" })
   .inputValidator((d: z.input<typeof registerSchema>) => registerSchema.parse(d))
-  .handler(async ({ data }): Promise<{ ok: true; customer_number: string }> => {
-    if (data.password !== data.confirm_password) {
-      throw new Error("Passwords do not match");
-    }
-    const {
-      resolveBankBySlug,
-      randomHex,
-      hashPassword,
-      generateCustomerNumber,
-      generateAccountNumber,
-      buildSessionCookie,
-      SESSION_TTL_SECONDS,
-    } = await import("./portal.server");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { getPublishedBank } = await import("@/lib/website/registry.functions");
+  .handler(
+    async ({
+      data,
+    }): Promise<{ ok: true; customer_number: string; account_number: string }> => {
+      if (data.password !== data.confirm_password) {
+        throw new Error("Passwords do not match");
+      }
+      const {
+        resolveBankBySlug,
+        randomHex,
+        hashPassword,
+        generateCustomerNumber,
+        generateAccountNumber,
+      } = await import("./portal.server");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { getPublishedBank } = await import("@/lib/website/registry.functions");
 
-    const bank = await resolveBankBySlug(data.slug);
-    if (!bank) throw new Error("Bank not found");
+      const bank = await resolveBankBySlug(data.slug);
+      if (!bank) throw new Error("Bank not found");
 
-    // Check email uniqueness within this tenant.
-    const { data: existing } = await supabaseAdmin
-      .from("bank_customers")
-      .select("id")
-      .eq("bank_id", bank.id)
-      .ilike("email", data.email)
-      .maybeSingle();
-    if (existing) throw new Error("An account with this email already exists at this bank.");
+      // Check email uniqueness within this tenant.
+      const { data: existing } = await supabaseAdmin
+        .from("bank_customers")
+        .select("id")
+        .eq("bank_id", bank.id)
+        .ilike("email", data.email)
+        .maybeSingle();
+      if (existing) throw new Error("An account with this email already exists at this bank.");
 
-    const salt = randomHex(16);
-    const password_hash = await hashPassword(data.password, salt);
-    const customer_number = generateCustomerNumber();
+      const salt = randomHex(16);
+      const password_hash = await hashPassword(data.password, salt);
+      const customer_number = generateCustomerNumber();
 
-    const { data: inserted, error } = await supabaseAdmin
-      .from("bank_customers")
-      .insert({
+      // Determine country + currency from the published manifest for account formatting.
+      const publishedInfo = await getPublishedBank({ data: { slug: data.slug } }).catch(() => null);
+      const currency = publishedInfo?.manifest.bank.currency ?? "USD";
+      const bankCountry = publishedInfo?.manifest.bank.country_code ?? null;
+
+      const accountType = data.account_type ?? "personal";
+      const accountLabels: Record<string, string> = {
+        personal: "Personal Account",
+        savings: "Savings Account",
+        current: "Current Account",
+        business: "Business Account",
+        joint: "Joint Account",
+        student: "Student Account",
+      };
+
+      const { data: inserted, error } = await supabaseAdmin
+        .from("bank_customers")
+        .insert({
+          bank_id: bank.id,
+          customer_number,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          date_of_birth: data.date_of_birth || null,
+          gender: data.gender || null,
+          email: data.email.toLowerCase(),
+          phone: data.phone || null,
+          address: data.address || null,
+          city: data.city || null,
+          state: data.state || null,
+          postal_code: data.postal_code || null,
+          country: data.country || null,
+          nationality: data.nationality || null,
+          id_document_type: data.id_document_type || null,
+          id_document_number: data.id_document_number || null,
+          id_document_country: data.id_document_country || null,
+          employment_status: data.employment_status || null,
+          employer_name: data.employer_name || null,
+          job_title: data.job_title || null,
+          annual_income: data.annual_income ?? null,
+          next_of_kin_name: data.next_of_kin_name || null,
+          next_of_kin_relationship: data.next_of_kin_relationship || null,
+          next_of_kin_phone: data.next_of_kin_phone || null,
+          next_of_kin_email: data.next_of_kin_email || null,
+          account_type_preference: accountType,
+          password_salt: salt,
+          password_hash,
+          email_verification_token: randomHex(16),
+        })
+        .select("id")
+        .single();
+      if (error || !inserted) throw new Error(error?.message ?? "Registration failed");
+
+      // Auto-generate default account, formatted for the bank's country.
+      const account_number = generateAccountNumber(bankCountry);
+      const { error: accErr } = await supabaseAdmin.from("bank_customer_accounts").insert({
+        customer_id: inserted.id,
         bank_id: bank.id,
-        customer_number,
-        first_name: data.first_name,
-        last_name: data.last_name,
-        date_of_birth: data.date_of_birth || null,
-        gender: data.gender || null,
-        email: data.email.toLowerCase(),
-        phone: data.phone || null,
-        address: data.address || null,
-        country: data.country || null,
-        nationality: data.nationality || null,
-        password_salt: salt,
-        password_hash,
-        email_verification_token: randomHex(16),
-      })
-      .select("id")
-      .single();
-    if (error || !inserted) throw new Error(error?.message ?? "Registration failed");
+        account_number,
+        account_name: `${data.first_name} ${data.last_name} — ${accountLabels[accountType]}`,
+        currency,
+        account_type: accountType,
+        status: "active",
+      });
+      if (accErr) throw new Error(accErr.message);
 
-    // Determine default currency from the published manifest.
-    const publishedInfo = await getPublishedBank({ data: { slug: data.slug } }).catch(() => null);
-    const currency = publishedInfo?.manifest.bank.currency ?? "USD";
+      // Welcome email simulation: store a customer notification so the dashboard
+      // shows the welcome message on first login.
+      const bankName = publishedInfo?.manifest.bank.name ?? "your bank";
+      await supabaseAdmin.from("bank_notifications").insert({
+        bank_id: bank.id,
+        customer_id: inserted.id,
+        kind: "welcome_email",
+        title: `Welcome to ${bankName}`,
+        body:
+          `Hi ${data.first_name},\n\n` +
+          `Your ${accountLabels[accountType].toLowerCase()} has been created successfully. ` +
+          `Your customer number is ${customer_number} and your account number is ${account_number}. ` +
+          `Please sign in to activate your account and explore your dashboard.`,
+        metadata: {
+          simulated_email: true,
+          customer_number,
+          account_number,
+          account_type: accountType,
+        },
+      });
 
-    // Auto-generate default account.
-    const account_number = generateAccountNumber();
-    const { error: accErr } = await supabaseAdmin.from("bank_customer_accounts").insert({
-      customer_id: inserted.id,
-      bank_id: bank.id,
-      account_number,
-      account_name: `${data.first_name} ${data.last_name} — Checking`,
-      currency,
-      account_type: "checking",
-      status: "active",
-    });
-    if (accErr) throw new Error(accErr.message);
+      await supabaseAdmin.from("bank_customer_login_history").insert({
+        customer_id: inserted.id,
+        bank_id: bank.id,
+        event: "registered",
+      });
 
-    // Issue session immediately so registration lands on the dashboard.
-    const token = randomHex(32);
-    const expires = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
-    await supabaseAdmin.from("bank_customer_sessions").insert({
-      token,
-      customer_id: inserted.id,
-      bank_id: bank.id,
-      expires_at: expires.toISOString(),
-    });
-    await supabaseAdmin.from("bank_customer_login_history").insert({
-      customer_id: inserted.id,
-      bank_id: bank.id,
-      event: "registered",
-    });
+      return { ok: true, customer_number, account_number };
+    },
+  );
 
-    setResponseHeader(
-      "Set-Cookie",
-      buildSessionCookie({ slug: data.slug, token, maxAgeSeconds: SESSION_TTL_SECONDS }),
-    );
-
-    return { ok: true, customer_number };
-  });
 
 // ---- login ----
 
