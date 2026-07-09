@@ -795,6 +795,179 @@ export type Database = {
           },
         ]
       }
+      bp_bank_products: {
+        Row: {
+          created_at: string
+          display_label: string | null
+          draft_id: string
+          enabled: boolean
+          product_code: string
+          sort_order: number
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          created_at?: string
+          display_label?: string | null
+          draft_id: string
+          enabled?: boolean
+          product_code: string
+          sort_order?: number
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          display_label?: string | null
+          draft_id?: string
+          enabled?: boolean
+          product_code?: string
+          sort_order?: number
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bp_bank_products_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "bb_bank_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bp_bank_products_product_code_fkey"
+            columns: ["product_code"]
+            isOneToOne: false
+            referencedRelation: "bp_products"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      bp_blueprint_products: {
+        Row: {
+          blueprint_id: string
+          created_at: string
+          product_code: string
+          sort_order: number
+        }
+        Insert: {
+          blueprint_id: string
+          created_at?: string
+          product_code: string
+          sort_order?: number
+        }
+        Update: {
+          blueprint_id?: string
+          created_at?: string
+          product_code?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bp_blueprint_products_blueprint_id_fkey"
+            columns: ["blueprint_id"]
+            isOneToOne: false
+            referencedRelation: "bb_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bp_blueprint_products_product_code_fkey"
+            columns: ["product_code"]
+            isOneToOne: false
+            referencedRelation: "bp_products"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      bp_product_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      bp_products: {
+        Row: {
+          category_slug: string
+          code: string
+          created_at: string
+          default_visible: boolean
+          description: string
+          eligibility: Json
+          icon: string
+          id: string
+          name: string
+          sort_order: number
+          status: string
+          supported_countries: string[]
+          supported_currencies: string[]
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          category_slug: string
+          code: string
+          created_at?: string
+          default_visible?: boolean
+          description?: string
+          eligibility?: Json
+          icon?: string
+          id?: string
+          name: string
+          sort_order?: number
+          status?: string
+          supported_countries?: string[]
+          supported_currencies?: string[]
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          category_slug?: string
+          code?: string
+          created_at?: string
+          default_visible?: boolean
+          description?: string
+          eligibility?: Json
+          icon?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          status?: string
+          supported_countries?: string[]
+          supported_currencies?: string[]
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bp_products_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "bp_product_categories"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
