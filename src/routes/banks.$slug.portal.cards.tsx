@@ -24,6 +24,9 @@ function CardsPage() {
     session: CustomerSession;
   };
   const { bank, session } = parent;
+  if (!isNavEnabled(bank.manifest, "cards")) {
+    return <ProductUnavailable manifest={bank.manifest} title="Cards unavailable" />;
+  }
   const primary = bank.manifest.theme.colors.primary;
   const secondary = bank.manifest.theme.colors.secondary ?? primary;
   const qc = useQueryClient();
