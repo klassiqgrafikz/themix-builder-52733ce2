@@ -596,7 +596,7 @@ export function RestrictionBanner({ restrictions }: { restrictions: CustomerRest
 }
 
 export function BrandedCard({
-  manifest: _manifest,
+  manifest,
   children,
   className,
 }: {
@@ -604,6 +604,31 @@ export function BrandedCard({
   children: ReactNode;
   className?: string;
 }) {
+  const variant = manifest.bank.template_variant ?? "modern";
+  if (variant === "premium") {
+    return (
+      <div
+        className={`border p-6 ${className ?? ""}`}
+        style={{
+          borderColor: "rgba(201,168,76,0.35)",
+          backgroundColor: "rgba(255,255,255,0.02)",
+          color: "#f5f2ea",
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
+  if (variant === "corporate") {
+    return (
+      <div
+        className={`border-l-2 border-slate-200 bg-white p-5 shadow-sm ${className ?? ""}`}
+        style={{ borderLeftColor: "var(--tenant-primary)" }}
+      >
+        {children}
+      </div>
+    );
+  }
   return (
     <div
       className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ${className ?? ""}`}
@@ -612,3 +637,4 @@ export function BrandedCard({
     </div>
   );
 }
+
