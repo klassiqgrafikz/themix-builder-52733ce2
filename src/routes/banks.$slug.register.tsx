@@ -224,10 +224,20 @@ function RegisterWizard() {
       }),
     onSuccess: (r) => {
       setResult({ customer_number: r.customer_number, account_number: r.account_number });
-      toast.success("Account created successfully");
+      toast.success("Account created successfully.", {
+        description: `Customer ${r.customer_number} · Account ${r.account_number}`,
+      });
+      // Automatically redirect to the customer login page after a brief pause
+      // so the user can see the confirmation before signing in.
+      setTimeout(() => {
+        navigate({ to: "/banks/$slug/login", params: { slug: bank.slug } });
+      }, 1500);
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : "Registration failed"),
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : "Registration failed";
+      console.error("[register] pipeline failed:", e);
+      toast.error(msg);
+    },
   });
 
   const update =
