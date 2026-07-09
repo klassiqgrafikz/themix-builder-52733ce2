@@ -459,6 +459,49 @@ function BankOverview() {
             >
               <BarChart3 className="mr-2 h-4 w-4" /> Analytics
             </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="justify-start" disabled={logs.length === 0 || clearHistoryMut.isPending}>
+                  <History className="mr-2 h-4 w-4" /> Clear Rendering History
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear rendering timeline?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Only rendering timeline entries are removed. Banks, customers, audit logs, website manifests and ledger entries are preserved.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => clearHistoryMut.mutate()}>Clear history</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="justify-start" disabled={deleteMut.isPending}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete Bank
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this bank?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently removes the website manifest, published website, navigation, branding assets, customer portal, and rendering timeline for <strong>{identity.bank_name}</strong>. Audit logs are preserved. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={() => deleteMut.mutate(false)}
+                  >
+                    Delete bank
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </main>
