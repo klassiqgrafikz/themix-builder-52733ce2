@@ -16,7 +16,11 @@ import {
   listCountries,
   listBlueprints,
   useBlueprint,
+  createDraft,
+  updateDraft,
 } from "@/lib/bank-builder.functions";
+import { TEMPLATE_VARIANTS, type TemplateVariant } from "@/lib/rendering/template-variant";
+
 import type {
   BankCountry,
   BlueprintCategory,
