@@ -21,7 +21,7 @@ export type TxRow = {
 };
 
 export type TxDetail = TxRow & {
-  metadata: Record<string, unknown>;
+  metadata: Record<string, string | number | boolean | null>;
   bank_name: string;
   account_number: string;
   customer_name: string;
