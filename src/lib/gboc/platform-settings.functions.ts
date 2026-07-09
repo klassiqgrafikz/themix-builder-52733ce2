@@ -128,10 +128,18 @@ export const updatePlatformSettings = createServerFn({ method: "POST" })
     const { data: row, error } = await supabaseAdmin
       .from("gboc_platform_settings")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .update(patch as any)
-      .eq("id", 1)
+      .upsert({ id: 1, ...(patch as any) }, { onConflict: "id" })
       .select("*")
-      .single();
-    if (error || !row) throw new Error(error?.message ?? "Update failed");
-    return readSettings(row);
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (row) return readSettings(row);
+    // Fallback: re-read the row if the write returned no representation.
+    const { data: fresh, error: readErr } = await supabaseAdmin
+      .from("gboc_platform_settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    return readSettings(fresh);
   });
+
