@@ -36,6 +36,9 @@ function Index() {
           <Button asChild variant="outline" size="lg">
             <Link to="/admin">Global Admin</Link>
           </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link to="/gboc">Operations Center</Link>
+          </Button>
           <Button asChild variant="ghost" size="lg">
             <Link to="/auth">Sign in</Link>
           </Button>
