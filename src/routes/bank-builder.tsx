@@ -544,15 +544,36 @@ function UploadField({
   return (
     <div className={cn("space-y-2", wide && "sm:col-span-2")}>
       <Label>{label}</Label>
-      <div className="flex items-center gap-3">
+  const [drag, setDrag] = useState(false);
+  return (
+    <div className={cn("space-y-2", wide && "sm:col-span-2")}>
+      <Label>{label}</Label>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDrag(true);
+        }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDrag(false);
+          const f = e.dataTransfer.files?.[0];
+          if (f) void handleFile(f);
+        }}
+        className={cn(
+          "flex items-center gap-4 rounded-lg border-2 border-dashed p-3 transition",
+          drag ? "border-primary bg-primary/5" : "border-border",
+        )}
+      >
         {url ? (
           <img src={url} alt="" className={previewClass} />
         ) : (
           <div className={cn(previewClass, "flex items-center justify-center text-xs text-muted-foreground")}>
-            No file
+            No logo
           </div>
         )}
-        <div className="flex-1">
+        <div className="flex-1 space-y-2">
           <Input
             type="file"
             accept={accept}
@@ -562,8 +583,23 @@ function UploadField({
               if (f) void handleFile(f);
             }}
           />
-          <div className="mt-1 text-xs text-muted-foreground">
-            {busy ? "Uploading…" : url ? "Uploaded — choose another file to replace" : `Max ${maxMB} MB`}
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs text-muted-foreground">
+              {busy
+                ? "Uploading…"
+                : url
+                  ? "Drag & drop or choose a new file to replace"
+                  : `Drag & drop or click to upload · JPG, PNG, WEBP · Max ${maxMB} MB`}
+            </div>
+            {url && !busy && (
+              <button
+                type="button"
+                onClick={() => onUrl("")}
+                className="text-xs font-medium text-destructive hover:underline"
+              >
+                Remove
+              </button>
+            )}
           </div>
         </div>
       </div>
