@@ -27,6 +27,27 @@ export const Route = createFileRoute("/gboc/communications")({
   component: LiveChatPage,
 });
 
+function previewHref(provider: ChatProvider, c: ChatConfig): string {
+  switch (provider) {
+    case "tawk":
+      return c.tawk_link || "";
+    case "crisp":
+      return c.crisp_link || "";
+    case "smartsupp":
+      return c.smartsupp_link || "";
+    case "whatsapp": {
+      if (c.whatsapp_link) return c.whatsapp_link;
+      const num = (c.whatsapp_number ?? "").replace(/[^\d]/g, "");
+      const greeting = encodeURIComponent(c.whatsapp_greeting ?? "Hello, I need help.");
+      return num ? `https://wa.me/${num}?text=${greeting}` : "";
+    }
+    case "telegram":
+      return c.telegram_group_link || "";
+    default:
+      return "";
+  }
+}
+
 const PROVIDERS: { value: ChatProvider; label: string; description: string }[] = [
   { value: "none", label: "None", description: "No chat widget is displayed on tenant portals." },
   { value: "tawk", label: "Tawk.to", description: "Property ID + Widget ID; optional direct chat link." },
@@ -175,7 +196,21 @@ function LiveChatPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const href = previewHref(provider, config);
+                if (!href) {
+                  toast.error("No preview link available for this provider. Fill in the required fields and save first.");
+                  return;
+                }
+                window.open(href, "_blank", "noopener,noreferrer");
+              }}
+              disabled={provider === "none"}
+            >
+              Test / preview
+            </Button>
             <Button onClick={() => mut.mutate()} disabled={mut.isPending}>
               {mut.isPending ? "Saving…" : "Save configuration"}
             </Button>
