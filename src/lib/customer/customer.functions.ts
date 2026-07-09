@@ -186,7 +186,11 @@ export const registerCustomer = createServerFn({ method: "POST" })
       if (error || !inserted) throw new Error(error?.message ?? "Registration failed");
 
       // Auto-generate default account, formatted for the bank's country.
-      const account_number = generateAccountNumber(bankCountry);
+      const { generateCountryAccountFields } = await import("./country-formats");
+      const countryFields = generateCountryAccountFields(bankCountry ?? "");
+      // Prefer the country helper's account_number; fall back to legacy generator.
+      const account_number =
+        countryFields.account_number || generateAccountNumber(bankCountry);
       const { error: accErr } = await supabaseAdmin.from("bank_customer_accounts").insert({
         customer_id: inserted.id,
         bank_id: bank.id,
@@ -195,6 +199,13 @@ export const registerCustomer = createServerFn({ method: "POST" })
         currency,
         account_type: accountType,
         status: "active",
+        iban: countryFields.iban ?? null,
+        swift_bic: countryFields.swift_bic ?? null,
+        routing_number: countryFields.routing_number ?? null,
+        sort_code: countryFields.sort_code ?? null,
+        bsb: countryFields.bsb ?? null,
+        transit_number: countryFields.transit_number ?? null,
+        institution_number: countryFields.institution_number ?? null,
       });
       if (accErr) throw new Error(accErr.message);
 
