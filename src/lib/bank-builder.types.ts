@@ -77,14 +77,10 @@ export type BankFeatures = Record<string, boolean>;
 export type BankSimulation = Record<string, boolean>;
 export type BankAdminControls = Record<string, boolean>;
 
-export type RenderStatus = "draft" | "rendering" | "ready" | "published" | "archived";
+import type { NavItem, RenderLogEntry, RenderStatus, WebsiteManifest } from "./rendering/types";
+export type { NavItem, RenderLogEntry, RenderStatus, WebsiteManifest } from "./rendering/types";
 
-export type RenderLogEntry = {
-  stage: string;
-  level: "info" | "warn" | "error";
-  message: string;
-  at: string;
-};
+
 
 export type BankDraft = {
   id: string;
