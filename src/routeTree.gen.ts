@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProductsRouteImport } from './routes/products'
 import { Route as LaunchRouteImport } from './routes/launch'
 import { Route as GbocRouteImport } from './routes/gboc'
 import { Route as BankBuilderRouteImport } from './routes/bank-builder'
@@ -35,6 +36,11 @@ import { Route as BanksSlugPortalIndexRouteImport } from './routes/banks.$slug.p
 import { Route as BanksSlugPortalProfileRouteImport } from './routes/banks.$slug.portal.profile'
 import { Route as BanksSlugPortalAccountsRouteImport } from './routes/banks.$slug.portal.accounts'
 
+const ProductsRoute = ProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LaunchRoute = LaunchRouteImport.update({
   id: '/launch',
   path: '/launch',
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/bank-builder': typeof BankBuilderRoute
   '/gboc': typeof GbocRouteWithChildren
   '/launch': typeof LaunchRouteWithChildren
+  '/products': typeof ProductsRoute
   '/admin/$section': typeof AdminSectionRoute
   '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/gboc/audit': typeof GbocAuditRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
+  '/products': typeof ProductsRoute
   '/admin/$section': typeof AdminSectionRoute
   '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/gboc/audit': typeof GbocAuditRoute
@@ -218,6 +226,7 @@ export interface FileRoutesById {
   '/bank-builder': typeof BankBuilderRoute
   '/gboc': typeof GbocRouteWithChildren
   '/launch': typeof LaunchRouteWithChildren
+  '/products': typeof ProductsRoute
   '/admin/$section': typeof AdminSectionRoute
   '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/gboc/audit': typeof GbocAuditRoute
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | '/bank-builder'
     | '/gboc'
     | '/launch'
+    | '/products'
     | '/admin/$section'
     | '/banks/$slug'
     | '/gboc/audit'
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/bank-builder'
+    | '/products'
     | '/admin/$section'
     | '/banks/$slug'
     | '/gboc/audit'
@@ -296,6 +307,7 @@ export interface FileRouteTypes {
     | '/bank-builder'
     | '/gboc'
     | '/launch'
+    | '/products'
     | '/admin/$section'
     | '/banks/$slug'
     | '/gboc/audit'
@@ -324,12 +336,20 @@ export interface RootRouteChildren {
   BankBuilderRoute: typeof BankBuilderRoute
   GbocRoute: typeof GbocRouteWithChildren
   LaunchRoute: typeof LaunchRouteWithChildren
+  ProductsRoute: typeof ProductsRoute
   BanksSlugRoute: typeof BanksSlugRouteWithChildren
   ManageBanksIdRoute: typeof ManageBanksIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/products': {
+      id: '/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof ProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/launch': {
       id: '/launch'
       path: '/launch'
@@ -604,6 +624,7 @@ const rootRouteChildren: RootRouteChildren = {
   BankBuilderRoute: BankBuilderRoute,
   GbocRoute: GbocRouteWithChildren,
   LaunchRoute: LaunchRouteWithChildren,
+  ProductsRoute: ProductsRoute,
   BanksSlugRoute: BanksSlugRouteWithChildren,
   ManageBanksIdRoute: ManageBanksIdRoute,
 }
