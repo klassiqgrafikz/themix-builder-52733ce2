@@ -110,7 +110,8 @@ export const setTwoFactor = createServerFn({ method: "POST" })
     else patch.two_factor_secret = null;
     const { error } = await supabaseAdmin
       .from("bank_customers")
-      .update(patch)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(patch as any)
       .eq("id", s.customer.id);
     if (error) throw new Error(error.message);
     return { ok: true };

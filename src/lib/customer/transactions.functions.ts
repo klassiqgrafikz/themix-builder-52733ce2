@@ -139,7 +139,7 @@ export const getTransactionDetail = createServerFn({ method: "GET" })
       balance_after: Number(t.balance_after),
       status: t.status,
       created_at: t.created_at,
-      metadata: (t.metadata ?? {}) as Record<string, unknown>,
+      metadata: JSON.parse(JSON.stringify(t.metadata ?? {})) as Record<string, string | number | boolean | null>,
       bank_name: bank?.manifest.bank.name ?? "Bank",
       account_number: acct?.account_number ?? "",
       customer_name: `${s.customer.first_name} ${s.customer.last_name}`,
