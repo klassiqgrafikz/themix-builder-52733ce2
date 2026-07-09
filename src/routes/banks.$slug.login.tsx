@@ -7,8 +7,25 @@ import { getPublishedBank } from "@/lib/website/registry.functions";
 import { loginCustomer } from "@/lib/customer/customer.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+
+// Map raw server / network errors to friendly customer-facing wording.
+function humanizeLoginError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err ?? "");
+  const m = msg.toLowerCase();
+  if (!msg) return "We couldn't sign you in. Please try again.";
+  if (m.includes("network") || m.includes("failed to fetch")) return "Network error — check your connection and try again.";
+  if (m.includes("password")) return "Incorrect password. Please try again.";
+  if (m.includes("no such") || m.includes("not found") || m.includes("unknown")) return "We don't recognise this email at this bank.";
+  if (m.includes("frozen")) return "Your account is frozen. Contact support to unlock it.";
+  if (m.includes("restrict")) return "Your account is restricted. Contact support for details.";
+  if (m.includes("too many") || m.includes("rate")) return "Too many attempts. Please wait a minute and try again.";
+  if (m.includes("expired")) return "Your session expired. Please sign in again.";
+  if (m.includes("unavailable") || m.includes("500") || m.includes("server")) return "Our servers are temporarily unavailable. Please try again shortly.";
+  return msg;
+}
 
 export const Route = createFileRoute("/banks/$slug/login")({
   loader: async ({ params }) => {
@@ -38,10 +55,12 @@ function LoginPage() {
   const mut = useMutation({
     mutationFn: () => doLogin({ data: { slug: bank.slug, email, password } }),
     onSuccess: () => {
-      toast.success("Signed in");
-      navigate({ to: "/banks/$slug/portal", params: { slug: bank.slug } });
+      toast.success(`Welcome back, ${email.split("@")[0]}`);
+      setTimeout(() => {
+        navigate({ to: "/banks/$slug/portal", params: { slug: bank.slug } });
+      }, 350);
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Login failed"),
+    onError: (e: unknown) => toast.error(humanizeLoginError(e)),
   });
 
   return (
@@ -74,9 +93,9 @@ function LoginPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Password</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />

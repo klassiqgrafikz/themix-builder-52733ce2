@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { listDrafts } from "@/lib/bank-builder.functions";
 import { ADMIN_SECTIONS, type BankDraft } from "@/lib/bank-builder.types";
 import { RequireAuth } from "@/components/launch/require-auth";
+import { PlatformPinGate } from "@/components/platform/pin-gate";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ function AdminLayout() {
   const [open, setOpen] = useState(false);
   return (
     <RequireAuth>
+      <PlatformPinGate area="Global Admin">
       <div className="min-h-screen bg-muted/30">
         <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
           <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3">
@@ -61,6 +63,7 @@ function AdminLayout() {
           </main>
         </div>
       </div>
+      </PlatformPinGate>
     </RequireAuth>
   );
 }

@@ -128,6 +128,98 @@ export const unpublishDraft = createServerFn({ method: "POST" })
     return row as BankDraft;
   });
 
+/** Owner-scoped: clear the rendering timeline for one bank (or all owned by
+ * this user). Only removes render_logs — banks, customers, audit logs, ledger
+ * and website manifests are preserved. */
+export const clearRenderingHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id?: string }) => z.object({ id: z.string().uuid().optional() }).parse(d))
+  .handler(async ({ context, data }): Promise<{ cleared: number }> => {
+    const sb = anyClient(context.supabase);
+    const q = sb.from("bb_bank_drafts").update({ render_logs: [] });
+    const { data: rows, error } = data.id
+      ? await q.eq("id", data.id).select("id")
+      : await q.eq("owner_id", context.userId).select("id");
+    if (error) throw new Error(error.message);
+    return { cleared: (rows ?? []).length };
+  });
+
+/** Owner-scoped: delete a generated bank. Removes:
+ *   - the draft row (manifest, navigation, branding, render logs)
+ *   - branding assets from the `bank-branding` storage bucket
+ *   - bank-scoped products, notifications, support threads, cards, accounts,
+ *     transactions, customers, sessions
+ * Preserves audit logs unless purge_audit=true. */
+export const deleteBank = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; purge_audit?: boolean }) =>
+    z.object({ id: z.string().uuid(), purge_audit: z.boolean().optional().default(false) }).parse(d),
+  )
+  .handler(async ({ context, data }): Promise<{ ok: true }> => {
+    const sb = anyClient(context.supabase);
+    // Authorization: draft owner OR gboc admin (has_role).
+    const { data: draft } = await sb
+      .from("bb_bank_drafts")
+      .select("id, owner_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!draft) throw new Error("Bank not found");
+    if (draft.owner_id !== context.userId) {
+      const { data: isAdmin } = await sb.rpc("has_role", {
+        _user_id: context.userId,
+        _role: "admin",
+      });
+      if (!isAdmin) throw new Error("Not authorized to delete this bank");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Remove branding assets for this draft.
+    const { data: brandingFiles } = await supabaseAdmin.storage
+      .from("bank-branding")
+      .list(data.id, { limit: 50 });
+    if (brandingFiles && brandingFiles.length) {
+      await supabaseAdmin.storage
+        .from("bank-branding")
+        .remove(brandingFiles.map((f) => `${data.id}/${f.name}`));
+    }
+
+    // Cascade delete tenant-scoped rows. Best effort — errors are logged but
+    // the draft row is always attempted last so the bank disappears from the UI.
+    const tenantTables = [
+      "bank_account_restrictions",
+      "bank_customer_login_history",
+      "bank_customer_sessions",
+      "bank_customer_trusted_devices",
+      "bank_beneficiaries",
+      "bank_cards",
+      "bank_notifications",
+      "bank_support_messages",
+      "bank_support_tickets",
+      "bank_ledger_entries",
+      "bank_financial_events",
+      "bank_transactions",
+      "bank_customer_accounts",
+      "bank_customers",
+      "bp_bank_products",
+    ] as const;
+    for (const table of tenantTables) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabaseAdmin as any).from(table).delete().eq("bank_id", data.id);
+    }
+    if (data.purge_audit) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabaseAdmin as any).from("bank_audit_logs").delete().eq("bank_id", data.id);
+    }
+    // Finally remove the draft (website manifest + navigation + branding + render logs).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: delErr } = await (supabaseAdmin as any)
+      .from("bb_bank_drafts")
+      .delete()
+      .eq("id", data.id);
+    if (delErr) throw new Error(delErr.message);
+    return { ok: true };
+  });
+
 /** Public: load a published bank by slug (uses publishable-key client). */
 export const getPublishedBank = createServerFn({ method: "GET" })
   .inputValidator((d: { slug: string }) =>

@@ -7,11 +7,17 @@ import {
   getPlatformSettings,
   updatePlatformSettings,
 } from "@/lib/gboc/platform-settings.functions";
+import {
+  getPlatformPin,
+  updatePlatformPin,
+} from "@/lib/gboc/platform-pin.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/gboc/settings")({
   component: PlatformSettingsPage,
@@ -87,6 +93,85 @@ function PlatformSettingsPage() {
           </div>
         </CardContent>
       </Card>
+      <PlatformSecurityCard />
     </div>
+  );
+}
+
+function PlatformSecurityCard() {
+  const qc = useQueryClient();
+  const getPin = useServerFn(getPlatformPin);
+  const setPin = useServerFn(updatePlatformPin);
+  const q = useQuery({ queryKey: ["platform-pin"], queryFn: () => getPin() });
+  const [revealed, setRevealed] = useState(false);
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const mut = useMutation({
+    mutationFn: () => setPin({ data: { pin: next } }),
+    onSuccess: () => {
+      toast.success("Platform PIN updated");
+      setNext("");
+      setConfirm("");
+      qc.invalidateQueries({ queryKey: ["platform-pin"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Update failed"),
+  });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4" /> Platform Security
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-md border p-3">
+          <div className="mb-1 text-sm font-medium">Current Platform PIN</div>
+          <div className="flex items-center gap-2">
+            <code className="rounded bg-muted px-2 py-1 font-mono text-sm">
+              {revealed ? q.data?.pin ?? "…" : "••••"}
+            </code>
+            <Button size="sm" variant="outline" onClick={() => setRevealed((v) => !v)}>
+              {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              <span className="ml-2">{revealed ? "Hide" : "Reveal"}</span>
+            </Button>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            The PIN gates every administration surface (Blueprint Library, Bank Management, Products, GBOC, Reports, Platform Settings).
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <Label>New PIN (min 4 digits)</Label>
+            <PasswordInput
+              inputMode="numeric"
+              value={next}
+              onChange={(e) => setNext(e.target.value.replace(/\D/g, "").slice(0, 12))}
+              placeholder="••••"
+            />
+          </div>
+          <div>
+            <Label>Confirm PIN</Label>
+            <PasswordInput
+              inputMode="numeric"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value.replace(/\D/g, "").slice(0, 12))}
+              placeholder="••••"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <Button
+            disabled={mut.isPending || next.length < 4 || next !== confirm}
+            onClick={() => {
+              if (next.length < 4) return toast.error("PIN must be at least 4 digits");
+              if (next !== confirm) return toast.error("PIN confirmation does not match");
+              mut.mutate();
+            }}
+          >
+            {mut.isPending ? "Saving…" : "Update PIN"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
