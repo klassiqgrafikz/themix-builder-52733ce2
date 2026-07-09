@@ -17,8 +17,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle2, XCircle, Loader2, Ban } from "lucide-react";
 
 export const Route = createFileRoute("/banks/$slug/portal/transfer")({
-  component: TransferPage,
+  component: TransferGate,
 });
+
+function TransferGate() {
+  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+    bank: { manifest: WebsiteManifest; slug: string };
+    session: CustomerSession;
+  };
+  if (!isNavEnabled(parent.bank.manifest, "transfer")) {
+    return <ProductUnavailable manifest={parent.bank.manifest} title="Transfers unavailable" />;
+  }
+  return <TransferPage />;
+}
 
 function fmt(v: number, c: string) {
   try { return new Intl.NumberFormat(undefined, { style: "currency", currency: c }).format(v); }
