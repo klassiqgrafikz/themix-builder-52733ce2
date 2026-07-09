@@ -51,9 +51,10 @@ export type ThemeSpec = {
 };
 
 export type BrandAssets = {
-  logo_url: string | null;
-  favicon_url: string | null;
-  hero_image_url: string | null;
+  /** Displayed on unauthenticated pages: public gateway, login, register, forgot. */
+  login_logo_url: string | null;
+  /** Displayed on the authenticated customer portal: dashboard, sidebar, mobile nav, statements. */
+  dashboard_logo_url: string | null;
 };
 
 export type ResolvedModule = {
@@ -164,9 +165,8 @@ export type BankConfigurationInput = {
     accent_color?: string;
     font_heading?: string;
     font_body?: string;
-    logo_url?: string;
-    favicon_url?: string;
-    hero_image_url?: string;
+    login_logo_url?: string;
+    dashboard_logo_url?: string;
     button_style?: "rounded" | "square" | "pill";
     border_radius?: number;
     dark_mode?: boolean;

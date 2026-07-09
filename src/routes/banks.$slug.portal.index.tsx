@@ -214,8 +214,8 @@ function DashboardPage() {
 
         <div className="relative flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            {manifest.brand.logo_url ? (
-              <img src={manifest.brand.logo_url} alt="" className="h-10 w-10 rounded-lg bg-white/10 object-contain p-1.5 ring-1 ring-white/15" />
+            {manifest.brand.dashboard_logo_url ? (
+              <img src={manifest.brand.dashboard_logo_url} alt="" className="h-10 w-10 rounded-lg bg-white/10 object-contain p-1.5 ring-1 ring-white/15" />
             ) : null}
             <div className="min-w-0">
               <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/60">

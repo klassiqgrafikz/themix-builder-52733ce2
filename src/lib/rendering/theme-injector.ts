@@ -31,8 +31,7 @@ export function injectTheme(cfg: BankConfigurationInput): ThemeSpec {
 export function extractBrandAssets(cfg: BankConfigurationInput): BrandAssets {
   const b = cfg.branding ?? {};
   return {
-    logo_url: b.logo_url?.trim() ? b.logo_url : null,
-    favicon_url: b.favicon_url?.trim() ? b.favicon_url : null,
-    hero_image_url: b.hero_image_url?.trim() ? b.hero_image_url : null,
+    login_logo_url: b.login_logo_url?.trim() ? b.login_logo_url : null,
+    dashboard_logo_url: b.dashboard_logo_url?.trim() ? b.dashboard_logo_url : null,
   };
 }

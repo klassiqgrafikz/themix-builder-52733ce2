@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const KIND = z.enum(["logo", "favicon", "hero"]);
+const KIND = z.enum(["login_logo", "dashboard_logo"]);
 export type BrandingKind = z.infer<typeof KIND>;
 
 // Client sends base64 (dataURL prefix stripped) + mime + kind + draftId.

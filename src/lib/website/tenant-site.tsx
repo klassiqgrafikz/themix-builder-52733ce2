@@ -36,10 +36,10 @@ export function TenantSite({
 
 function BrandLogo({ manifest, size = 44 }: { manifest: WebsiteManifest; size?: number }) {
   const { brand, bank, theme } = manifest;
-  if (brand.logo_url) {
+  if (brand.login_logo_url) {
     return (
       <img
-        src={brand.logo_url}
+        src={brand.login_logo_url}
         alt=""
         style={{ width: size, height: size }}
         className="rounded-xl object-contain"
