@@ -1,82 +1,66 @@
 
-# GBOC Professional Refactor Plan
+# Phase 6B – Banking Experience & Platform Enhancement
 
-This is a **UI/UX + workflow refactor**. No changes to Core Banking Engine, Financial Event Bus, Ledger, Auth, Customer Portal, Website Generator/Renderer, tenant isolation, or database schema. All actions continue to run through existing server functions (`gbocBalanceOperation`, `gbocAccountAction`, `gbocSetRestriction`, `gbocCreateTransaction`, `gbocListBanks`, `gbocListCustomers`, `gbocGetCustomer`, platform-settings, etc.).
+Scope: presentation + narrow supporting server-fn/schema changes only. Core Banking Engine, Financial Event Bus, Ledger, Auth, Website Generator, and tenant isolation stay untouched.
 
-## New GBOC layout & navigation
+## 1. Professional PDF Bank Statements
 
-Replace flat sidebar (`Dashboard / Operations / Audit / Settings`) with grouped nav in `src/routes/gboc.tsx`:
+- Replace CSV download on `banks.$slug.portal.statements.tsx` with **PDF-only** generation.
+- Add `jspdf` + `jspdf-autotable` (client-side render, no server changes to CBE).
+- Statement builder reads current manifest branding (logo, name, address, colors) + customer profile + accounts + ledger data (already returned by `generateStatementCsv` — reuse its data path; rename its return to include structured rows).
+- Sections: header (logo, bank name/address), customer block (name, customer #, account #), period, currency, opening/closing balances, transactions table (date, description, reference, debit, credit, running balance), footer text with timestamp + page numbers.
+- Remove "Print/Save PDF" HTML fallback and "Download CSV" button.
 
-- **Overview** — Dashboard
-- **Tenants** — Banks (list + manage links into existing `/bank-builder` and `/manage/banks/$id`)
-- **Customer Ops** — Customers, Operations Console, Transactions
-- **Communications** — Notifications, Live Chat
-- **Governance** — Audit Center, Reports
-- **Platform** — Settings
+## 2. Global Live Chat Provider Manager
 
-Desktop: permanent sidebar. Mobile: drawer using existing shadcn `Sheet`. Top header keeps a **global search** (banks, customers, accounts, tx reference, email, phone) that pipes into existing `gbocListBanks` + `gbocListCustomers`.
+- Extend `gboc_platform_settings` table with columns for provider selection and per-provider config (JSON blob is fine).
+- Update `platform-settings.functions.ts` schema (Zod) to include: `chat_provider` enum ('none'|'tawk'|'crisp'|'smartsupp'|'whatsapp'|'telegram'), `chat_config` JSONB with the provider-specific fields listed.
+- Rewrite `gboc.communications.tsx` to expose provider selector + dynamic form for the chosen provider's fields, plus enable/disable toggle.
+- Update tenant support surface (`banks.$slug.portal.support.tsx`) to read platform settings and render the active provider's widget/link (script injection for Tawk/Crisp/Smartsupp, deep-link buttons for WhatsApp/Telegram).
+- Existing `live_chat_enabled` boolean stays as the master switch.
 
-## Dashboard (`gboc.index.tsx`) — rebuild
+## 3. Transfer Module Refactor
 
-Stat tiles derived from existing queries:
-- Total / Published / Draft Banks (from `gbocListBanks`)
-- Active Customers, Total Accounts (aggregated from bank rows)
-- Today's Transactions, Frozen Accounts, Pending Restrictions (compute client-side from a lightweight aggregate — reuse existing `gbocGetCustomer` data only for selected drilldowns; add nothing new server-side unless required)
-- Notifications sent (from existing notifications table via existing functions), Live Chat status (from `platform-settings.functions.ts`)
+`banks.$slug.portal.transfer.tsx`:
 
-Recent activity feed reuses audit entries from existing audit function.
+- Rename tabs: `own` → still "Own accounts"; `internal` → **Domestic Transfer**; `external` → **International Transfer**.
+- Domestic: after account number entry (debounced), call a new lightweight server fn `lookupDomesticAccount` (adds nothing to CBE — only reads `bank_customer_accounts` + `bank_customers` scoped to current tenant) returning `{ account_name, account_type, customer_name }` or 404. Show green validation badge or red "Account number not found." Submit disabled until validated.
+- International: expanded form fields (beneficiary name/address, bank name/address, IBAN, SWIFT/BIC, routing, sort code, transit, country, currency, amount, reason, reference). Submits through existing `submitTransfer` with `kind: 'external'`; extra fields packed into narration/beneficiary payload (no engine change).
 
-If a stat requires data not exposed by an existing server function, it will render as "—" with a subtle "coming soon" hint rather than adding new backend surface. (Preserves the "no schema changes" rule.)
+## 4. Restriction Awareness
 
-## Routes
+- Portal layout (`banks.$slug.portal.tsx`) already loads session; extend loader to also pull `bank_account_restrictions` for the customer's accounts.
+- Add `RestrictionBanner` component rendered at top of every portal page when any restriction is active.
+- Provide a `useRestrictions()` context helper. Transfer, Cards, Beneficiaries pages check it → disable submit button + tooltip + greyed styling when their feature is restricted. When GBOC lifts restriction, TanStack Query invalidation on next fetch removes the banner.
 
-Add / reorganize under `src/routes/`:
+## 5. Branding Uploads
 
-- `gboc.index.tsx` — new dashboard
-- `gboc.banks.tsx` — bank list, grouped by published/draft, links to existing builder/manage
-- `gboc.customers.tsx` — global customer search + filters (bank, status, country, account type), table with pagination (client-side over existing `gbocListCustomers`)
-- `gboc.customers.$id.tsx` — full customer profile: tabs (Profile · Accounts · Cards · Beneficiaries · Transactions · Notifications · Restrictions · Security · Audit · Support). Quick-action bar (Add / Deduct / Freeze / Restrict / Clear / Notify / Reset Password) opens dialogs that call the existing operations server functions. All tabs use existing `gbocGetCustomer` result.
-- `gboc.operations.tsx` — kept but simplified to a launcher: "pick bank → pick customer → open profile" (redirects to `gboc.customers.$id`). The unified workflow lives in the customer profile.
-- `gboc.transactions.tsx` — transaction manager: search by reference/customer/account/bank/amount/status/date, filter presets (today/yesterday/7d/30d/custom). Reads from existing customer detail transactions aggregated per selected bank via existing functions.
-- `gboc.notifications.tsx` — notification engine (broadcast / single / bank / platform) using existing notification insertion path exposed via operations functions.
-- `gboc.communications.tsx` — live chat config (reuses `platform-settings.functions.ts`).
-- `gboc.audit.tsx` — timeline audit view with filters (existing route, improved UI only).
-- `gboc.reports.tsx` — report generator: customer, transactions, balance, audit, bank performance, daily activity. Client-side CSV export from existing queries; PDF/Excel labelled as CSV-only for now (no backend added).
-- `gboc.settings.tsx` — platform settings (existing).
+- Create Supabase storage bucket `bank-branding` (public) via migration.
+- In `bank-builder.tsx` branding step: replace URL text inputs for logo/favicon/hero with file uploaders (`<input type="file">`), upload directly with `supabase.storage.from('bank-branding').upload(...)`, save returned public URL into draft's branding config.
+- Show live preview thumbnail above each uploader.
+- Keep the underlying URL fields in the config (upload just fills them) so downstream rendering keeps working unchanged.
 
-Any route lacking a matching backend endpoint uses only existing server functions — no new DB tables or server functions are added.
+## 6. Branding Preview
 
-## Operations Console — unified
+- Add "Preview" step/button in bank builder that opens a modal with tabbed previews:
+  - Homepage (render `TenantSite` with draft manifest, first page)
+  - Login/Registration (static mock using theme + logo)
+  - Customer Dashboard (mock using `BrandedCard` + theme)
+  - Sidebar (mock)
+  - PDF header (render first page of statement PDF into an iframe blob)
+  - Email header mock (HTML preview)
+  - Favicon (image tag)
+- Uses draft manifest built in-memory via existing `manifest-builder` helpers.
 
-The unified workflow **is** the customer profile page (`gboc.customers.$id.tsx`). Balance Adder, Deductor, Clear, Freeze, Restriction, Transaction Manager, Notify — all live as Quick Actions + tabs on that single page, matching the requested workflow:
+## 7. Validation
 
-```text
-Select Bank → Search Customer → Open Profile → Choose Action → Execute
-```
+- After all edits: run `tsgo --noEmit`; fix errors.
+- Manual click-through: statements → PDF opens; chat provider switch reflects on tenant portal; domestic transfer validates unknown/known accounts; international form accepts all fields; restriction toggled in GBOC shows banner on portal reload; uploads populate branding; preview modal renders each surface.
 
-The existing tab-based operations UI in `gboc.operations.tsx` is refactored into a shared `<CustomerOperationsPanel>` component reused by both the launcher and the customer profile page, so no logic is duplicated.
+## Technical Notes
 
-## Shared UI
-
-- `src/components/gboc/app-shell.tsx` — sidebar + header + mobile drawer + global search.
-- `src/components/gboc/customer-ops-panel.tsx` — extracted from current `gboc.operations.tsx` (balance, account actions, restrictions, transactions, history, notifications, audit tabs).
-- `src/components/gboc/stat-card.tsx`, `activity-feed.tsx`, `bank-picker.tsx` — small presentational pieces.
-
-## Explicit non-goals (to protect scope)
-
-- No new DB tables, no schema migrations, no new server functions unless a UI page is unbuildable without one — and only after confirming with you.
-- Reports export limited to CSV in this phase (PDF/Excel would require backend rendering).
-- Global search runs client-side over already-fetched bank + customer lists; server-side full-text search is deferred.
-- Virtual scrolling / server-side pagination is scaffolded (page size + paging UI) but backed by client-side paging over the existing list endpoints.
-- Live Chat surface reflects whatever `platform-settings.functions.ts` already exposes; no new chat infrastructure.
-
-## Technical notes
-
-- All new routes are `createFileRoute("/gboc/...")` and register the header meta with `robots: noindex`.
-- All actions use `useServerFn` + `useMutation`, invalidate `["gboc", ...]` keys on success.
-- Dynamic tenant theming from Phase 5D (`--tenant-primary` etc.) is respected inside customer/bank views.
-- Zero TypeScript errors; verified with the existing typecheck.
-
-## Deliverable
-
-A cleaner, grouped GBOC with a single customer-centric workflow, a real dashboard, dedicated Customers / Transactions / Notifications / Reports modules, and a global search — all wired to the existing backend without touching banking logic.
+- New deps: `jspdf`, `jspdf-autotable`.
+- New migration: add columns to `gboc_platform_settings` (`chat_provider text default 'none'`, `chat_config jsonb default '{}'::jsonb`); create storage bucket `bank-branding` + public-read policy + authenticated write policy.
+- New server fn: `lookupDomesticAccount` in `src/lib/customer/transfers.functions.ts` (read-only, tenant-scoped).
+- Extend portal loader (`portal.server.ts`) to include restrictions; expose via `useMatch` pattern already in use.
+- No changes to CBE, Financial Event Bus, ledger writes, session logic, or website generator internals.
