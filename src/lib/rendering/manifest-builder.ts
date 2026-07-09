@@ -5,6 +5,7 @@ import type {
   GeneratedPage,
   NavItem,
   ResolvedModule,
+  ResolvedProductRef,
   ThemeSpec,
   WebsiteManifest,
 } from "./types";
@@ -19,8 +20,9 @@ export function buildManifest(args: {
   modules: ResolvedModule[];
   pages: GeneratedPage[];
   navigation: NavItem[];
+  products: ResolvedProductRef[];
 }): WebsiteManifest {
-  const { bankId, slug, cfg, blueprint, theme, brand, modules, pages, navigation } = args;
+  const { bankId, slug, cfg, blueprint, theme, brand, modules, pages, navigation, products } = args;
   const name = cfg.identity.bank_name ?? "Untitled bank";
 
   return {
@@ -41,6 +43,7 @@ export function buildManifest(args: {
     modules,
     pages,
     navigation,
+    products,
     metadata: {
       title: name,
       description: `${name} — powered by TheMixWeb`,
