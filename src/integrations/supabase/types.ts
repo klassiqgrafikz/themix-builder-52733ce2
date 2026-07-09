@@ -281,17 +281,24 @@ export type Database = {
           account_type: string
           available_balance: number
           bank_id: string
+          bsb: string | null
           closed_at: string | null
           created_at: string
           currency: string
           current_balance: number
           customer_id: string
           frozen_at: string | null
+          iban: string | null
           id: string
+          institution_number: string | null
           pending_balance: number
           restriction_summary: Json
+          routing_number: string | null
+          sort_code: string | null
           status: string
           suspended_at: string | null
+          swift_bic: string | null
+          transit_number: string | null
           updated_at: string
         }
         Insert: {
@@ -300,17 +307,24 @@ export type Database = {
           account_type?: string
           available_balance?: number
           bank_id: string
+          bsb?: string | null
           closed_at?: string | null
           created_at?: string
           currency?: string
           current_balance?: number
           customer_id: string
           frozen_at?: string | null
+          iban?: string | null
           id?: string
+          institution_number?: string | null
           pending_balance?: number
           restriction_summary?: Json
+          routing_number?: string | null
+          sort_code?: string | null
           status?: string
           suspended_at?: string | null
+          swift_bic?: string | null
+          transit_number?: string | null
           updated_at?: string
         }
         Update: {
@@ -319,17 +333,24 @@ export type Database = {
           account_type?: string
           available_balance?: number
           bank_id?: string
+          bsb?: string | null
           closed_at?: string | null
           created_at?: string
           currency?: string
           current_balance?: number
           customer_id?: string
           frozen_at?: string | null
+          iban?: string | null
           id?: string
+          institution_number?: string | null
           pending_balance?: number
           restriction_summary?: Json
+          routing_number?: string | null
+          sort_code?: string | null
           status?: string
           suspended_at?: string | null
+          swift_bic?: string | null
+          transit_number?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1385,6 +1406,8 @@ export type Database = {
         Row: {
           id: number
           live_chat_enabled: boolean
+          platform_pin_hash: string | null
+          platform_pin_plain: string | null
           settings: Json
           support_email: string | null
           support_phone: string | null
@@ -1393,6 +1416,8 @@ export type Database = {
         Insert: {
           id?: number
           live_chat_enabled?: boolean
+          platform_pin_hash?: string | null
+          platform_pin_plain?: string | null
           settings?: Json
           support_email?: string | null
           support_phone?: string | null
@@ -1401,6 +1426,8 @@ export type Database = {
         Update: {
           id?: number
           live_chat_enabled?: boolean
+          platform_pin_hash?: string | null
+          platform_pin_plain?: string | null
           settings?: Json
           support_email?: string | null
           support_phone?: string | null
