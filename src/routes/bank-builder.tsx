@@ -481,6 +481,7 @@ function ColorField({
 
 function UploadField({
   label,
+  hint,
   kind,
   draftId,
   url,
@@ -492,7 +493,8 @@ function UploadField({
   wide,
 }: {
   label: string;
-  kind: "logo" | "favicon" | "hero";
+  hint?: string;
+  kind: "login_logo" | "dashboard_logo";
   draftId: string;
   url: string;
   onUrl: (u: string) => void;
