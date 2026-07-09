@@ -74,14 +74,19 @@ function SupportPage() {
   return (
     <div className="space-y-6">
       <BrandedCard manifest={bank.manifest}>
-        <h1 className="text-xl font-semibold" style={{ color: primary }}>Support Center</h1>
-        <div className="mt-2 grid gap-3 text-sm md:grid-cols-3">
-          <div><div className="text-xs uppercase opacity-70">Email</div><div>{cfgQ.data?.support_email ?? "support@themixweb.dev"}</div></div>
-          <div><div className="text-xs uppercase opacity-70">Phone</div><div>{cfgQ.data?.support_phone ?? "—"}</div></div>
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs uppercase opacity-70">Live chat</div>
-            <div>{cfgQ.data?.live_chat_enabled ? "Available — start a chat channel below" : "Currently disabled by the operations team"}</div>
+            <h1 className="text-xl font-semibold" style={{ color: primary }}>Support Center</h1>
+            <div className="mt-2 grid gap-3 text-sm md:grid-cols-3">
+              <div><div className="text-xs uppercase opacity-70">Email</div><div>{cfgQ.data?.support_email ?? "support@themixweb.dev"}</div></div>
+              <div><div className="text-xs uppercase opacity-70">Phone</div><div>{cfgQ.data?.support_phone ?? "—"}</div></div>
+              <div>
+                <div className="text-xs uppercase opacity-70">Live chat</div>
+                <div>{cfgQ.data?.live_chat_enabled ? `Available via ${cfgQ.data.chat_provider}` : "Currently disabled by the operations team"}</div>
+              </div>
+            </div>
           </div>
+          {cfgQ.data && <ChatWidget config={cfgQ.data} primary={primary} />}
         </div>
       </BrandedCard>
 
