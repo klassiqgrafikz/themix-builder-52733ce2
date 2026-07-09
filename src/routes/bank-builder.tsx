@@ -541,9 +541,6 @@ function UploadField({
       setBusy(false);
     }
   };
-  return (
-    <div className={cn("space-y-2", wide && "sm:col-span-2")}>
-      <Label>{label}</Label>
   const [drag, setDrag] = useState(false);
   return (
     <div className={cn("space-y-2", wide && "sm:col-span-2")}>
