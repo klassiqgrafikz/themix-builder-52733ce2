@@ -402,20 +402,12 @@ function ProfilePage() {
           </div>
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <Button asChild variant="outline" size="sm">
-              <Link
-                to="/banks/$slug/portal/security"
-                params={{ slug: bank.slug }}
-                search={{ focus: "password" }}
-              >
+              <Link to="/banks/$slug/portal/security" params={{ slug: bank.slug }}>
                 <Lock className="mr-2 h-3.5 w-3.5" /> Change password
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link
-                to="/banks/$slug/portal/security"
-                params={{ slug: bank.slug }}
-                search={{ focus: "pin" }}
-              >
+              <Link to="/banks/$slug/portal/security" params={{ slug: bank.slug }}>
                 <KeyRound className="mr-2 h-3.5 w-3.5" /> Change PIN
               </Link>
             </Button>
