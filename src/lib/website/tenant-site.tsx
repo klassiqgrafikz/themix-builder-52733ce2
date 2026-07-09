@@ -424,9 +424,14 @@ function HomeSection({
         </section>
       )}
 
-      <section
-        className="mx-auto max-w-6xl px-4 sm:px-6"
-      >
+      <ProductsSection manifest={manifest} muted={muted} surface={surface} />
+      <ExchangeRatesSection manifest={manifest} muted={muted} surface={surface} />
+      <NewsSection manifest={manifest} muted={muted} surface={surface} />
+      <SecurityTipsSection manifest={manifest} muted={muted} surface={surface} />
+      <MobileBankingSection manifest={manifest} muted={muted} surface={surface} />
+      <BranchLocatorSection manifest={manifest} muted={muted} surface={surface} />
+
+      <section className="mx-auto max-w-6xl px-4 sm:px-6">
         <div
           className="grid gap-6 rounded-3xl p-8 sm:p-12 md:grid-cols-[1.4fr_1fr] md:items-center"
           style={{
@@ -463,6 +468,7 @@ function HomeSection({
           </div>
         </div>
       </section>
+
     </div>
   );
 }
