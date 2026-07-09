@@ -188,7 +188,8 @@ export function PortalShell({
                 </Link>
               );
             })}
-        </nav>
+          </nav>
+        </div>
 
         {/* Logout pinned bottom */}
         <div className="border-t border-white/10 p-4">
