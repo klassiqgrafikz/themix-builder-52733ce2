@@ -232,23 +232,41 @@ function BankOverview() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Cpu className="h-4 w-4" /> Rendering Engine
+                <Cpu className="h-4 w-4" /> Website Status
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <Row label="Status" value={<RenderStatusBadge status={renderStatus} />} />
+              <Row label="Render status" value={<RenderStatusBadge status={renderStatus} />} />
               <Row
-                label="Rendered at"
+                label="Public route"
+                value={
+                  publicRoute ? (
+                    <span className="font-mono">{publicRoute}</span>
+                  ) : (
+                    <span className="text-muted-foreground">Not generated</span>
+                  )
+                }
+              />
+              <Row
+                label="Last render"
                 value={draft.rendered_at ? new Date(draft.rendered_at).toLocaleString() : "—"}
               />
               <Row
-                label="Public website"
-                value={<span className="text-muted-foreground">Not available yet</span>}
+                label="Publish date"
+                value={draft.published_at ? new Date(draft.published_at).toLocaleString() : "—"}
               />
-              <p className="pt-2 text-xs text-muted-foreground">
-                The publishing engine has not been implemented. The public website will
-                become available after publishing is wired up.
-              </p>
+              {!isPublished && (
+                <p className="pt-2 text-xs text-muted-foreground">
+                  {renderStatus === "draft" &&
+                    "Bank is still a draft. Finish the wizard and click Generate Bank."}
+                  {renderStatus === "rendering" && "Rendering in progress…"}
+                  {renderStatus === "ready" &&
+                    "Website is generated and ready. Click Publish to make it public at /banks/" +
+                      (draft.slug ?? "…") +
+                      "."}
+                  {renderStatus === "archived" && "This bank has been archived."}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -279,6 +297,28 @@ function BankOverview() {
           </Card>
         </div>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Rocket className="h-4 w-4" /> Website Registry
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {isPublished ? (
+              <>
+                <Row label="Registered slug" value={<span className="font-mono">{draft.slug}</span>} />
+                <Row label="Route" value={<span className="font-mono">{publicRoute}</span>} />
+                <Row label="Blueprint" value={template?.name ?? "Custom build"} />
+                <Row label="Status" value={<RenderStatusBadge status="published" />} />
+              </>
+            ) : (
+              <div className="text-muted-foreground">
+                This bank is not yet in the public Website Registry.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {manifest && manifest.pages.length > 0 && (
           <Card>
             <CardHeader><CardTitle>Generated Pages</CardTitle></CardHeader>
@@ -296,12 +336,10 @@ function BankOverview() {
         )}
 
         <Card>
-          <CardHeader><CardTitle>Rendering Logs</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Rendering Timeline</CardTitle></CardHeader>
           <CardContent>
             {logs.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                No render has run yet.
-              </div>
+              <div className="text-sm text-muted-foreground">No render has run yet.</div>
             ) : (
               <ol className="space-y-1 font-mono text-xs">
                 {logs.map((l, i) => (
@@ -315,6 +353,50 @@ function BankOverview() {
         <Card>
           <CardHeader><CardTitle>Manage this bank</CardTitle></CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Button
+              className="justify-start"
+              disabled={!isPublished}
+              onClick={() =>
+                publicRoute && window.open(publicRoute, "_blank", "noopener")
+              }
+              title={
+                isPublished
+                  ? "Open the public banking website"
+                  : "Publish this bank to open its public site"
+              }
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              {isPublished ? "Open Public Site" : "Public site unavailable"}
+            </Button>
+            {isReady && (
+              <Button
+                className="justify-start"
+                disabled={busy}
+                onClick={() => publishMut.mutate()}
+              >
+                <Rocket className="mr-2 h-4 w-4" /> Publish Website
+              </Button>
+            )}
+            {isPublished && (
+              <>
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  disabled={busy}
+                  onClick={() => rerenderMut.mutate()}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" /> Republish Website
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  disabled={busy}
+                  onClick={() => unpublishMut.mutate()}
+                >
+                  <PauseCircle className="mr-2 h-4 w-4" /> Unpublish
+                </Button>
+              </>
+            )}
             <Button
               variant="outline"
               className="justify-start"
@@ -342,6 +424,7 @@ function BankOverview() {
     </div>
   );
 }
+
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
