@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { getPublishedBank } from "@/lib/website/registry.functions";
 import { getCurrentCustomer } from "@/lib/customer/customer.functions";
+import { listMyRestrictions } from "@/lib/customer/restrictions.functions";
 import { PortalShell } from "@/lib/customer/portal-ui";
 
 export const Route = createFileRoute("/banks/$slug/portal")({
@@ -17,7 +18,8 @@ export const Route = createFileRoute("/banks/$slug/portal")({
     if (!session) {
       throw redirect({ to: "/banks/$slug/login", params: { slug: params.slug } });
     }
-    return { bank, session };
+    const restrictions = await listMyRestrictions({ data: { slug: params.slug } }).catch(() => []);
+    return { bank, session, restrictions };
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -33,12 +35,17 @@ export const Route = createFileRoute("/banks/$slug/portal")({
 });
 
 function PortalLayout() {
-  const { bank, session } = Route.useLoaderData();
+  const { bank, session, restrictions } = Route.useLoaderData();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const base = `/banks/${bank.slug}/portal`;
   const activePath = pathname === base ? "" : pathname.slice(base.length);
   return (
-    <PortalShell manifest={bank.manifest} customer={session.customer} activePath={activePath}>
+    <PortalShell
+      manifest={bank.manifest}
+      customer={session.customer}
+      activePath={activePath}
+      restrictions={restrictions}
+    >
       <Outlet />
     </PortalShell>
   );

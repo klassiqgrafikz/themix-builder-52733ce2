@@ -7,6 +7,45 @@ import { z } from "zod";
 
 const slug = z.string().min(1);
 
+// Domestic account lookup — returns the recipient's account details when the
+// account number resolves within the current tenant. Read-only.
+export const lookupDomesticAccount = createServerFn({ method: "GET" })
+  .inputValidator((d: { slug: string; account_number: string }) =>
+    z.object({ slug, account_number: z.string().trim().min(3).max(64) }).parse(d),
+  )
+  .handler(
+    async ({
+      data,
+    }): Promise<
+      | { found: true; account_name: string; account_type: string; customer_name: string; currency: string }
+      | { found: false }
+    > => {
+      const { requireCustomerSession } = await import("./session.server");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const s = await requireCustomerSession(data.slug);
+      const { data: acct } = await supabaseAdmin
+        .from("bank_customer_accounts")
+        .select("id, account_name, account_type, currency, customer_id")
+        .eq("bank_id", s.bank.id)
+        .eq("account_number", data.account_number.trim())
+        .maybeSingle();
+      if (!acct) return { found: false };
+      const { data: cust } = await supabaseAdmin
+        .from("bank_customers")
+        .select("first_name, last_name")
+        .eq("id", acct.customer_id)
+        .maybeSingle();
+      return {
+        found: true,
+        account_name: acct.account_name,
+        account_type: acct.account_type,
+        currency: acct.currency,
+        customer_name: cust ? `${cust.first_name} ${cust.last_name}` : "",
+      };
+    },
+  );
+
+
 const transferSchema = z.object({
   slug,
   kind: z.enum(["own", "internal", "external"]),

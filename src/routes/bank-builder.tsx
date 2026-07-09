@@ -9,6 +9,7 @@ import {
   updateDraft,
   finalizeDraft,
 } from "@/lib/bank-builder.functions";
+import { uploadBrandingAsset } from "@/lib/branding/upload.functions";
 import {
   type BankBranding,
   type BankCountry,
@@ -309,6 +310,8 @@ function StepBranding({
   onBack: () => void;
   onContinue: (b: BankBranding) => void;
 }) {
+  const { draftId } = Route.useSearch();
+  const uploadFn = useServerFn(uploadBrandingAsset);
   const [b, setB] = useState<BankBranding>({
     primary_color: branding.primary_color ?? "#0a2540",
     secondary_color: branding.secondary_color ?? "#1e88e5",
@@ -324,12 +327,16 @@ function StepBranding({
   });
   const set = <K extends keyof BankBranding>(k: K, v: BankBranding[K]) =>
     setB((prev) => ({ ...prev, [k]: v }));
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Branding</h1>
-        <p className="mt-2 text-muted-foreground">Style your bank.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">Branding</h1>
+          <p className="mt-2 text-muted-foreground">Style your bank and upload brand assets.</p>
+        </div>
+        <Button variant="outline" onClick={() => setPreviewOpen(true)}>Preview branding</Button>
       </div>
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <Card>
@@ -357,15 +364,40 @@ function StepBranding({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Logo URL">
-              <Input value={b.logo_url} onChange={(e) => set("logo_url", e.target.value)} placeholder="https://…" />
-            </Field>
-            <Field label="Favicon URL">
-              <Input value={b.favicon_url} onChange={(e) => set("favicon_url", e.target.value)} placeholder="https://…" />
-            </Field>
-            <Field label="Hero Image URL">
-              <Input value={b.hero_image_url} onChange={(e) => set("hero_image_url", e.target.value)} placeholder="https://…" />
-            </Field>
+            <UploadField
+              label="Logo"
+              kind="logo"
+              draftId={draftId!}
+              url={b.logo_url}
+              uploadFn={uploadFn}
+              onUrl={(u) => set("logo_url", u)}
+              accept="image/png,image/jpeg,image/svg+xml,image/webp"
+              maxMB={5}
+              previewClass="h-16 w-16 rounded-lg bg-slate-100 object-contain p-2"
+            />
+            <UploadField
+              label="Favicon"
+              kind="favicon"
+              draftId={draftId!}
+              url={b.favicon_url}
+              uploadFn={uploadFn}
+              onUrl={(u) => set("favicon_url", u)}
+              accept="image/png,image/x-icon,image/svg+xml"
+              maxMB={1}
+              previewClass="h-10 w-10 rounded bg-slate-100 object-contain p-1"
+            />
+            <UploadField
+              label="Hero Image"
+              kind="hero"
+              draftId={draftId!}
+              url={b.hero_image_url}
+              uploadFn={uploadFn}
+              onUrl={(u) => set("hero_image_url", u)}
+              accept="image/png,image/jpeg,image/webp"
+              maxMB={10}
+              wide
+              previewClass="h-24 w-full rounded-lg bg-slate-100 object-cover"
+            />
             <Field label="Button Style">
               <Select value={b.button_style} onValueChange={(v) => set("button_style", v as BankBranding["button_style"])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -397,6 +429,9 @@ function StepBranding({
                 fontFamily: b.font_body,
               }}
             >
+              {b.logo_url && (
+                <img src={b.logo_url} alt="" className="mb-3 h-10 w-10 rounded bg-white/10 object-contain p-1" />
+              )}
               <div style={{ fontFamily: b.font_heading }} className="text-xl font-bold">
                 Your bank
               </div>
@@ -415,6 +450,9 @@ function StepBranding({
         </Card>
       </div>
       <NavRow onBack={onBack} onNext={() => onContinue(b)} />
+      {previewOpen && (
+        <BrandingPreviewModal branding={b} onClose={() => setPreviewOpen(false)} />
+      )}
     </div>
   );
 }
@@ -439,6 +477,237 @@ function ColorField({
           className="h-9 w-12 cursor-pointer rounded border"
         />
         <Input value={value} onChange={(e) => onChange(e.target.value)} className="font-mono" />
+      </div>
+    </div>
+  );
+}
+
+function UploadField({
+  label,
+  kind,
+  draftId,
+  url,
+  onUrl,
+  uploadFn,
+  accept,
+  maxMB,
+  previewClass,
+  wide,
+}: {
+  label: string;
+  kind: "logo" | "favicon" | "hero";
+  draftId: string;
+  url: string;
+  onUrl: (u: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  uploadFn: (args: { data: any }) => Promise<{ url: string }>;
+  accept: string;
+  maxMB: number;
+  previewClass: string;
+  wide?: boolean;
+}) {
+  const [busy, setBusy] = useState(false);
+  const handleFile = async (file: File) => {
+    if (file.size > maxMB * 1024 * 1024) {
+      toast.error(`Max size ${maxMB} MB`);
+      return;
+    }
+    setBusy(true);
+    try {
+      const b64 = await new Promise<string>((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => {
+          const s = String(fr.result);
+          const i = s.indexOf(",");
+          res(i >= 0 ? s.slice(i + 1) : s);
+        };
+        fr.onerror = () => rej(new Error("Read failed"));
+        fr.readAsDataURL(file);
+      });
+      const ext = (file.name.split(".").pop() ?? "bin").toLowerCase();
+      const r = await uploadFn({
+        data: {
+          draft_id: draftId,
+          kind,
+          content_type: file.type || "application/octet-stream",
+          data_base64: b64,
+          extension: ext,
+        },
+      });
+      onUrl(r.url);
+      toast.success(`${label} uploaded`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className={cn("space-y-2", wide && "sm:col-span-2")}>
+      <Label>{label}</Label>
+      <div className="flex items-center gap-3">
+        {url ? (
+          <img src={url} alt="" className={previewClass} />
+        ) : (
+          <div className={cn(previewClass, "flex items-center justify-center text-xs text-muted-foreground")}>
+            No file
+          </div>
+        )}
+        <div className="flex-1">
+          <Input
+            type="file"
+            accept={accept}
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handleFile(f);
+            }}
+          />
+          <div className="mt-1 text-xs text-muted-foreground">
+            {busy ? "Uploading…" : url ? "Uploaded — choose another file to replace" : `Max ${maxMB} MB`}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BrandingPreviewModal({
+  branding,
+  onClose,
+}: {
+  branding: BankBranding;
+  onClose: () => void;
+}) {
+  const [tab, setTab] = useState<"homepage" | "login" | "register" | "dashboard" | "sidebar" | "statement" | "email" | "favicon">("homepage");
+  const p = branding.primary_color;
+  const a = branding.accent_color;
+  const tabs = [
+    ["homepage", "Homepage"],
+    ["login", "Login"],
+    ["register", "Register"],
+    ["dashboard", "Dashboard"],
+    ["sidebar", "Sidebar"],
+    ["statement", "PDF header"],
+    ["email", "Email"],
+    ["favicon", "Favicon"],
+  ] as const;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b px-6 py-3">
+          <h3 className="text-lg font-semibold">Branding preview</h3>
+          <button className="text-sm text-muted-foreground hover:text-foreground" onClick={onClose}>Close</button>
+        </div>
+        <div className="flex flex-wrap gap-1 border-b bg-slate-50 px-4 py-2">
+          {tabs.map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => setTab(k)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-medium",
+                tab === k ? "bg-white shadow-sm" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="max-h-[70vh] overflow-y-auto p-6" style={{ fontFamily: branding.font_body }}>
+          {tab === "homepage" && (
+            <div className="overflow-hidden rounded-xl border">
+              <div className="flex items-center justify-between px-6 py-3" style={{ backgroundColor: p, color: "#fff" }}>
+                {branding.logo_url ? <img src={branding.logo_url} alt="" className="h-8" /> : <span className="font-bold" style={{ fontFamily: branding.font_heading }}>Your Bank</span>}
+                <button className="rounded px-3 py-1 text-sm font-medium" style={{ backgroundColor: a }}>Open account</button>
+              </div>
+              {branding.hero_image_url && <img src={branding.hero_image_url} alt="" className="h-40 w-full object-cover" />}
+              <div className="p-6">
+                <h1 style={{ fontFamily: branding.font_heading, color: p }} className="text-3xl font-bold">Banking, redesigned.</h1>
+                <p className="mt-2 text-sm text-slate-600">Everything you need in one place.</p>
+              </div>
+            </div>
+          )}
+          {tab === "login" && (
+            <div className="mx-auto max-w-sm rounded-xl border p-6 text-center">
+              {branding.logo_url && <img src={branding.logo_url} alt="" className="mx-auto mb-4 h-12" />}
+              <h2 style={{ fontFamily: branding.font_heading, color: p }} className="text-xl font-bold">Sign in</h2>
+              <div className="mt-4 space-y-2 text-left">
+                <div className="h-10 rounded border bg-slate-50" />
+                <div className="h-10 rounded border bg-slate-50" />
+                <button className="mt-2 w-full rounded py-2 text-sm font-medium text-white" style={{ backgroundColor: p }}>Sign in</button>
+              </div>
+            </div>
+          )}
+          {tab === "register" && (
+            <div className="mx-auto max-w-md rounded-xl border p-6">
+              <h2 style={{ fontFamily: branding.font_heading, color: p }} className="text-xl font-bold">Open your account</h2>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                {[..."abcdefgh"].map((k) => <div key={k} className="h-10 rounded border bg-slate-50" />)}
+              </div>
+              <button className="mt-4 w-full rounded py-2 text-sm font-medium text-white" style={{ backgroundColor: a }}>Create account</button>
+            </div>
+          )}
+          {tab === "dashboard" && (
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="col-span-2 rounded-xl p-6 text-white" style={{ background: `linear-gradient(135deg, ${p}, ${branding.secondary_color})` }}>
+                <div className="text-xs opacity-80">Total balance</div>
+                <div className="mt-1 text-3xl font-bold">$12,480.55</div>
+              </div>
+              <div className="rounded-xl border p-4"><div className="text-xs text-slate-500">Send</div><div className="mt-1 font-semibold">Transfer worldwide</div></div>
+              <div className="rounded-xl border p-4"><div className="text-xs text-slate-500">Receive</div><div className="mt-1 font-semibold">Log incoming funds</div></div>
+              <div className="rounded-xl border p-4"><div className="text-xs text-slate-500">Withdraw</div><div className="mt-1 font-semibold">Cash or transfer</div></div>
+            </div>
+          )}
+          {tab === "sidebar" && (
+            <div className="mx-auto max-w-xs overflow-hidden rounded-xl" style={{ backgroundColor: p, color: "#fff" }}>
+              <div className="px-6 py-6">
+                {branding.logo_url ? <img src={branding.logo_url} alt="" className="h-10" /> : <div className="font-bold" style={{ fontFamily: branding.font_heading }}>Your Bank</div>}
+              </div>
+              {["Dashboard", "Accounts", "Transfer", "Cards", "Statements"].map((n, i) => (
+                <div key={n} className={cn("px-6 py-3 text-sm", i === 0 && "bg-white/10 font-semibold")}>{n}</div>
+              ))}
+            </div>
+          )}
+          {tab === "statement" && (
+            <div className="rounded-xl border">
+              <div className="flex items-center gap-4 px-6 py-4" style={{ backgroundColor: p, color: "#fff" }}>
+                {branding.logo_url && <img src={branding.logo_url} alt="" className="h-10" />}
+                <div>
+                  <div className="text-lg font-bold" style={{ fontFamily: branding.font_heading }}>Your Bank</div>
+                  <div className="text-xs opacity-80">Official account statement</div>
+                </div>
+                <div className="ml-auto text-right text-lg font-bold">Account Statement</div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 p-6 text-sm">
+                <div><div className="font-semibold">Customer</div><div>Jane Doe</div><div className="text-xs text-slate-500">C-1A2B3C</div></div>
+                <div><div className="font-semibold">Account</div><div>Personal · 1234567890</div><div className="text-xs text-slate-500">USD</div></div>
+              </div>
+            </div>
+          )}
+          {tab === "email" && (
+            <div className="mx-auto max-w-md overflow-hidden rounded-xl border">
+              <div className="px-6 py-4 text-white" style={{ backgroundColor: p }}>
+                {branding.logo_url && <img src={branding.logo_url} alt="" className="h-8" />}
+                <div className="mt-2 font-semibold" style={{ fontFamily: branding.font_heading }}>Welcome to Your Bank</div>
+              </div>
+              <div className="p-6 text-sm">
+                <p>Hi Jane,</p>
+                <p className="mt-2">Your account has been created. Sign in to explore your dashboard.</p>
+                <button className="mt-4 rounded px-4 py-2 text-sm text-white" style={{ backgroundColor: a }}>Go to your dashboard</button>
+              </div>
+            </div>
+          )}
+          {tab === "favicon" && (
+            <div className="flex flex-col items-center gap-3 py-8">
+              {branding.favicon_url ? (
+                <img src={branding.favicon_url} alt="" className="h-16 w-16" />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded bg-slate-100 text-xs text-slate-500">None</div>
+              )}
+              <p className="text-xs text-muted-foreground">Displayed in browser tabs and bookmarks.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
