@@ -74,24 +74,15 @@ function BanksPage() {
   );
 }
 
+import type { GbocBankSummary } from "@/lib/gboc/types";
+
 function BankGroup({
   title,
   banks,
   emptyLabel,
 }: {
   title: string;
-  banks: ReturnType<typeof useServerFn<typeof gbocListBanks>> extends never ? never : Array<{
-    id: string;
-    slug: string | null;
-    bank_name: string;
-    logo_url: string | null;
-    blueprint: string | null;
-    country: string | null;
-    currency: string | null;
-    render_status: string;
-    customer_count: number;
-    account_count: number;
-  }>;
+  banks: GbocBankSummary[];
   emptyLabel: string;
 }) {
   return (
