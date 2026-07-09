@@ -219,12 +219,37 @@ export const deleteBank = createServerFn({ method: "POST" })
       if (aErr) throw new Error(`Failed clearing bank_audit_logs: ${aErr.message}`);
     }
     // Finally remove the draft (website manifest + navigation + branding + render logs).
+    // Use .select() so we can verify the delete actually affected exactly one row.
+    // Without this, an under-privileged client (e.g. a misconfigured service key
+    // acting as anon under RLS) can return { data: [], error: null } and the
+    // caller would falsely report success.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: delErr } = await (supabaseAdmin as any)
+    const { data: deletedRows, error: delErr } = await (supabaseAdmin as any)
       .from("bb_bank_drafts")
       .delete()
-      .eq("id", data.id);
-    if (delErr) throw new Error(delErr.message);
+      .eq("id", data.id)
+      .select("id");
+    if (delErr) throw new Error(`Failed deleting bank: ${delErr.message}`);
+    const deletedCount = Array.isArray(deletedRows) ? deletedRows.length : 0;
+    if (deletedCount !== 1) {
+      throw new Error(
+        `Delete reported no error but removed ${deletedCount} rows (expected 1). ` +
+          `The server-side admin client may lack privileges to bypass RLS on bb_bank_drafts.`,
+      );
+    }
+    // Post-delete verification: confirm the row is actually gone.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: stillThere, error: verifyErr } = await (supabaseAdmin as any)
+      .from("bb_bank_drafts")
+      .select("id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (verifyErr) throw new Error(`Delete verification failed: ${verifyErr.message}`);
+    if (stillThere) {
+      throw new Error(
+        "Delete reported success but the bank row is still present after verification.",
+      );
+    }
     return { ok: true };
   });
 
