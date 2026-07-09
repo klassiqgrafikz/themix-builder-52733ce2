@@ -316,7 +316,7 @@ export const gbocBalanceOperation = createServerFn({ method: "POST" })
     const { requireOwnedBank, applyBalanceOperation } = await import("./operations.server");
     await requireOwnedBank(context.userId, data.bank_id);
     return applyBalanceOperation({
-      actor: { id: context.userId, email: context.claims?.email ?? null },
+      actor: { id: context.userId, email: (context.claims as { email?: string } | undefined)?.email ?? null },
       bank_id: data.bank_id,
       account_id: data.account_id,
       op: data.op,
@@ -349,7 +349,7 @@ export const gbocAccountAction = createServerFn({ method: "POST" })
     const { requireOwnedBank, applyAccountAction } = await import("./operations.server");
     await requireOwnedBank(context.userId, data.bank_id);
     return applyAccountAction({
-      actor: { id: context.userId, email: context.claims?.email ?? null },
+      actor: { id: context.userId, email: (context.claims as { email?: string } | undefined)?.email ?? null },
       bank_id: data.bank_id,
       account_id: data.account_id,
       action: data.action,
@@ -388,7 +388,7 @@ export const gbocSetRestriction = createServerFn({ method: "POST" })
     const { requireOwnedBank, setRestriction } = await import("./operations.server");
     await requireOwnedBank(context.userId, data.bank_id);
     return setRestriction({
-      actor: { id: context.userId, email: context.claims?.email ?? null },
+      actor: { id: context.userId, email: (context.claims as { email?: string } | undefined)?.email ?? null },
       bank_id: data.bank_id,
       account_id: data.account_id,
       action: data.action,
@@ -429,7 +429,7 @@ export const gbocCreateTransaction = createServerFn({ method: "POST" })
     const { requireOwnedBank, createManualTransaction } = await import("./operations.server");
     await requireOwnedBank(context.userId, data.bank_id);
     return createManualTransaction({
-      actor: { id: context.userId, email: context.claims?.email ?? null },
+      actor: { id: context.userId, email: (context.claims as { email?: string } | undefined)?.email ?? null },
       bank_id: data.bank_id,
       account_id: data.account_id,
       kind: data.kind,
