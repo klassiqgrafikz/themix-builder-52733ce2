@@ -318,9 +318,8 @@ function StepBranding({
     accent_color: branding.accent_color ?? "#00c48c",
     font_heading: branding.font_heading ?? "Inter",
     font_body: branding.font_body ?? "Inter",
-    logo_url: branding.logo_url ?? "",
-    favicon_url: branding.favicon_url ?? "",
-    hero_image_url: branding.hero_image_url ?? "",
+    login_logo_url: branding.login_logo_url ?? "",
+    dashboard_logo_url: branding.dashboard_logo_url ?? "",
     button_style: branding.button_style ?? "rounded",
     border_radius: branding.border_radius ?? 8,
     dark_mode: branding.dark_mode ?? false,
@@ -364,39 +363,37 @@ function StepBranding({
                 </SelectContent>
               </Select>
             </Field>
+            <div className="sm:col-span-2 space-y-1">
+              <div className="text-sm font-semibold">Bank logos</div>
+              <p className="text-xs text-muted-foreground">
+                Upload two versions of your bank's logo. JPG, PNG or WEBP. Max 5&nbsp;MB each.
+              </p>
+            </div>
             <UploadField
-              label="Logo"
-              kind="logo"
+              label="Login Page Logo"
+              hint="Shown on Sign in, Register and Forgot password pages."
+              kind="login_logo"
               draftId={draftId!}
-              url={b.logo_url}
+              url={b.login_logo_url}
               uploadFn={uploadFn}
-              onUrl={(u) => set("logo_url", u)}
-              accept="image/png,image/jpeg,image/svg+xml,image/webp"
-              maxMB={5}
-              previewClass="h-16 w-16 rounded-lg bg-slate-100 object-contain p-2"
-            />
-            <UploadField
-              label="Favicon"
-              kind="favicon"
-              draftId={draftId!}
-              url={b.favicon_url}
-              uploadFn={uploadFn}
-              onUrl={(u) => set("favicon_url", u)}
-              accept="image/png,image/x-icon,image/svg+xml"
-              maxMB={1}
-              previewClass="h-10 w-10 rounded bg-slate-100 object-contain p-1"
-            />
-            <UploadField
-              label="Hero Image"
-              kind="hero"
-              draftId={draftId!}
-              url={b.hero_image_url}
-              uploadFn={uploadFn}
-              onUrl={(u) => set("hero_image_url", u)}
+              onUrl={(u) => set("login_logo_url", u)}
               accept="image/png,image/jpeg,image/webp"
-              maxMB={10}
+              maxMB={5}
               wide
-              previewClass="h-24 w-full rounded-lg bg-slate-100 object-cover"
+              previewClass="h-20 w-20 rounded-lg bg-slate-100 object-contain p-2"
+            />
+            <UploadField
+              label="Customer Dashboard Logo"
+              hint="Shown in the sidebar, mobile nav and every authenticated banking screen."
+              kind="dashboard_logo"
+              draftId={draftId!}
+              url={b.dashboard_logo_url}
+              uploadFn={uploadFn}
+              onUrl={(u) => set("dashboard_logo_url", u)}
+              accept="image/png,image/jpeg,image/webp"
+              maxMB={5}
+              wide
+              previewClass="h-20 w-20 rounded-lg bg-slate-100 object-contain p-2"
             />
             <Field label="Button Style">
               <Select value={b.button_style} onValueChange={(v) => set("button_style", v as BankBranding["button_style"])}>
@@ -429,8 +426,8 @@ function StepBranding({
                 fontFamily: b.font_body,
               }}
             >
-              {b.logo_url && (
-                <img src={b.logo_url} alt="" className="mb-3 h-10 w-10 rounded bg-white/10 object-contain p-1" />
+              {b.login_logo_url && (
+                <img src={b.login_logo_url} alt="" className="mb-3 h-10 w-10 rounded bg-white/10 object-contain p-1" />
               )}
               <div style={{ fontFamily: b.font_heading }} className="text-xl font-bold">
                 Your bank
