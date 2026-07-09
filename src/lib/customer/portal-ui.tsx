@@ -19,12 +19,15 @@ type NavEntry = {
 const BASE_NAV: NavEntry[] = [
   { key: "dashboard", label: "Dashboard", path: "", icon: "LayoutDashboard" },
   { key: "accounts", label: "Accounts", path: "/accounts", icon: "Wallet" },
+  { key: "transfer", label: "Transfer", path: "/transfer", icon: "Send" },
+  { key: "beneficiaries", label: "Beneficiaries", path: "/beneficiaries", icon: "Users" },
+  { key: "transactions", label: "Transactions", path: "/transactions", icon: "ListOrdered" },
   { key: "cards", label: "Cards", path: "/cards", icon: "CreditCard", requiresModule: ["Cards"] },
   { key: "statements", label: "Statements", path: "/statements", icon: "FileText", requiresModule: ["Statements"] },
+  { key: "notifications", label: "Notifications", path: "/notifications", icon: "Bell" },
+  { key: "support", label: "Support", path: "/support", icon: "LifeBuoy" },
+  { key: "security", label: "Security", path: "/security", icon: "ShieldCheck" },
   { key: "profile", label: "Profile", path: "/profile", icon: "User" },
-  { key: "notifications", label: "Notifications", path: "/notifications", icon: "Bell", requiresModule: ["Notifications"] },
-  { key: "support", label: "Support", path: "/support", icon: "LifeBuoy", requiresModule: ["Support"] },
-  { key: "settings", label: "Settings", path: "/settings", icon: "Settings" },
 ];
 
 function moduleEnabled(manifest: WebsiteManifest, needles: string[] | undefined): boolean {

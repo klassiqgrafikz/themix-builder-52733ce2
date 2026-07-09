@@ -7,6 +7,7 @@ const NAV = [
   { slug: "", label: "Dashboard", icon: "LayoutDashboard" as const },
   { slug: "operations", label: "Operations Console", icon: "SlidersHorizontal" as const },
   { slug: "audit", label: "Audit Center", icon: "FileCheck2" as const },
+  { slug: "settings", label: "Platform Settings", icon: "Settings2" as const },
 ];
 
 export const Route = createFileRoute("/gboc")({

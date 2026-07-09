@@ -14,6 +14,7 @@
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CbeError } from "./errors";
+import { publishFinancialEvent } from "./event-bus";
 import type {
   Direction,
   FinancialEventRequest,
@@ -366,6 +367,29 @@ export async function processFinancialEvent(
       direction: resolved.direction,
       source: req.actor.source,
     } as never,
+  });
+
+  // --- Stage: financial event bus ---
+  const correlation = (req.metadata?.transfer_id as string | undefined) ?? null;
+  await publishFinancialEvent({
+    bank_id: account.bank_id,
+    customer_id: account.customer_id,
+    account_id: account.id,
+    transaction_id: tx.id,
+    ledger_entry_id: ledger.id,
+    event_type: req.event,
+    direction: resolved.direction,
+    amount: resolved.amount,
+    currency: account.currency,
+    correlation_id: correlation,
+    payload: {
+      previous_balance: currentBalance,
+      new_balance: newBalance,
+      previous_available: currentAvailable,
+      new_available: newAvailable,
+      actor_source: req.actor.source,
+      metadata: req.metadata ?? {},
+    },
   });
 
   return {

@@ -154,6 +154,126 @@ export type Database = {
           },
         ]
       }
+      bank_beneficiaries: {
+        Row: {
+          account_number: string
+          bank_code: string | null
+          bank_id: string
+          bank_name: string | null
+          beneficiary_name: string
+          created_at: string
+          currency: string
+          customer_id: string
+          id: string
+          is_favorite: boolean
+          kind: string
+          metadata: Json
+          nickname: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_number: string
+          bank_code?: string | null
+          bank_id: string
+          bank_name?: string | null
+          beneficiary_name: string
+          created_at?: string
+          currency?: string
+          customer_id: string
+          id?: string
+          is_favorite?: boolean
+          kind: string
+          metadata?: Json
+          nickname?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string
+          bank_code?: string | null
+          bank_id?: string
+          bank_name?: string | null
+          beneficiary_name?: string
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          id?: string
+          is_favorite?: boolean
+          kind?: string
+          metadata?: Json
+          nickname?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bank_cards: {
+        Row: {
+          account_id: string
+          bank_id: string
+          brand: string
+          card_holder: string
+          card_type: string
+          created_at: string
+          currency: string
+          customer_id: string
+          daily_limit: number
+          expiry_month: number
+          expiry_year: number
+          frozen_at: string | null
+          id: string
+          last4: string
+          masked_number: string
+          metadata: Json
+          monthly_limit: number
+          replaced_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          bank_id: string
+          brand?: string
+          card_holder: string
+          card_type?: string
+          created_at?: string
+          currency?: string
+          customer_id: string
+          daily_limit?: number
+          expiry_month: number
+          expiry_year: number
+          frozen_at?: string | null
+          id?: string
+          last4: string
+          masked_number: string
+          metadata?: Json
+          monthly_limit?: number
+          replaced_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          bank_id?: string
+          brand?: string
+          card_holder?: string
+          card_type?: string
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          daily_limit?: number
+          expiry_month?: number
+          expiry_year?: number
+          frozen_at?: string | null
+          id?: string
+          last4?: string
+          masked_number?: string
+          metadata?: Json
+          monthly_limit?: number
+          replaced_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bank_customer_accounts: {
         Row: {
           account_name: string
@@ -319,6 +439,42 @@ export type Database = {
           },
         ]
       }
+      bank_customer_trusted_devices: {
+        Row: {
+          bank_id: string
+          created_at: string
+          customer_id: string
+          device_fingerprint: string | null
+          id: string
+          ip: string | null
+          label: string
+          last_used_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          bank_id: string
+          created_at?: string
+          customer_id: string
+          device_fingerprint?: string | null
+          id?: string
+          ip?: string | null
+          label: string
+          last_used_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          bank_id?: string
+          created_at?: string
+          customer_id?: string
+          device_fingerprint?: string | null
+          id?: string
+          ip?: string | null
+          label?: string
+          last_used_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       bank_customers: {
         Row: {
           address: string | null
@@ -341,8 +497,12 @@ export type Database = {
           password_reset_token: string | null
           password_salt: string
           phone: string | null
+          pin_hash: string | null
+          pin_salt: string | null
           profile_picture_url: string | null
           status: string
+          two_factor_enabled: boolean
+          two_factor_secret: string | null
           updated_at: string
         }
         Insert: {
@@ -366,8 +526,12 @@ export type Database = {
           password_reset_token?: string | null
           password_salt: string
           phone?: string | null
+          pin_hash?: string | null
+          pin_salt?: string | null
           profile_picture_url?: string | null
           status?: string
+          two_factor_enabled?: boolean
+          two_factor_secret?: string | null
           updated_at?: string
         }
         Update: {
@@ -391,8 +555,12 @@ export type Database = {
           password_reset_token?: string | null
           password_salt?: string
           phone?: string | null
+          pin_hash?: string | null
+          pin_salt?: string | null
           profile_picture_url?: string | null
           status?: string
+          two_factor_enabled?: boolean
+          two_factor_secret?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -404,6 +572,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bank_financial_events: {
+        Row: {
+          account_id: string | null
+          amount: number | null
+          bank_id: string
+          correlation_id: string | null
+          created_at: string
+          currency: string | null
+          customer_id: string | null
+          direction: string | null
+          event_type: string
+          id: string
+          ledger_entry_id: string | null
+          payload: Json
+          transaction_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number | null
+          bank_id: string
+          correlation_id?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_id?: string | null
+          direction?: string | null
+          event_type: string
+          id?: string
+          ledger_entry_id?: string | null
+          payload?: Json
+          transaction_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number | null
+          bank_id?: string
+          correlation_id?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_id?: string | null
+          direction?: string | null
+          event_type?: string
+          id?: string
+          ledger_entry_id?: string | null
+          payload?: Json
+          transaction_id?: string | null
+        }
+        Relationships: []
       }
       bank_ledger_entries: {
         Row: {
@@ -521,6 +737,92 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bank_support_messages: {
+        Row: {
+          author: string
+          author_id: string | null
+          bank_id: string
+          body: string
+          created_at: string
+          id: string
+          metadata: Json
+          ticket_id: string
+        }
+        Insert: {
+          author: string
+          author_id?: string | null
+          bank_id: string
+          body: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          ticket_id: string
+        }
+        Update: {
+          author?: string
+          author_id?: string | null
+          bank_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "bank_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_support_tickets: {
+        Row: {
+          bank_id: string
+          category: string
+          channel: string
+          created_at: string
+          customer_id: string
+          id: string
+          last_message_at: string
+          metadata: Json
+          priority: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          bank_id: string
+          category?: string
+          channel?: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          last_message_at?: string
+          metadata?: Json
+          priority?: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          bank_id?: string
+          category?: string
+          channel?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          last_message_at?: string
+          metadata?: Json
+          priority?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       bank_transactions: {
         Row: {
@@ -1033,6 +1335,33 @@ export type Database = {
             referencedColumns: ["slug"]
           },
         ]
+      }
+      gboc_platform_settings: {
+        Row: {
+          id: number
+          live_chat_enabled: boolean
+          settings: Json
+          support_email: string | null
+          support_phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          live_chat_enabled?: boolean
+          settings?: Json
+          support_email?: string | null
+          support_phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          live_chat_enabled?: boolean
+          settings?: Json
+          support_email?: string | null
+          support_phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
