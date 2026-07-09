@@ -26,7 +26,9 @@ export const openAdditionalAccount = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ id: string; account_number: string }> => {
     const { requireCustomerSession } = await import("./session.server");
     const { generateAccountNumber } = await import("./portal.server");
+    const { generateCountryAccountFields } = await import("./country-formats");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getPublishedBank } = await import("@/lib/website/registry.functions");
     const s = await requireCustomerSession(data.slug);
     const { data: customer } = await supabaseAdmin
       .from("bank_customers")
@@ -37,7 +39,12 @@ export const openAdditionalAccount = createServerFn({ method: "POST" })
     const label =
       data.nickname ??
       `${customer.first_name} ${customer.last_name} — ${data.account_type.replace("_", " ")}`;
-    const account_number = generateAccountNumber();
+    // Country-specific identifier bundle for this tenant's bank.
+    const publishedInfo = await getPublishedBank({ data: { slug: data.slug } }).catch(() => null);
+    const bankCountry = publishedInfo?.manifest.bank.country_code ?? null;
+    const countryFields = generateCountryAccountFields(bankCountry ?? "");
+    const account_number =
+      countryFields.account_number || generateAccountNumber(bankCountry);
     const { data: row, error } = await supabaseAdmin
       .from("bank_customer_accounts")
       .insert({
@@ -48,6 +55,13 @@ export const openAdditionalAccount = createServerFn({ method: "POST" })
         currency: data.currency,
         account_type: data.account_type,
         status: "active",
+        iban: countryFields.iban ?? null,
+        swift_bic: countryFields.swift_bic ?? null,
+        routing_number: countryFields.routing_number ?? null,
+        sort_code: countryFields.sort_code ?? null,
+        bsb: countryFields.bsb ?? null,
+        transit_number: countryFields.transit_number ?? null,
+        institution_number: countryFields.institution_number ?? null,
       })
       .select("id, account_number")
       .single();
