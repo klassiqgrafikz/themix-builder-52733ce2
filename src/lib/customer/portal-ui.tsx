@@ -8,13 +8,16 @@ import { logoutCustomer } from "./customer.functions";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
-  User,
+  Wallet,
   Send,
-  ArrowDownToLine,
-  Banknote,
+  Users,
   ListOrdered,
+  CreditCard,
   FileText,
-  Settings,
+  Bell,
+  LifeBuoy,
+  ShieldCheck,
+  User,
   LogOut,
   type LucideIcon,
 } from "lucide-react";
@@ -28,13 +31,16 @@ type NavEntry = {
 
 const NAV: NavEntry[] = [
   { key: "dashboard", label: "Dashboard", path: "", icon: LayoutDashboard },
-  { key: "profile", label: "Profile", path: "/profile", icon: User },
-  { key: "send", label: "Send Money", path: "/transfer", icon: Send },
-  { key: "receive", label: "Receive Money", path: "/accounts", icon: ArrowDownToLine },
-  { key: "withdraw", label: "Withdraw", path: "/beneficiaries", icon: Banknote },
+  { key: "accounts", label: "Accounts", path: "/accounts", icon: Wallet },
+  { key: "transfer", label: "Transfer", path: "/transfer", icon: Send },
+  { key: "beneficiaries", label: "Beneficiaries", path: "/beneficiaries", icon: Users },
   { key: "transactions", label: "Transactions", path: "/transactions", icon: ListOrdered },
+  { key: "cards", label: "Cards", path: "/cards", icon: CreditCard },
   { key: "statements", label: "Statements", path: "/statements", icon: FileText },
-  { key: "settings", label: "Settings", path: "/security", icon: Settings },
+  { key: "notifications", label: "Notifications", path: "/notifications", icon: Bell },
+  { key: "support", label: "Support", path: "/support", icon: LifeBuoy },
+  { key: "security", label: "Security", path: "/security", icon: ShieldCheck },
+  { key: "profile", label: "Profile", path: "/profile", icon: User },
 ];
 
 // Darken a hex color toward black by `amount` (0..1)
