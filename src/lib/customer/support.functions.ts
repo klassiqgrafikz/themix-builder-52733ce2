@@ -26,6 +26,14 @@ export type PlatformSupportConfig = {
   live_chat_enabled: boolean;
   support_email: string | null;
   support_phone: string | null;
+  chat_provider:
+    | "none"
+    | "tawk"
+    | "crisp"
+    | "smartsupp"
+    | "whatsapp"
+    | "telegram";
+  chat_config: Record<string, string | undefined>;
 };
 
 export const getPlatformSupportConfig = createServerFn({ method: "GET" })
@@ -33,13 +41,22 @@ export const getPlatformSupportConfig = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
       .from("gboc_platform_settings")
-      .select("live_chat_enabled, support_email, support_phone")
+      .select("live_chat_enabled, support_email, support_phone, settings")
       .eq("id", 1)
       .maybeSingle();
+    const settings = (data?.settings ?? {}) as {
+      chat_provider?: PlatformSupportConfig["chat_provider"];
+      chat_config?: Record<string, string | undefined>;
+    };
+    // Strip fields that must never reach untrusted browsers.
+    const cfg = { ...(settings.chat_config ?? {}) };
+    delete cfg.telegram_bot_token;
     return {
       live_chat_enabled: !!data?.live_chat_enabled,
       support_email: data?.support_email ?? null,
       support_phone: data?.support_phone ?? null,
+      chat_provider: settings.chat_provider ?? "none",
+      chat_config: cfg,
     };
   });
 
