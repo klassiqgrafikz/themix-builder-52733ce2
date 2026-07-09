@@ -127,7 +127,7 @@ function SidebarBody({
       <div className="mx-6 mb-4 h-px bg-white/10" />
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-4">
-        {NAV.map((n) => {
+        {nav.map((n) => {
           const Icon = n.icon;
           const active = activePath === n.path;
           return (
@@ -301,7 +301,7 @@ export function PortalShell({
           </div>
           <nav className="hidden overflow-x-auto border-t md:block">
             <div className="mx-auto flex max-w-[1280px] items-center gap-1 px-4">
-              {NAV.map((n) => {
+              {nav.map((n) => {
                 const Icon = n.icon;
                 const active = activePath === n.path;
                 return (
@@ -324,7 +324,7 @@ export function PortalShell({
           </nav>
           {drawerOpen && (
             <div className="border-t md:hidden">
-              {NAV.map((n) => {
+              {nav.map((n) => {
                 const Icon = n.icon;
                 const active = activePath === n.path;
                 return (
@@ -381,7 +381,7 @@ export function PortalShell({
             </div>
           </div>
           <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-            {NAV.map((n) => {
+            {nav.map((n) => {
               const Icon = n.icon;
               const active = activePath === n.path;
               return (
@@ -445,7 +445,7 @@ export function PortalShell({
               <div className="mb-6 text-[10px] uppercase tracking-[0.35em]" style={{ color: "#c9a84c" }}>
                 {manifest.bank.name}
               </div>
-              {NAV.map((n) => {
+              {nav.map((n) => {
                 const Icon = n.icon;
                 const active = activePath === n.path;
                 return (
