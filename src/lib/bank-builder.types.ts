@@ -96,8 +96,8 @@ export type BankDraft = {
   current_step: number;
   status: "draft" | "saved";
   slug: string | null;
-  manifest: Record<string, unknown>;
-  navigation: unknown[];
+  manifest: WebsiteManifest | Record<string, never>;
+  navigation: NavItem[];
   render_logs: RenderLogEntry[];
   render_status: RenderStatus;
   rendered_at: string | null;
