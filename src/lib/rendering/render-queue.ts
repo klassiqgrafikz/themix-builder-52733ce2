@@ -8,7 +8,7 @@ const TRANSITIONS: Record<RenderStatus, RenderStatus[]> = {
   draft: ["rendering", "archived"],
   rendering: ["ready", "draft", "archived"],
   ready: ["published", "rendering", "archived"],
-  published: ["ready", "rendering", "archived"],
+  published: ["ready", "archived"],
   archived: ["draft"],
 };
 

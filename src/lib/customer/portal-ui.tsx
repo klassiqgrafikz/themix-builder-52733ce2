@@ -8,16 +8,13 @@ import { logoutCustomer } from "./customer.functions";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
-  Wallet,
-  Send,
-  Users,
-  ListOrdered,
-  CreditCard,
-  FileText,
-  Bell,
-  LifeBuoy,
-  ShieldCheck,
   User,
+  Send,
+  ArrowDownToLine,
+  Banknote,
+  ListOrdered,
+  FileText,
+  Settings,
   LogOut,
   type LucideIcon,
 } from "lucide-react";
@@ -31,16 +28,13 @@ type NavEntry = {
 
 const NAV: NavEntry[] = [
   { key: "dashboard", label: "Dashboard", path: "", icon: LayoutDashboard },
-  { key: "accounts", label: "Accounts", path: "/accounts", icon: Wallet },
-  { key: "transfer", label: "Transfer", path: "/transfer", icon: Send },
-  { key: "beneficiaries", label: "Beneficiaries", path: "/beneficiaries", icon: Users },
-  { key: "transactions", label: "Transactions", path: "/transactions", icon: ListOrdered },
-  { key: "cards", label: "Cards", path: "/cards", icon: CreditCard },
-  { key: "statements", label: "Statements", path: "/statements", icon: FileText },
-  { key: "notifications", label: "Notifications", path: "/notifications", icon: Bell },
-  { key: "support", label: "Support", path: "/support", icon: LifeBuoy },
-  { key: "security", label: "Security", path: "/security", icon: ShieldCheck },
   { key: "profile", label: "Profile", path: "/profile", icon: User },
+  { key: "send", label: "Send Money", path: "/transfer", icon: Send },
+  { key: "receive", label: "Receive Money", path: "/accounts", icon: ArrowDownToLine },
+  { key: "withdraw", label: "Withdraw", path: "/beneficiaries", icon: Banknote },
+  { key: "transactions", label: "Transactions", path: "/transactions", icon: ListOrdered },
+  { key: "statements", label: "Statements", path: "/statements", icon: FileText },
+  { key: "settings", label: "Settings", path: "/security", icon: Settings },
 ];
 
 // Darken a hex color toward black by `amount` (0..1)
@@ -149,53 +143,32 @@ export function PortalShell({
           </Link>
         </div>
 
-        {/* Menu — unified tab list */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
-          <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
-            Menu
-          </div>
-          <nav
-            role="tablist"
-            aria-orientation="vertical"
-            className="flex flex-col gap-0.5 rounded-2xl p-1.5 ring-1 ring-inset ring-white/10"
-            style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
-          >
-            {NAV.map((n) => {
-              const Icon = n.icon;
-              const active = activePath === n.path;
-              return (
-                <Link
-                  key={n.key}
-                  to={n.path === "" ? "/banks/$slug/portal" : `/banks/$slug/portal${n.path}`}
-                  params={{ slug }}
-                  role="tab"
-                  aria-selected={active}
-                  className="group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
-                  style={{
-                    backgroundColor: active ? "rgba(255,255,255,0.10)" : "transparent",
-                    color: active ? "#ffffff" : "rgba(226,232,240,0.72)",
-                    fontWeight: active ? 600 : 500,
-                    boxShadow: active
-                      ? "inset 0 0 0 1px rgba(255,255,255,0.10), 0 1px 2px rgba(0,0,0,0.15)"
-                      : undefined,
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    className="absolute left-1 top-1/2 h-5 -translate-y-1/2 rounded-full transition-all"
-                    style={{
-                      width: active ? 3 : 0,
-                      backgroundColor: "var(--tenant-accent)",
-                      opacity: active ? 1 : 0,
-                    }}
-                  />
-                  <Icon className="h-[18px] w-[18px] opacity-90" />
-                  <span>{n.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+        <div className="mx-6 mb-4 h-px bg-white/10" />
+
+        {/* Menu */}
+        <nav className="flex-1 space-y-1 overflow-y-auto px-4">
+          {NAV.map((n) => {
+            const Icon = n.icon;
+            const active = activePath === n.path;
+            return (
+              <Link
+                key={n.key}
+                to={n.path === "" ? "/banks/$slug/portal" : `/banks/$slug/portal${n.path}`}
+                params={{ slug }}
+                className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-colors"
+                style={{
+                  backgroundColor: active ? "rgba(255,255,255,0.10)" : "transparent",
+                  color: active ? "#ffffff" : "rgba(226,232,240,0.75)",
+                  fontWeight: active ? 600 : 500,
+                  boxShadow: active ? "inset 0 0 0 1px rgba(255,255,255,0.08)" : undefined,
+                }}
+              >
+                <Icon className="h-[18px] w-[18px]" />
+                <span>{n.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
         {/* Logout pinned bottom */}
         <div className="border-t border-white/10 p-4">
