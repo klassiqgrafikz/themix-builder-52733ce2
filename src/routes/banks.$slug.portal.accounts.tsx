@@ -112,3 +112,27 @@ function AccountsPage() {
     </div>
   );
 }
+
+function CountryIdentifierList({
+  account,
+  country,
+}: {
+  account: CustomerAccount;
+  country: string;
+}) {
+  const fields = countryFieldsToDisplay(country).filter((k) => k !== "account_number");
+  const rows = fields
+    .map((k) => ({ key: k, value: (account as unknown as CountryAccountFields)[k] }))
+    .filter((r): r is { key: keyof CountryAccountFields; value: string } => !!r.value);
+  if (!rows.length) return null;
+  return (
+    <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs opacity-80">
+      {rows.map((r) => (
+        <div key={r.key} className="contents">
+          <dt className="uppercase tracking-wide opacity-70">{COUNTRY_FIELD_LABEL[r.key]}</dt>
+          <dd className="font-mono">{r.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
