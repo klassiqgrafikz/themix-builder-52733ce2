@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerSession } from "@/lib/customer/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
+import { isNavEnabled, ProductUnavailable } from "@/lib/customer/product-gating";
 import { issueCard, listCards, updateCardLimits, updateCardStatus } from "@/lib/customer/cards.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
