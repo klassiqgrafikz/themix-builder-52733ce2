@@ -46,7 +46,7 @@ export const gbocListBanks = createServerFn({ method: "GET" })
       id: string;
       slug: string | null;
       identity: { bank_name?: string; country_code?: string; currency?: string } | null;
-      branding: { logo_url?: string } | null;
+      branding: { dashboard_logo_url?: string; login_logo_url?: string } | null;
       template_id: string | null;
       country_code: string | null;
       status: string;
@@ -55,7 +55,7 @@ export const gbocListBanks = createServerFn({ method: "GET" })
       id: b.id,
       slug: b.slug,
       bank_name: b.identity?.bank_name ?? "Untitled bank",
-      logo_url: b.branding?.logo_url ?? null,
+      logo_url: b.branding?.dashboard_logo_url ?? b.branding?.login_logo_url ?? null,
       blueprint: b.template_id ?? null,
       country: b.identity?.country_code ?? b.country_code ?? null,
       currency: b.identity?.currency ?? null,
