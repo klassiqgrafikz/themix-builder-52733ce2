@@ -224,7 +224,8 @@ export function PortalShell({
     "--tenant-deep": tenantDeep,
   } as CSSProperties;
 
-  const activeLabel = NAV.find((n) => n.path === activePath)?.label ?? "Dashboard";
+  const nav = NAV.filter((n) => isNavEnabled(manifest, n.key));
+  const activeLabel = nav.find((n) => n.path === activePath)?.label ?? "Dashboard";
 
   const content = (
     <RestrictionsContext.Provider value={restrictions}>
