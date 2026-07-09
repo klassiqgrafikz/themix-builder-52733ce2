@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowRight, Users } from "lucide-react";
 
-export const Route = createFileRoute("/gboc/customers")({
+export const Route = createFileRoute("/gboc/customers/")({
   component: CustomersPage,
 });
 
