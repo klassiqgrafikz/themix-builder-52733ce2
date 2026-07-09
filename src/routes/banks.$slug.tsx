@@ -1,9 +1,5 @@
-import { createFileRoute, notFound, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { createFileRoute, notFound, Link, Outlet } from "@tanstack/react-router";
 import { getPublishedBank } from "@/lib/website/registry.functions";
-import { TenantSite } from "@/lib/website/tenant-site";
-import type { WebsiteManifest, GeneratedPage } from "@/lib/rendering/types";
 
 export const Route = createFileRoute("/banks/$slug")({
   loader: async ({ params }) => {
@@ -29,16 +25,8 @@ export const Route = createFileRoute("/banks/$slug")({
   },
   notFoundComponent: TenantNotFound,
   errorComponent: TenantError,
-  component: TenantHomeRoute,
+  component: () => <Outlet />,
 });
-
-function TenantHomeRoute() {
-  const { bank } = Route.useLoaderData();
-  const home =
-    (bank.manifest as WebsiteManifest).pages.find((p) => p.slug === "home") ??
-    (bank.manifest as WebsiteManifest).pages[0];
-  return <TenantSite manifest={bank.manifest} page={home as GeneratedPage} />;
-}
 
 function TenantNotFound() {
   return (
