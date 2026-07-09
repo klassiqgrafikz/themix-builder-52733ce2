@@ -303,9 +303,58 @@ export function PortalShell({
 
       <main className="min-w-0 flex-1 pt-16 md:ml-72 md:pt-0">
         <div className="mx-auto max-w-[1200px] px-5 py-8 md:px-10 md:py-10">
-          {children}
+          <RestrictionsContext.Provider value={restrictions}>
+            <RestrictionBanner restrictions={restrictions} />
+            {children}
+          </RestrictionsContext.Provider>
         </div>
       </main>
+    </div>
+  );
+}
+
+const RestrictionsContext = createContext<CustomerRestriction[]>([]);
+
+export function useRestrictions(): CustomerRestriction[] {
+  return useContext(RestrictionsContext);
+}
+
+/**
+ * A feature is considered restricted when any active restriction covers it —
+ * either explicitly via its `types` array, or via a generic "all"/empty payload.
+ */
+export function isFeatureRestricted(
+  restrictions: CustomerRestriction[],
+  feature: "transfer" | "cards" | "beneficiaries" | "withdrawals" | "deposits",
+): boolean {
+  for (const r of restrictions) {
+    if (!r.active) continue;
+    if (!r.types || r.types.length === 0) return true;
+    if (r.types.includes("all")) return true;
+    if (r.types.includes(feature)) return true;
+    if (feature === "transfer" && r.types.some((t) => t.includes("transfer"))) return true;
+  }
+  return false;
+}
+
+export function RestrictionBanner({ restrictions }: { restrictions: CustomerRestriction[] }) {
+  if (!restrictions.length) return null;
+  const first = restrictions[0];
+  const featureLabel =
+    first.types && first.types.length > 0 ? first.types.join(", ") : "Some features";
+  return (
+    <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+      <svg className="mt-0.5 h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+      </svg>
+      <div className="text-sm">
+        <div className="font-semibold">
+          {featureLabel} are temporarily restricted by your bank.
+        </div>
+        <div className="opacity-80">
+          {first.reason || "Please contact support if you need further information."}
+        </div>
+      </div>
     </div>
   );
 }
