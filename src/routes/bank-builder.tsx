@@ -457,6 +457,31 @@ function StepBranding({
   );
 }
 
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <Label>{label}</Label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 cursor-pointer rounded border"
+        />
+        <Input value={value} onChange={(e) => onChange(e.target.value)} className="font-mono" />
+      </div>
+    </div>
+  );
+}
+
 function UploadField({
   label,
   kind,
