@@ -52,6 +52,28 @@ function DashboardPage() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Verification failed"),
   });
 
+  const txFn = useServerFn(customerListTransactions);
+  const notifFn = useServerFn(customerListNotifications);
+  const restrFn = useServerFn(customerListRestrictions);
+  const txQ = useQuery({
+    queryKey: ["portal-tx", bank.slug],
+    queryFn: () => txFn({ data: { slug: bank.slug } }),
+    refetchInterval: 15000,
+  });
+  const notifQ = useQuery({
+    queryKey: ["portal-notif", bank.slug],
+    queryFn: () => notifFn({ data: { slug: bank.slug } }),
+    refetchInterval: 15000,
+  });
+  const restrQ = useQuery({
+    queryKey: ["portal-restr", bank.slug],
+    queryFn: () => restrFn({ data: { slug: bank.slug } }),
+    refetchInterval: 30000,
+  });
+  const transactions = txQ.data ?? [];
+  const notifications = notifQ.data ?? [];
+  const restrictions = restrQ.data ?? [];
+
   return (
     <div className="space-y-6">
       <BrandedCard manifest={manifest} className="!p-8">
