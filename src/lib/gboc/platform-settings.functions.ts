@@ -67,13 +67,8 @@ const providerSchema = z.enum([
   "telegram",
 ]);
 
-function readSettings(row: {
-  live_chat_enabled?: boolean | null;
-  support_email?: string | null;
-  support_phone?: string | null;
-  settings?: Record<string, unknown> | null;
-  updated_at?: string | null;
-} | null): PlatformSettings {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function readSettings(row: any): PlatformSettings {
   const s = (row?.settings ?? {}) as Record<string, unknown>;
   const provider = providerSchema.safeParse(s.chat_provider);
   const cfg = chatConfigSchema.safeParse(s.chat_config ?? {});
