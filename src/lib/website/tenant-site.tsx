@@ -1,7 +1,25 @@
-import type { GeneratedPage, NavItem, ResolvedModule, WebsiteManifest } from "@/lib/rendering/types";
+import type {
+  GeneratedPage,
+  NavItem,
+  ResolvedModule,
+  ResolvedProductRef,
+  WebsiteManifest,
+} from "@/lib/rendering/types";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import {
+  ArrowRight,
+  Building2,
+  Download,
+  Landmark,
+  MapPin,
+  Newspaper,
+  ShieldCheck,
+  Smartphone,
+  TrendingUp,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+
 
 const AUTH_KEYWORDS = ["auth", "login", "sign-in", "signin", "register", "signup", "sign-up"];
 function isAuthModule(m: { key: string; label: string }): boolean {
@@ -64,7 +82,7 @@ export function TenantSite({
       <main className={page.slug === "home" ? "" : "mx-auto max-w-6xl px-4 py-10 sm:px-6"}>
         <PageBody manifest={manifest} page={page} muted={muted} surface={surface} />
       </main>
-      <TenantFooter bankName={bank.name} muted={muted} brand={brand} />
+      <TenantFooter manifest={manifest} muted={muted} surface={surface} />
     </div>
   );
 }
@@ -584,24 +602,122 @@ function GenericSection({
 }
 
 function TenantFooter({
-  bankName,
+  manifest,
   muted,
-  brand,
+  surface,
 }: {
-  bankName: string;
+  manifest: WebsiteManifest;
   muted: string;
-  brand: WebsiteManifest["brand"];
+  surface: string;
 }) {
+  const { theme, bank, brand, navigation } = manifest;
+  const isDark = theme.dark_mode;
+  const footerBg = isDark ? "#0a0f1e" : "#0f172a";
+  const footerText = "#e2e8f0";
+  const footerMuted = "#94a3b8";
+  const links = navigation.filter((n) => n.slug !== "home").slice(0, 6);
+  const contactEmail = `hello@${bank.slug}.themix.bank`;
+  const contactPhone = "+1 (800) 555-0198";
+
   return (
-    <footer className="border-t py-8" style={{ borderColor: `${muted}22` }}>
-      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <span style={{ color: muted }}>
-          © {new Date().getFullYear()} {bankName}. Powered by TheMixWeb.
-        </span>
-        <span style={{ color: muted }}>
-          {brand.favicon_url ? "Icons customised" : "Default icons"}
-        </span>
+    <footer style={{ backgroundColor: footerBg, color: footerText }}>
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <div className="grid gap-10 md:grid-cols-4">
+          <div>
+            <div className="flex items-center gap-2 font-semibold">
+              {brand.logo_url ? (
+                <img
+                  src={brand.logo_url}
+                  alt=""
+                  className="h-8 w-8 rounded object-contain"
+                />
+              ) : (
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded text-white"
+                  style={{
+                    background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})`,
+                  }}
+                >
+                  {bank.name.slice(0, 1)}
+                </span>
+              )}
+              <span>{bank.name}</span>
+            </div>
+            <p className="mt-4 text-sm" style={{ color: footerMuted }}>
+              Digital banking for everyone in {bank.country_code ?? "your region"}. Regulated
+              and secure, backed by TheMixWeb infrastructure.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-widest">Explore</h4>
+            <ul className="mt-4 space-y-2 text-sm" style={{ color: footerMuted }}>
+              {links.map((l) => (
+                <li key={l.slug}>
+                  <Link
+                    to="/banks/$slug/$page"
+                    params={{ slug: bank.slug, page: l.slug }}
+                    className="hover:underline"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <a href={`/banks/${bank.slug}/register`} className="hover:underline">
+                  Open an account
+                </a>
+              </li>
+              <li>
+                <a href={`/banks/${bank.slug}/login`} className="hover:underline">
+                  Customer login
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-widest">Contact</h4>
+            <ul className="mt-4 space-y-2 text-sm" style={{ color: footerMuted }}>
+              <li>Email: {contactEmail}</li>
+              <li>Phone: {contactPhone}</li>
+              <li>Support: 24/7 in-app chat</li>
+              <li>Media: press@{bank.slug}.themix.bank</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-widest">Head office</h4>
+            <address className="mt-4 not-italic text-sm" style={{ color: footerMuted }}>
+              1 Financial Plaza
+              <br />
+              {bank.country_code === "US"
+                ? "New York, NY 10005"
+                : bank.country_code === "GB"
+                  ? "London EC2R 8AH"
+                  : "Global HQ"}
+              <br />
+              {bank.country_code ?? "Worldwide"}
+            </address>
+          </div>
+        </div>
+
+        <div
+          className="mt-10 flex flex-col gap-3 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between"
+          style={{ borderColor: "rgba(148,163,184,0.2)", color: footerMuted }}
+        >
+          <span>
+            © {new Date().getFullYear()} {bank.name}. All rights reserved. Powered by
+            TheMixWeb.
+          </span>
+          <span>
+            {bank.country_code
+              ? `Licensed for operations in ${bank.country_code}.`
+              : "Licensed and regulated."}
+          </span>
+        </div>
       </div>
     </footer>
   );
 }
+

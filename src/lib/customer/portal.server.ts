@@ -41,14 +41,62 @@ export function generateCustomerNumber(): string {
   return `C-${randomHex(4).toUpperCase()}`;
 }
 
-/** Bank-scoped 12-digit account number. */
-export function generateAccountNumber(): string {
-  let n = "";
-  const bytes = new Uint8Array(12);
-  crypto.getRandomValues(bytes);
-  for (let i = 0; i < 12; i++) n += (bytes[i] % 10).toString();
-  return n;
+/** Bank-scoped account number formatted for the given country. */
+export function generateAccountNumber(countryCode?: string | null): string {
+  const cc = (countryCode ?? "").toUpperCase();
+  const digits = (n: number) => {
+    let s = "";
+    const bytes = new Uint8Array(n);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < n; i++) s += (bytes[i] % 10).toString();
+    return s;
+  };
+  const alnum = (n: number) => {
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const bytes = new Uint8Array(n);
+    crypto.getRandomValues(bytes);
+    let s = "";
+    for (let i = 0; i < n; i++) s += alphabet[bytes[i] % alphabet.length];
+    return s;
+  };
+  switch (cc) {
+    case "US":
+    case "CA":
+      return digits(10);
+    case "GB": {
+      const sort = `${digits(2)}-${digits(2)}-${digits(2)}`;
+      return `${sort} ${digits(8)}`;
+    }
+    case "NG":
+    case "ZA":
+    case "KE":
+    case "GH":
+      return digits(10);
+    case "IN":
+      return digits(11);
+    case "AU":
+    case "NZ":
+      return `${digits(6)}-${digits(9)}`;
+    case "DE":
+    case "FR":
+    case "ES":
+    case "IT":
+    case "NL":
+    case "IE":
+    case "PT":
+    case "BE":
+      // IBAN-style: 2 letters + 2 digits + 18 alnum (approx 22 chars total)
+      return `${cc}${digits(2)}${alnum(18)}`;
+    case "BR":
+      return `${digits(4)}-${digits(1)} ${digits(8)}-${digits(1)}`;
+    case "AE":
+    case "SA":
+      return `${cc}${digits(2)}${alnum(20)}`;
+    default:
+      return digits(12);
+  }
 }
+
 
 export const COOKIE_PREFIX = "themix_customer_";
 
