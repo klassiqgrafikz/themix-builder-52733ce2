@@ -1,67 +1,82 @@
-# Phase 2 — Blueprint Library, Launch New Bank, Global Admin
 
-Refactor the Bank Builder into a three-level Blueprint Library and an 8-step Launch New Bank wizard, plus a global platform admin shell. Preserves existing auth, tenant tables, DB relationships, and the underlying draft persistence.
+# GBOC Professional Refactor Plan
 
-## Scope guardrails
-- No changes to `auth`, tenant routing, or existing non-`bb_` tables.
-- Reuse `bb_bank_drafts` (identity/branding/features/simulation/admin_controls jsonb) — no schema break.
-- Add new tables only: `bb_blueprint_categories`, `bb_modules`. Extend `bb_templates` with `blueprint_*` metadata (kept name for continuity; treated as "Blueprint" in UI).
+This is a **UI/UX + workflow refactor**. No changes to Core Banking Engine, Financial Event Bus, Ledger, Auth, Customer Portal, Website Generator/Renderer, tenant isolation, or database schema. All actions continue to run through existing server functions (`gbocBalanceOperation`, `gbocAccountAction`, `gbocSetRestriction`, `gbocCreateTransaction`, `gbocListBanks`, `gbocListCustomers`, `gbocGetCustomer`, platform-settings, etc.).
 
-## Data model changes (one migration)
-- `bb_blueprint_categories(slug pk, name, description, icon, sort_order)` — seeded with 13 categories (Retail, Commercial, Corporate, Investment, Private, Digital, Credit Union, Cooperative, Islamic, Neo, Wealth Mgmt, Microfinance, International).
-- `bb_modules(key pk, group_name, label, description, default_pages jsonb, sort_order)` — seeded with the full module list (Core Banking, Customer Services, Communication, Digital Services groups).
-- `ALTER TABLE bb_templates ADD` columns: `blueprint_category` (fk slug), `version text`, `popularity int`, `recommended bool`, `desktop_preview jsonb`, `mobile_preview jsonb`, `supported_modules text[]`. Backfill `blueprint_category` from existing `category`.
-- Reseed templates so every (category × country) combo listed in the spec has 2–3 blueprints with country-inspired naming.
-- RLS unchanged (owner-only drafts; read-only catalog to authenticated). GRANTs on all new tables.
+## New GBOC layout & navigation
 
-## Route architecture
+Replace flat sidebar (`Dashboard / Operations / Audit / Settings`) with grouped nav in `src/routes/gboc.tsx`:
+
+- **Overview** — Dashboard
+- **Tenants** — Banks (list + manage links into existing `/bank-builder` and `/manage/banks/$id`)
+- **Customer Ops** — Customers, Operations Console, Transactions
+- **Communications** — Notifications, Live Chat
+- **Governance** — Audit Center, Reports
+- **Platform** — Settings
+
+Desktop: permanent sidebar. Mobile: drawer using existing shadcn `Sheet`. Top header keeps a **global search** (banks, customers, accounts, tx reference, email, phone) that pipes into existing `gbocListBanks` + `gbocListCustomers`.
+
+## Dashboard (`gboc.index.tsx`) — rebuild
+
+Stat tiles derived from existing queries:
+- Total / Published / Draft Banks (from `gbocListBanks`)
+- Active Customers, Total Accounts (aggregated from bank rows)
+- Today's Transactions, Frozen Accounts, Pending Restrictions (compute client-side from a lightweight aggregate — reuse existing `gbocGetCustomer` data only for selected drilldowns; add nothing new server-side unless required)
+- Notifications sent (from existing notifications table via existing functions), Live Chat status (from `platform-settings.functions.ts`)
+
+Recent activity feed reuses audit entries from existing audit function.
+
+If a stat requires data not exposed by an existing server function, it will render as "—" with a subtle "coming soon" hint rather than adding new backend surface. (Preserves the "no schema changes" rule.)
+
+## Routes
+
+Add / reorganize under `src/routes/`:
+
+- `gboc.index.tsx` — new dashboard
+- `gboc.banks.tsx` — bank list, grouped by published/draft, links to existing builder/manage
+- `gboc.customers.tsx` — global customer search + filters (bank, status, country, account type), table with pagination (client-side over existing `gbocListCustomers`)
+- `gboc.customers.$id.tsx` — full customer profile: tabs (Profile · Accounts · Cards · Beneficiaries · Transactions · Notifications · Restrictions · Security · Audit · Support). Quick-action bar (Add / Deduct / Freeze / Restrict / Clear / Notify / Reset Password) opens dialogs that call the existing operations server functions. All tabs use existing `gbocGetCustomer` result.
+- `gboc.operations.tsx` — kept but simplified to a launcher: "pick bank → pick customer → open profile" (redirects to `gboc.customers.$id`). The unified workflow lives in the customer profile.
+- `gboc.transactions.tsx` — transaction manager: search by reference/customer/account/bank/amount/status/date, filter presets (today/yesterday/7d/30d/custom). Reads from existing customer detail transactions aggregated per selected bank via existing functions.
+- `gboc.notifications.tsx` — notification engine (broadcast / single / bank / platform) using existing notification insertion path exposed via operations functions.
+- `gboc.communications.tsx` — live chat config (reuses `platform-settings.functions.ts`).
+- `gboc.audit.tsx` — timeline audit view with filters (existing route, improved UI only).
+- `gboc.reports.tsx` — report generator: customer, transactions, balance, audit, bank performance, daily activity. Client-side CSV export from existing queries; PDF/Excel labelled as CSV-only for now (no backend added).
+- `gboc.settings.tsx` — platform settings (existing).
+
+Any route lacking a matching backend endpoint uses only existing server functions — no new DB tables or server functions are added.
+
+## Operations Console — unified
+
+The unified workflow **is** the customer profile page (`gboc.customers.$id.tsx`). Balance Adder, Deductor, Clear, Freeze, Restriction, Transaction Manager, Notify — all live as Quick Actions + tabs on that single page, matching the requested workflow:
+
+```text
+Select Bank → Search Customer → Open Profile → Choose Action → Execute
 ```
-/launch                              → Level 1: Blueprint categories grid
-/launch/$categorySlug                → Level 2: Country grid
-/launch/$categorySlug/$countryCode   → Level 3: Blueprints for cat+country
-/launch/wizard/$draftId              → Steps 4–8 (identity → generate)
-/admin                               → Global admin shell (index: overview)
-/admin/customers, /admin/balances, /admin/transactions,
-/admin/simulation, /admin/restrictions, /admin/freeze,
-/admin/notifications, /admin/chat, /admin/support,
-/admin/audit, /admin/activity, /admin/analytics,
-/admin/roles, /admin/settings, /admin/banks
-```
-`/bank-builder` → 301-style client redirect to `/launch` for continuity.
 
-## UI components (`src/components/launch/`, `src/components/admin/`)
-- `BlueprintCategoryGrid`, `CountryPicker`, `BlueprintGrid`, `BlueprintCard` (preview, badges: Recommended / Premium / version / popularity), `BlueprintCompareDrawer`, `BlueprintPreviewModal` (device toggle + page tabs: Home, Login, Register, Dashboard, Accounts, Cards, Transfers, Settings, Support).
-- `LaunchWizardShell` (steps 4–8 stepper), `ModuleSelector` (grouped toggles from `bb_modules`), `ReviewSummary`, `GenerateBankPanel`.
-- `AdminShell` (sidebar with the 15 sections, top bank switcher, `<Outlet/>`), placeholder page bodies that read from the current tenant selection (data wired later — pages render with empty-state UI, not fake rows).
+The existing tab-based operations UI in `gboc.operations.tsx` is refactored into a shared `<CustomerOperationsPanel>` component reused by both the launcher and the customer profile page, so no logic is duplicated.
 
-## Server functions (extend `src/lib/bank-builder.functions.ts`)
-- `listBlueprintCategories()`, `listCountriesForCategory(categorySlug)`, `listBlueprints({ category, country })`.
-- `listModules()`, `useBlueprint({ blueprintId })` → creates draft, clones blueprint into `identity/branding/features` + `template_id`, returns `{ draftId }`.
-- Keep existing `createDraft/getDraft/updateDraft/finalizeDraft/listDrafts`.
-- All authenticated via `requireSupabaseAuth`.
+## Shared UI
 
-## Launch New Bank flow
-1. Category (Level 1 route)
-2. Country (Level 2 route)
-3. Blueprint (Level 3 route) → `useBlueprint` clones and routes to wizard
-4. Identity (bank name, country, currency, language, timezone, region, subdomain w/ slugify + uniqueness check on `identity->>subdomain`)
-5. Branding (logo/favicon/hero upload to existing `bank-builder-assets` bucket, colors, typography)
-6. Bank Modules (grouped selector from `bb_modules`; enabled modules stored in `features` jsonb keyed by module key)
-7. Review
-8. Generate → `finalizeDraft` sets `status='saved'` (no real DNS/tenant provisioning; that stays out of scope per prior phases)
+- `src/components/gboc/app-shell.tsx` — sidebar + header + mobile drawer + global search.
+- `src/components/gboc/customer-ops-panel.tsx` — extracted from current `gboc.operations.tsx` (balance, account actions, restrictions, transactions, history, notifications, audit tabs).
+- `src/components/gboc/stat-card.tsx`, `activity-feed.tsx`, `bank-picker.tsx` — small presentational pieces.
 
-## Global Admin
-- New `/admin` shell with sidebar nav for all 15 tools. Each page renders a titled empty-state ("Select a bank to manage its <domain>") and a bank switcher fed by `listDrafts()`. No fake data, no changes to existing dashboard. Sim/admin toggles from the wizard remain the source of which tools are exposed per bank.
+## Explicit non-goals (to protect scope)
 
-## Mobile responsive
-- Category & country grids collapse to 1-col; blueprint cards to single column; wizard stepper condenses to "Step X / 8 — Title"; admin sidebar becomes a Sheet drawer under `sm`.
-
-## Out of scope (explicit)
-- Real tenant provisioning / DNS / custom domains.
-- Live customer/transaction data wiring for admin pages (UI shells only).
-- Changes to existing auth, dashboard, tenant tables.
+- No new DB tables, no schema migrations, no new server functions unless a UI page is unbuildable without one — and only after confirming with you.
+- Reports export limited to CSV in this phase (PDF/Excel would require backend rendering).
+- Global search runs client-side over already-fetched bank + customer lists; server-side full-text search is deferred.
+- Virtual scrolling / server-side pagination is scaffolded (page size + paging UI) but backed by client-side paging over the existing list endpoints.
+- Live Chat surface reflects whatever `platform-settings.functions.ts` already exposes; no new chat infrastructure.
 
 ## Technical notes
-- One Supabase migration: new tables, ALTER + backfill, reseed blueprints, GRANTs, RLS.
-- New TS types added to `src/lib/bank-builder.types.ts` (`BlueprintCategory`, `BankModule`, extended `BankTemplate`).
-- `/bank-builder` route kept as a thin redirect to `/launch` so old links don't 404.
+
+- All new routes are `createFileRoute("/gboc/...")` and register the header meta with `robots: noindex`.
+- All actions use `useServerFn` + `useMutation`, invalidate `["gboc", ...]` keys on success.
+- Dynamic tenant theming from Phase 5D (`--tenant-primary` etc.) is respected inside customer/bank views.
+- Zero TypeScript errors; verified with the existing typecheck.
+
+## Deliverable
+
+A cleaner, grouped GBOC with a single customer-centric workflow, a real dashboard, dedicated Customers / Transactions / Notifications / Reports modules, and a global search — all wired to the existing backend without touching banking logic.
