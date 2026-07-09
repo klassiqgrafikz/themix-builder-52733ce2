@@ -44,6 +44,9 @@ function AdminLayout() {
             <div className="ml-auto flex items-center gap-2">
               <BankSwitcher />
               <Button asChild variant="outline" size="sm">
+                <Link to="/gboc">Operations Center</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
                 <Link to="/launch">+ Launch New Bank</Link>
               </Button>
             </div>
