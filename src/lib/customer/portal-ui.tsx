@@ -175,11 +175,13 @@ export function PortalShell({
   manifest,
   customer,
   activePath,
+  restrictions = [],
   children,
 }: {
   manifest: WebsiteManifest;
   customer: CustomerProfile;
   activePath: string;
+  restrictions?: CustomerRestriction[];
   children: ReactNode;
 }) {
   const theme = manifest.theme;
