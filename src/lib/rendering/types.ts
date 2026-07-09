@@ -10,13 +10,21 @@ export type RenderStatus =
 export type RenderStage =
   | "blueprint_loaded"
   | "configuration_loaded"
+  | "manifest_loaded"
   | "theme_applied"
   | "modules_resolved"
+  | "modules_injected"
   | "pages_generated"
   | "routes_generated"
+  | "routes_registered"
   | "navigation_generated"
   | "manifest_generated"
-  | "queued_for_publishing";
+  | "website_generated"
+  | "queued_for_publishing"
+  | "publishing_started"
+  | "publishing_completed"
+  | "publishing_failed";
+
 
 export type RenderLogLevel = "info" | "warn" | "error";
 

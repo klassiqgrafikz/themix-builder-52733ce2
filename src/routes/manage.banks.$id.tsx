@@ -24,7 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Pencil, Users, BarChart3, FileText, Cpu } from "lucide-react";
 
-export const Route = createFileRoute("/banks/$id")({
+export const Route = createFileRoute("/manage/banks/$id")({
   head: () => ({
     meta: [
       { title: "Bank Overview — TheMixWeb" },
