@@ -1,13 +1,18 @@
 import { createFileRoute, Link, useMatch } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerSession } from "@/lib/customer/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
 import { simulateVerifyEmail } from "@/lib/customer/customer.functions";
+import {
+  customerListNotifications,
+  customerListRestrictions,
+  customerListTransactions,
+} from "@/lib/customer/activity.functions";
 import { Button } from "@/components/ui/button";
-import { Bell, HeadphonesIcon, PlusCircle, Send, ShieldCheck } from "lucide-react";
+import { Bell, HeadphonesIcon, PlusCircle, Send, ShieldAlert, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/banks/$slug/portal/")({
   component: DashboardPage,
