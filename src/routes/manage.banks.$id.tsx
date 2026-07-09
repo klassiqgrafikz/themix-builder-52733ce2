@@ -484,3 +484,150 @@ function isManifest(v: unknown): v is WebsiteManifest {
     "modules" in v
   );
 }
+
+function BankProductsPanel({
+  draftId,
+  onChanged,
+  rerenderPending,
+}: {
+  draftId: string;
+  onChanged: () => void;
+  rerenderPending: boolean;
+}) {
+  const qc = useQueryClient();
+  const catFn = useServerFn(listProductCategories);
+  const prodFn = useServerFn(listCatalogProducts);
+  const bankFn = useServerFn(listBankProducts);
+  const upsertFn = useServerFn(upsertBankProduct);
+  const deleteFn = useServerFn(deleteBankProduct);
+  const bpFn = useServerFn(listBlueprintProducts);
+
+  const catQ = useQuery({ queryKey: ["bp-categories"], queryFn: () => catFn() });
+  const prodQ = useQuery({ queryKey: ["bp-products"], queryFn: () => prodFn() });
+  const bankQ = useQuery({
+    queryKey: ["bp-bank-products", draftId],
+    queryFn: () => bankFn({ data: { draftId } }),
+  });
+  const draftQ = useQuery<BankDraft | undefined>({
+    queryKey: ["bb-draft", draftId],
+    enabled: false,
+  });
+  const blueprintId = draftQ.data?.template_id ?? null;
+  const bpQ = useQuery({
+    queryKey: ["bp-blueprint-products", blueprintId],
+    queryFn: () => (blueprintId ? bpFn({ data: { blueprintId } }) : Promise.resolve([])),
+    enabled: !!blueprintId,
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["bp-bank-products", draftId] });
+  };
+
+  const upsertMut = useMutation({
+    mutationFn: (v: { code: string; enabled: boolean; label?: string | null }) =>
+      upsertFn({
+        data: {
+          draftId,
+          product_code: v.code,
+          enabled: v.enabled,
+          display_label: v.label ?? null,
+        },
+      }),
+    onSuccess: () => { invalidate(); toast.success("Product updated"); onChanged(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Update failed"),
+  });
+  const deleteMut = useMutation({
+    mutationFn: (code: string) => deleteFn({ data: { draftId, product_code: code } }),
+    onSuccess: () => { invalidate(); toast.success("Override cleared"); onChanged(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Clear failed"),
+  });
+
+  const categories = catQ.data ?? [];
+  const products = prodQ.data ?? [];
+  const overrides = bankQ.data ?? [];
+  const blueprintCodes = new Set((bpQ.data ?? []).map((b) => b.product_code));
+  const overrideMap = new Map(overrides.map((o) => [o.product_code, o]));
+
+  const byCat = new Map<string, typeof products>();
+  for (const p of products) {
+    const arr = byCat.get(p.category_slug) ?? [];
+    arr.push(p);
+    byCat.set(p.category_slug, arr);
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Bank Products & Services</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <p className="text-xs text-muted-foreground">
+          Enable, disable or rename products inherited from the central catalog. Re-render the
+          bank after changes to update the customer portal.
+        </p>
+        {categories.map((c) => {
+          const list = byCat.get(c.slug) ?? [];
+          return (
+            <div key={c.slug}>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {c.name}
+              </div>
+              <div className="divide-y rounded-md border">
+                {list.map((p) => {
+                  const ov = overrideMap.get(p.code);
+                  const fromBlueprint = blueprintCodes.has(p.code);
+                  const enabled = ov ? ov.enabled : fromBlueprint;
+                  return (
+                    <div key={p.code} className="flex items-center justify-between gap-2 p-2 text-sm">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">
+                          {ov?.display_label || p.name}
+                          {fromBlueprint && (
+                            <Badge variant="outline" className="ml-2 text-[10px]">
+                              blueprint
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">{p.code}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={enabled ? "default" : "secondary"} className="text-[10px]">
+                          {enabled ? "enabled" : "disabled"}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={upsertMut.isPending || rerenderPending}
+                          onClick={() =>
+                            upsertMut.mutate({
+                              code: p.code,
+                              enabled: !enabled,
+                              label: ov?.display_label,
+                            })
+                          }
+                        >
+                          {enabled ? "Disable" : "Enable"}
+                        </Button>
+                        {ov && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={deleteMut.isPending || rerenderPending}
+                            onClick={() => deleteMut.mutate(p.code)}
+                          >
+                            Reset
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
