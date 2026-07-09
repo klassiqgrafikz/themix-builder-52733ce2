@@ -134,11 +134,18 @@ function DashboardPage() {
   const acctMasked = acctNumber ? formatAccountNumber(acctNumber) : "—";
   const balance = primaryAccount?.available_balance ?? 0;
 
+  const transferEnabled = isNavEnabled(manifest, "transfer");
+  const beneficiariesEnabled = isNavEnabled(manifest, "beneficiaries");
+  const cardsEnabled = isNavEnabled(manifest, "cards");
   const quickActions = [
-    { icon: Send, title: "Send Money", subtitle: "Transfer worldwide", to: "/banks/$slug/portal/transfer" as const },
+    transferEnabled
+      ? { icon: Send, title: "Send Money", subtitle: "Transfer worldwide", to: "/banks/$slug/portal/transfer" as const }
+      : null,
     { icon: ArrowDownToLine, title: "Receive Money", subtitle: "Log incoming funds", to: "/banks/$slug/portal/accounts" as const },
-    { icon: Banknote, title: "Withdraw", subtitle: "Cash or transfer", to: "/banks/$slug/portal/beneficiaries" as const },
-  ];
+    beneficiariesEnabled
+      ? { icon: Banknote, title: "Withdraw", subtitle: "Cash or transfer", to: "/banks/$slug/portal/beneficiaries" as const }
+      : null,
+  ].filter((a): a is NonNullable<typeof a> => a !== null);
 
   const copyAcct = async () => {
     if (!acctNumber) return;
