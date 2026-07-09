@@ -1,42 +1,54 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerProfile } from "./types";
 import { logoutCustomer } from "./customer.functions";
 import { toast } from "sonner";
-import * as Icons from "lucide-react";
+import {
+  LayoutDashboard,
+  User,
+  Send,
+  ArrowDownToLine,
+  Banknote,
+  ListOrdered,
+  FileText,
+  Settings,
+  LogOut,
+  type LucideIcon,
+} from "lucide-react";
 
 type NavEntry = {
   key: string;
   label: string;
   path: string;
-  icon: keyof typeof Icons;
-  requiresModule?: string[]; // matched against module.label OR module.key
+  icon: LucideIcon;
 };
 
-const BASE_NAV: NavEntry[] = [
-  { key: "dashboard", label: "Dashboard", path: "", icon: "LayoutDashboard" },
-  { key: "accounts", label: "Accounts", path: "/accounts", icon: "Wallet" },
-  { key: "transfer", label: "Transfer", path: "/transfer", icon: "Send" },
-  { key: "beneficiaries", label: "Beneficiaries", path: "/beneficiaries", icon: "Users" },
-  { key: "transactions", label: "Transactions", path: "/transactions", icon: "ListOrdered" },
-  { key: "cards", label: "Cards", path: "/cards", icon: "CreditCard", requiresModule: ["Cards"] },
-  { key: "statements", label: "Statements", path: "/statements", icon: "FileText", requiresModule: ["Statements"] },
-  { key: "notifications", label: "Notifications", path: "/notifications", icon: "Bell" },
-  { key: "support", label: "Support", path: "/support", icon: "LifeBuoy" },
-  { key: "security", label: "Security", path: "/security", icon: "ShieldCheck" },
-  { key: "profile", label: "Profile", path: "/profile", icon: "User" },
+const NAV: NavEntry[] = [
+  { key: "dashboard", label: "Dashboard", path: "", icon: LayoutDashboard },
+  { key: "profile", label: "Profile", path: "/profile", icon: User },
+  { key: "send", label: "Send Money", path: "/transfer", icon: Send },
+  { key: "receive", label: "Receive Money", path: "/accounts", icon: ArrowDownToLine },
+  { key: "withdraw", label: "Withdraw", path: "/beneficiaries", icon: Banknote },
+  { key: "transactions", label: "Transactions", path: "/transactions", icon: ListOrdered },
+  { key: "statements", label: "Statements", path: "/statements", icon: FileText },
+  { key: "settings", label: "Settings", path: "/security", icon: Settings },
 ];
 
-function moduleEnabled(manifest: WebsiteManifest, needles: string[] | undefined): boolean {
-  if (!needles) return true;
-  return manifest.modules.some((m) =>
-    needles.some(
-      (n) => m.label.toLowerCase() === n.toLowerCase() || m.key.toLowerCase() === n.toLowerCase(),
-    ),
-  );
+// Darken a hex color toward black by `amount` (0..1)
+function shade(hex: string, amount: number): string {
+  const m = hex.replace("#", "");
+  if (m.length !== 6) return hex;
+  const num = parseInt(m, 16);
+  let r = (num >> 16) & 0xff;
+  let g = (num >> 8) & 0xff;
+  let b = num & 0xff;
+  r = Math.max(0, Math.min(255, Math.round(r * (1 - amount))));
+  g = Math.max(0, Math.min(255, Math.round(g * (1 - amount))));
+  b = Math.max(0, Math.min(255, Math.round(b * (1 - amount))));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
 export function PortalShell({
@@ -47,18 +59,15 @@ export function PortalShell({
 }: {
   manifest: WebsiteManifest;
   customer: CustomerProfile;
-  activePath: string; // e.g. "", "/accounts", "/profile"
+  activePath: string;
   children: ReactNode;
 }) {
   const theme = manifest.theme;
-  const isDark = theme.dark_mode;
-  const bg = isDark ? "#0b1120" : "#f6f7fb";
-  const surface = isDark ? "#111827" : "#ffffff";
-  const text = isDark ? "#e2e8f0" : "#0f172a";
-  const muted = isDark ? "#94a3b8" : "#64748b";
-  const border = isDark ? "#1f2937" : "#e2e8f0";
+  const primary = theme.colors.primary || "#061938";
+  // Deep navy derived from the tenant primary for the sidebar / hero surfaces.
+  const tenantDark = shade(primary, 0.55);
+  const tenantDeep = shade(primary, 0.7);
 
-  const nav = BASE_NAV.filter((n) => moduleEnabled(manifest, n.requiresModule));
   const slug = manifest.bank.slug;
   const navigate = useNavigate();
   const doLogout = useServerFn(logoutCustomer);
@@ -71,104 +80,163 @@ export function PortalShell({
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Logout failed"),
   });
 
+  const cssVars = {
+    "--tenant-primary": primary,
+    "--tenant-accent": theme.colors.accent,
+    "--tenant-dark": tenantDark,
+    "--tenant-deep": tenantDeep,
+  } as CSSProperties;
+
   return (
     <div
       style={{
-        backgroundColor: bg,
-        color: text,
+        ...cssVars,
         fontFamily: theme.typography.body,
         minHeight: "100vh",
+        backgroundColor: "#F8FAFC",
+        color: "#0f172a",
       }}
+      className="flex w-full"
     >
-      <header
-        style={{ backgroundColor: surface, borderBottom: `1px solid ${border}` }}
-        className="sticky top-0 z-30"
+      {/* Sidebar */}
+      <aside
+        className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col md:flex"
+        style={{
+          background: `linear-gradient(180deg, var(--tenant-deep) 0%, var(--tenant-dark) 100%)`,
+          color: "#e2e8f0",
+        }}
       >
-        <div className="mx-auto flex max-w-[1400px] items-center gap-4 px-4 py-3">
+        {/* Brand header */}
+        <div className="px-6 pb-6 pt-7">
           <Link
-            to="/banks/$slug"
+            to="/banks/$slug/portal"
             params={{ slug }}
-            className="flex items-center gap-2 font-semibold"
-            style={{ color: theme.colors.primary, fontFamily: theme.typography.heading }}
+            className="flex items-center gap-3"
           >
             {manifest.brand.logo_url ? (
-              <img src={manifest.brand.logo_url} alt="" className="h-8 w-8 rounded object-contain" />
+              <img
+                src={manifest.brand.logo_url}
+                alt=""
+                className="h-11 w-11 rounded-xl bg-white/10 object-contain p-1.5 ring-1 ring-white/15"
+              />
             ) : (
               <span
-                className="flex h-8 w-8 items-center justify-center rounded text-white"
+                className="flex h-11 w-11 items-center justify-center rounded-xl text-lg font-bold text-white ring-1 ring-white/15"
                 style={{
-                  background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})`,
+                  background: `linear-gradient(135deg, var(--tenant-primary), var(--tenant-accent))`,
                 }}
               >
                 {manifest.bank.name.slice(0, 1)}
               </span>
             )}
-            <span>{manifest.bank.name}</span>
+            <div className="min-w-0">
+              <div
+                className="truncate text-[15px] font-semibold text-white"
+                style={{ fontFamily: theme.typography.heading }}
+              >
+                {manifest.bank.name}
+              </div>
+              <div className="text-[11px] uppercase tracking-[0.14em] text-white/50">
+                Premium Banking
+              </div>
+            </div>
           </Link>
-          <span className="ml-auto text-sm" style={{ color: muted }}>
-            {customer.first_name} {customer.last_name} · {customer.customer_number}
-          </span>
+        </div>
+
+        <div className="mx-6 mb-4 h-px bg-white/10" />
+
+        {/* Menu */}
+        <nav className="flex-1 space-y-1 overflow-y-auto px-4">
+          {NAV.map((n) => {
+            const Icon = n.icon;
+            const active = activePath === n.path;
+            return (
+              <Link
+                key={n.key}
+                to={n.path === "" ? "/banks/$slug/portal" : `/banks/$slug/portal${n.path}`}
+                params={{ slug }}
+                className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-colors"
+                style={{
+                  backgroundColor: active ? "rgba(255,255,255,0.10)" : "transparent",
+                  color: active ? "#ffffff" : "rgba(226,232,240,0.75)",
+                  fontWeight: active ? 600 : 500,
+                  boxShadow: active ? "inset 0 0 0 1px rgba(255,255,255,0.08)" : undefined,
+                }}
+              >
+                <Icon className="h-[18px] w-[18px]" />
+                <span>{n.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Logout pinned bottom */}
+        <div className="border-t border-white/10 p-4">
+          <div className="mb-3 px-1 text-xs text-white/60">
+            <div className="truncate font-medium text-white/85">
+              {customer.first_name} {customer.last_name}
+            </div>
+            <div className="truncate">{customer.customer_number}</div>
+          </div>
           <button
             type="button"
             onClick={() => logoutMut.mutate()}
             disabled={logoutMut.isPending}
-            className="rounded px-3 py-1.5 text-sm"
-            style={{ backgroundColor: `${theme.colors.primary}11`, color: theme.colors.primary }}
+            className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+            style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
           >
-            {logoutMut.isPending ? "Signing out…" : "Log out"}
+            <LogOut className="h-4 w-4" />
+            {logoutMut.isPending ? "Signing out…" : "Logout"}
           </button>
         </div>
+      </aside>
+
+      {/* Mobile top bar */}
+      <header
+        className="fixed inset-x-0 top-0 z-20 flex items-center justify-between border-b bg-white px-4 py-3 md:hidden"
+        style={{ borderColor: "#e2e8f0" }}
+      >
+        <Link
+          to="/banks/$slug/portal"
+          params={{ slug }}
+          className="flex items-center gap-2 font-semibold"
+          style={{ color: "var(--tenant-primary)", fontFamily: theme.typography.heading }}
+        >
+          {manifest.brand.logo_url ? (
+            <img src={manifest.brand.logo_url} alt="" className="h-7 w-7 rounded object-contain" />
+          ) : (
+            <span
+              className="flex h-7 w-7 items-center justify-center rounded text-white"
+              style={{ backgroundColor: "var(--tenant-primary)" }}
+            >
+              {manifest.bank.name.slice(0, 1)}
+            </span>
+          )}
+          <span className="truncate">{manifest.bank.name}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => logoutMut.mutate()}
+          disabled={logoutMut.isPending}
+          className="rounded px-3 py-1.5 text-xs font-medium"
+          style={{ backgroundColor: "var(--tenant-primary)", color: "white" }}
+        >
+          {logoutMut.isPending ? "…" : "Logout"}
+        </button>
       </header>
 
-      <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 py-6 md:flex-row">
-        <aside
-          className="w-full shrink-0 md:w-64"
-          style={{ color: muted }}
-        >
-          <nav className="space-y-1">
-            {nav.map((n) => {
-              const Icon = (Icons[n.icon] ?? Icons.Circle) as React.ComponentType<{
-                className?: string;
-              }>;
-              const active = activePath === n.path;
-              return (
-                <Link
-                  key={n.key}
-                  to={n.path === "" ? "/banks/$slug/portal" : `/banks/$slug/portal${n.path}`}
-                  params={{ slug }}
-                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm transition"
-                  style={{
-                    backgroundColor: active ? `${theme.colors.primary}18` : "transparent",
-                    color: active ? theme.colors.primary : muted,
-                    fontFamily: theme.typography.body,
-                    fontWeight: active ? 600 : 500,
-                  }}
-                >
-                  <Icon className="h-4 w-4" />
-                  {n.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </aside>
-        <main className="min-w-0 flex-1">{children}</main>
-      </div>
-
-      <footer
-        className="border-t py-6"
-        style={{ borderColor: border, color: muted, backgroundColor: surface }}
-      >
-        <div className="mx-auto flex max-w-[1400px] flex-col gap-1 px-4 text-xs sm:flex-row sm:items-center sm:justify-between">
-          <span>© {new Date().getFullYear()} {manifest.bank.name}. Customer portal.</span>
-          <span>Powered by TheMixWeb</span>
+      {/* Main */}
+      <main className="min-w-0 flex-1 pt-16 md:ml-72 md:pt-0">
+        <div className="mx-auto max-w-[1200px] px-5 py-8 md:px-10 md:py-10">
+          {children}
         </div>
-      </footer>
+      </main>
     </div>
   );
 }
 
 export function BrandedCard({
-  manifest,
+  manifest: _manifest,
   children,
   className,
 }: {
@@ -176,17 +244,9 @@ export function BrandedCard({
   children: ReactNode;
   className?: string;
 }) {
-  const isDark = manifest.theme.dark_mode;
-  const surface = isDark ? "#111827" : "#ffffff";
-  const border = isDark ? "#1f2937" : "#e2e8f0";
   return (
     <div
-      className={`rounded-2xl p-5 ${className ?? ""}`}
-      style={{
-        backgroundColor: surface,
-        border: `1px solid ${border}`,
-        borderRadius: Math.max(manifest.theme.radius, 12),
-      }}
+      className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ${className ?? ""}`}
     >
       {children}
     </div>
