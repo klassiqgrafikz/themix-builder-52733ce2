@@ -21,19 +21,28 @@ export type AuthorizedBank = {
   currency: string;
 };
 
-/** Verify the caller owns the bank. Throws if not. */
+/**
+ * Verify the caller owns the bank AND that it is published. GBOC operates
+ * exclusively against published tenants — the Website Manifest / Bank
+ * Instance is the source of truth. Throws a clear error otherwise.
+ */
 export async function requireOwnedBank(
   ownerId: string,
   bankId: string,
 ): Promise<AuthorizedBank> {
   const { data, error } = await supabaseAdmin
     .from("bb_bank_drafts")
-    .select("id, slug, identity, owner_id")
+    .select("id, slug, identity, owner_id, render_status")
     .eq("id", bankId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Bank not found");
   if (data.owner_id !== ownerId) throw new Error("Not authorized for this bank");
+  if (data.render_status !== "published") {
+    throw new Error(
+      "This bank is not published yet. Publish it from the Bank Builder before running operations.",
+    );
+  }
   const identity = (data.identity ?? {}) as { bank_name?: string; currency?: string };
   return {
     id: data.id,
