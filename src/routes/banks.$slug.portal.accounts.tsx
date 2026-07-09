@@ -123,7 +123,10 @@ function CountryIdentifierList({
   const fields = countryFieldsToDisplay(country).filter((k) => k !== "account_number");
   const rows = fields
     .map((k) => ({ key: k, value: (account as unknown as CountryAccountFields)[k] }))
-    .filter((r): r is { key: keyof CountryAccountFields; value: string } => !!r.value);
+    .filter((r) => typeof r.value === "string" && r.value.length > 0) as {
+    key: keyof CountryAccountFields;
+    value: string;
+  }[];
   if (!rows.length) return null;
   return (
     <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs opacity-80">
