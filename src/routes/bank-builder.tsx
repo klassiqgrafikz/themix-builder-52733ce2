@@ -9,6 +9,7 @@ import {
   updateDraft,
   finalizeDraft,
 } from "@/lib/bank-builder.functions";
+import { uploadBrandingAsset } from "@/lib/branding/upload.functions";
 import {
   type BankBranding,
   type BankCountry,
