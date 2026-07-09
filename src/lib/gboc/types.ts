@@ -44,7 +44,7 @@ export type GbocAccount = {
   frozen_at: string | null;
   suspended_at: string | null;
   closed_at: string | null;
-  restriction_summary: Record<string, string | number | boolean | null>;
+  restriction_summary: string | null;
   created_at: string;
 };
 
@@ -90,8 +90,8 @@ export type GbocAuditEntry = {
   actor_id: string | null;
   actor_email: string | null;
   action: string;
-  previous_value: unknown;
-  new_value: unknown;
+  previous_value: string | null;
+  new_value: string | null;
   reason: string | null;
   reference: string | null;
   created_at: string;
