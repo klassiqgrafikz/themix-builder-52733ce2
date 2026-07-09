@@ -76,6 +76,7 @@ function SidebarBody({
   onNavigate?: () => void;
   onLogout: () => void;
   loggingOut: boolean;
+}) {
   const theme = manifest.theme;
   const nav = NAV.filter((n) => isNavEnabled(manifest, n.key));
   return (
