@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LaunchIndexRouteImport } from './routes/launch.index'
+import { Route as GbocIndexRouteImport } from './routes/gboc.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as LaunchCategoryRouteImport } from './routes/launch.$category'
 import { Route as BanksSlugRouteImport } from './routes/banks.$slug'
@@ -66,6 +67,11 @@ const LaunchIndexRoute = LaunchIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LaunchRoute,
+} as any)
+const GbocIndexRoute = GbocIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GbocRoute,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
@@ -148,12 +154,13 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
-  '/gboc': typeof GbocRoute
+  '/gboc': typeof GbocRouteWithChildren
   '/launch': typeof LaunchRouteWithChildren
   '/admin/$section': typeof AdminSectionRoute
   '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/gboc/': typeof GbocIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/banks/$slug/$page': typeof BanksSlugPageRoute
   '/banks/$slug/forgot': typeof BanksSlugForgotRoute
@@ -171,10 +178,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
-  '/gboc': typeof GbocRoute
   '/admin/$section': typeof AdminSectionRoute
   '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/admin': typeof AdminIndexRoute
+  '/gboc': typeof GbocIndexRoute
   '/launch': typeof LaunchIndexRoute
   '/banks/$slug/$page': typeof BanksSlugPageRoute
   '/banks/$slug/forgot': typeof BanksSlugForgotRoute
@@ -193,12 +200,13 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
-  '/gboc': typeof GbocRoute
+  '/gboc': typeof GbocRouteWithChildren
   '/launch': typeof LaunchRouteWithChildren
   '/admin/$section': typeof AdminSectionRoute
   '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/gboc/': typeof GbocIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/banks/$slug/$page': typeof BanksSlugPageRoute
   '/banks/$slug/forgot': typeof BanksSlugForgotRoute
@@ -225,6 +233,7 @@ export interface FileRouteTypes {
     | '/banks/$slug'
     | '/launch/$category'
     | '/admin/'
+    | '/gboc/'
     | '/launch/'
     | '/banks/$slug/$page'
     | '/banks/$slug/forgot'
@@ -242,10 +251,10 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/bank-builder'
-    | '/gboc'
     | '/admin/$section'
     | '/banks/$slug'
     | '/admin'
+    | '/gboc'
     | '/launch'
     | '/banks/$slug/$page'
     | '/banks/$slug/forgot'
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/banks/$slug'
     | '/launch/$category'
     | '/admin/'
+    | '/gboc/'
     | '/launch/'
     | '/banks/$slug/$page'
     | '/banks/$slug/forgot'
@@ -288,7 +298,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   BankBuilderRoute: typeof BankBuilderRoute
-  GbocRoute: typeof GbocRoute
+  GbocRoute: typeof GbocRouteWithChildren
   LaunchRoute: typeof LaunchRouteWithChildren
   BanksSlugRoute: typeof BanksSlugRouteWithChildren
   ManageBanksIdRoute: typeof ManageBanksIdRoute
@@ -344,6 +354,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/launch/'
       preLoaderRoute: typeof LaunchIndexRouteImport
       parentRoute: typeof LaunchRoute
+    }
+    '/gboc/': {
+      id: '/gboc/'
+      path: '/'
+      fullPath: '/gboc/'
+      preLoaderRoute: typeof GbocIndexRouteImport
+      parentRoute: typeof GbocRoute
     }
     '/admin/': {
       id: '/admin/'
@@ -465,6 +482,16 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface GbocRouteChildren {
+  GbocIndexRoute: typeof GbocIndexRoute
+}
+
+const GbocRouteChildren: GbocRouteChildren = {
+  GbocIndexRoute: GbocIndexRoute,
+}
+
+const GbocRouteWithChildren = GbocRoute._addFileChildren(GbocRouteChildren)
+
 interface LaunchCategoryRouteChildren {
   LaunchCategoryCountryRoute: typeof LaunchCategoryCountryRoute
   LaunchCategoryIndexRoute: typeof LaunchCategoryIndexRoute
@@ -533,7 +560,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   BankBuilderRoute: BankBuilderRoute,
-  GbocRoute: GbocRoute,
+  GbocRoute: GbocRouteWithChildren,
   LaunchRoute: LaunchRouteWithChildren,
   BanksSlugRoute: BanksSlugRouteWithChildren,
   ManageBanksIdRoute: ManageBanksIdRoute,
