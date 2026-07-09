@@ -175,7 +175,21 @@ function LiveChatPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const href = previewHref(provider, config);
+                if (!href) {
+                  toast.error("No preview link available for this provider. Fill in the required fields and save first.");
+                  return;
+                }
+                window.open(href, "_blank", "noopener,noreferrer");
+              }}
+              disabled={provider === "none"}
+            >
+              Test / preview
+            </Button>
             <Button onClick={() => mut.mutate()} disabled={mut.isPending}>
               {mut.isPending ? "Saving…" : "Save configuration"}
             </Button>
