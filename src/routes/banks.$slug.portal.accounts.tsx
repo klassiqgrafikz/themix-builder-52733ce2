@@ -49,7 +49,11 @@ function AccountsPage() {
   const theme = manifest.theme;
   const primary = theme.colors.primary;
   const qc = useQueryClient();
-  const [type, setType] = useState("savings");
+  const accountProducts = enabledProductsByCategory(manifest, "accounts");
+  const types = accountProducts
+    .map((p) => ({ v: p.code, l: TYPE_LABELS[p.code] ?? p.name }))
+    .filter((t) => t.l);
+  const [type, setType] = useState(types[0]?.v ?? "savings");
   const [currency, setCurrency] = useState(manifest.bank.currency ?? "USD");
   const [nickname, setNickname] = useState("");
   const doOpen = useServerFn(openAdditionalAccount);
