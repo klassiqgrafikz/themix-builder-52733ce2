@@ -43,11 +43,12 @@ function AdminOverview() {
             <div className="divide-y">
               {drafts.map((d) => {
                 const identity = (d.identity ?? {}) as Partial<BankIdentity>;
-                const url = identity.subdomain ? `${identity.subdomain}.themixweb.app` : "—";
+                const publicRoute = d.slug && d.render_status === "published" ? `/banks/${d.slug}` : null;
+                const url = publicRoute ?? (d.slug ? `slug: ${d.slug}` : "—");
                 return (
                   <Link
                     key={d.id}
-                    to="/banks/$id"
+                    to="/manage/banks/$id"
                     params={{ id: d.id }}
                     className="flex items-center justify-between gap-3 py-3 hover:bg-muted/40"
                   >
