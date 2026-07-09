@@ -46,7 +46,6 @@ function TransferPage() {
     session: CustomerSession;
   };
   const { bank, session } = parent;
-  const transferGated = !isNavEnabled(bank.manifest, "transfer");
   const primary = bank.manifest.theme.colors.primary;
   const qc = useQueryClient();
   const restrictions = useRestrictions();
