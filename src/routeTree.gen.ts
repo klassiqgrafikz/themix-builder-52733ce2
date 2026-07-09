@@ -53,6 +53,7 @@ import { Route as BanksSlugPortalNotificationsRouteImport } from './routes/banks
 import { Route as BanksSlugPortalCardsRouteImport } from './routes/banks.$slug.portal.cards'
 import { Route as BanksSlugPortalBeneficiariesRouteImport } from './routes/banks.$slug.portal.beneficiaries'
 import { Route as BanksSlugPortalAccountsRouteImport } from './routes/banks.$slug.portal.accounts'
+import { Route as ApiPublicCustomerAvatarCustomerIdRouteImport } from './routes/api/public/customer-avatar.$customerId'
 import { Route as BanksSlugPortalTransactionsIdRouteImport } from './routes/banks.$slug.portal.transactions.$id'
 import { Route as ApiPublicBrandingDraftIdKindRouteImport } from './routes/api/public/branding.$draftId.$kind'
 
@@ -280,6 +281,12 @@ const BanksSlugPortalAccountsRoute = BanksSlugPortalAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => BanksSlugPortalRoute,
 } as any)
+const ApiPublicCustomerAvatarCustomerIdRoute =
+  ApiPublicCustomerAvatarCustomerIdRouteImport.update({
+    id: '/api/public/customer-avatar/$customerId',
+    path: '/api/public/customer-avatar/$customerId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const BanksSlugPortalTransactionsIdRoute =
   BanksSlugPortalTransactionsIdRouteImport.update({
     id: '/$id',
@@ -327,6 +334,7 @@ export interface FileRoutesByFullPath {
   '/banks/$slug/': typeof BanksSlugIndexRoute
   '/gboc/customers/': typeof GbocCustomersIndexRoute
   '/launch/$category/': typeof LaunchCategoryIndexRoute
+  '/api/public/customer-avatar/$customerId': typeof ApiPublicCustomerAvatarCustomerIdRoute
   '/banks/$slug/portal/accounts': typeof BanksSlugPortalAccountsRoute
   '/banks/$slug/portal/beneficiaries': typeof BanksSlugPortalBeneficiariesRoute
   '/banks/$slug/portal/cards': typeof BanksSlugPortalCardsRoute
@@ -368,6 +376,7 @@ export interface FileRoutesByTo {
   '/banks/$slug': typeof BanksSlugIndexRoute
   '/gboc/customers': typeof GbocCustomersIndexRoute
   '/launch/$category': typeof LaunchCategoryIndexRoute
+  '/api/public/customer-avatar/$customerId': typeof ApiPublicCustomerAvatarCustomerIdRoute
   '/banks/$slug/portal/accounts': typeof BanksSlugPortalAccountsRoute
   '/banks/$slug/portal/beneficiaries': typeof BanksSlugPortalBeneficiariesRoute
   '/banks/$slug/portal/cards': typeof BanksSlugPortalCardsRoute
@@ -417,6 +426,7 @@ export interface FileRoutesById {
   '/banks/$slug/': typeof BanksSlugIndexRoute
   '/gboc/customers/': typeof GbocCustomersIndexRoute
   '/launch/$category/': typeof LaunchCategoryIndexRoute
+  '/api/public/customer-avatar/$customerId': typeof ApiPublicCustomerAvatarCustomerIdRoute
   '/banks/$slug/portal/accounts': typeof BanksSlugPortalAccountsRoute
   '/banks/$slug/portal/beneficiaries': typeof BanksSlugPortalBeneficiariesRoute
   '/banks/$slug/portal/cards': typeof BanksSlugPortalCardsRoute
@@ -467,6 +477,7 @@ export interface FileRouteTypes {
     | '/banks/$slug/'
     | '/gboc/customers/'
     | '/launch/$category/'
+    | '/api/public/customer-avatar/$customerId'
     | '/banks/$slug/portal/accounts'
     | '/banks/$slug/portal/beneficiaries'
     | '/banks/$slug/portal/cards'
@@ -508,6 +519,7 @@ export interface FileRouteTypes {
     | '/banks/$slug'
     | '/gboc/customers'
     | '/launch/$category'
+    | '/api/public/customer-avatar/$customerId'
     | '/banks/$slug/portal/accounts'
     | '/banks/$slug/portal/beneficiaries'
     | '/banks/$slug/portal/cards'
@@ -556,6 +568,7 @@ export interface FileRouteTypes {
     | '/banks/$slug/'
     | '/gboc/customers/'
     | '/launch/$category/'
+    | '/api/public/customer-avatar/$customerId'
     | '/banks/$slug/portal/accounts'
     | '/banks/$slug/portal/beneficiaries'
     | '/banks/$slug/portal/cards'
@@ -581,6 +594,7 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRoute
   BanksSlugRoute: typeof BanksSlugRouteWithChildren
   ManageBanksIdRoute: typeof ManageBanksIdRoute
+  ApiPublicCustomerAvatarCustomerIdRoute: typeof ApiPublicCustomerAvatarCustomerIdRoute
   ApiPublicBrandingDraftIdKindRoute: typeof ApiPublicBrandingDraftIdKindRoute
 }
 
@@ -894,6 +908,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BanksSlugPortalAccountsRouteImport
       parentRoute: typeof BanksSlugPortalRoute
     }
+    '/api/public/customer-avatar/$customerId': {
+      id: '/api/public/customer-avatar/$customerId'
+      path: '/api/public/customer-avatar/$customerId'
+      fullPath: '/api/public/customer-avatar/$customerId'
+      preLoaderRoute: typeof ApiPublicCustomerAvatarCustomerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/banks/$slug/portal/transactions/$id': {
       id: '/banks/$slug/portal/transactions/$id'
       path: '/$id'
@@ -1071,6 +1092,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRoute,
   BanksSlugRoute: BanksSlugRouteWithChildren,
   ManageBanksIdRoute: ManageBanksIdRoute,
+  ApiPublicCustomerAvatarCustomerIdRoute:
+    ApiPublicCustomerAvatarCustomerIdRoute,
   ApiPublicBrandingDraftIdKindRoute: ApiPublicBrandingDraftIdKindRoute,
 }
 export const routeTree = rootRouteImport
