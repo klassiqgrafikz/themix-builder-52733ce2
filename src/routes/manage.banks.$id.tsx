@@ -1,12 +1,15 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
+  finalizeDraft,
   getDraft,
   listCountries,
   listModules,
   listTemplates,
 } from "@/lib/bank-builder.functions";
+import { publishDraft, unpublishDraft } from "@/lib/website/registry.functions";
 import type {
   BankBranding,
   BankCountry,
@@ -22,7 +25,19 @@ import { RequireAuth } from "@/components/launch/require-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pencil, Users, BarChart3, FileText, Cpu } from "lucide-react";
+import {
+  ArrowLeft,
+  Pencil,
+  Users,
+  BarChart3,
+  FileText,
+  Cpu,
+  ExternalLink,
+  Rocket,
+  RefreshCw,
+  PauseCircle,
+} from "lucide-react";
+
 
 export const Route = createFileRoute("/manage/banks/$id")({
   head: () => ({
