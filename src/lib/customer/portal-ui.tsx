@@ -6,6 +6,7 @@ import type { CustomerRestriction } from "./restrictions.functions";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerProfile } from "./types";
 import { logoutCustomer } from "./customer.functions";
+import { isNavEnabled } from "./product-gating";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
@@ -77,6 +78,7 @@ function SidebarBody({
   loggingOut: boolean;
 }) {
   const theme = manifest.theme;
+  const nav = NAV.filter((n) => isNavEnabled(manifest, n.key));
   return (
     <div
       className="flex h-full flex-col"
@@ -125,7 +127,7 @@ function SidebarBody({
       <div className="mx-6 mb-4 h-px bg-white/10" />
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-4">
-        {NAV.map((n) => {
+        {nav.map((n) => {
           const Icon = n.icon;
           const active = activePath === n.path;
           return (
@@ -222,7 +224,8 @@ export function PortalShell({
     "--tenant-deep": tenantDeep,
   } as CSSProperties;
 
-  const activeLabel = NAV.find((n) => n.path === activePath)?.label ?? "Dashboard";
+  const nav = NAV.filter((n) => isNavEnabled(manifest, n.key));
+  const activeLabel = nav.find((n) => n.path === activePath)?.label ?? "Dashboard";
 
   const content = (
     <RestrictionsContext.Provider value={restrictions}>
@@ -299,7 +302,7 @@ export function PortalShell({
           </div>
           <nav className="hidden overflow-x-auto border-t md:block">
             <div className="mx-auto flex max-w-[1280px] items-center gap-1 px-4">
-              {NAV.map((n) => {
+              {nav.map((n) => {
                 const Icon = n.icon;
                 const active = activePath === n.path;
                 return (
@@ -322,7 +325,7 @@ export function PortalShell({
           </nav>
           {drawerOpen && (
             <div className="border-t md:hidden">
-              {NAV.map((n) => {
+              {nav.map((n) => {
                 const Icon = n.icon;
                 const active = activePath === n.path;
                 return (
@@ -379,7 +382,7 @@ export function PortalShell({
             </div>
           </div>
           <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-            {NAV.map((n) => {
+            {nav.map((n) => {
               const Icon = n.icon;
               const active = activePath === n.path;
               return (
@@ -443,7 +446,7 @@ export function PortalShell({
               <div className="mb-6 text-[10px] uppercase tracking-[0.35em]" style={{ color: "#c9a84c" }}>
                 {manifest.bank.name}
               </div>
-              {NAV.map((n) => {
+              {nav.map((n) => {
                 const Icon = n.icon;
                 const active = activePath === n.path;
                 return (

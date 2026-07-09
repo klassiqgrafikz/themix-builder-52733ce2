@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
+import { isNavEnabled, ProductUnavailable } from "@/lib/customer/product-gating";
 import {
   addBeneficiary,
   deleteBeneficiary,
@@ -18,8 +19,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Star, StarOff, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/banks/$slug/portal/beneficiaries")({
-  component: BeneficiariesPage,
+  component: BeneficiariesGate,
 });
+
+function BeneficiariesGate() {
+  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+    bank: { manifest: WebsiteManifest; slug: string };
+  };
+  if (!isNavEnabled(parent.bank.manifest, "beneficiaries")) {
+    return <ProductUnavailable manifest={parent.bank.manifest} title="Beneficiaries unavailable" />;
+  }
+  return <BeneficiariesPage />;
+}
 
 function BeneficiariesPage() {
   const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {

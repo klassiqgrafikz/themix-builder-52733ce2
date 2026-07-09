@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerSession } from "@/lib/customer/types";
 import { BrandedCard, useRestrictions, isFeatureRestricted } from "@/lib/customer/portal-ui";
+import { isNavEnabled, ProductUnavailable } from "@/lib/customer/product-gating";
 import { lookupDomesticAccount, submitTransfer } from "@/lib/customer/transfers.functions";
 import { listBeneficiaries } from "@/lib/customer/beneficiaries.functions";
 import { Button } from "@/components/ui/button";
@@ -16,8 +17,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle2, XCircle, Loader2, Ban } from "lucide-react";
 
 export const Route = createFileRoute("/banks/$slug/portal/transfer")({
-  component: TransferPage,
+  component: TransferGate,
 });
+
+function TransferGate() {
+  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+    bank: { manifest: WebsiteManifest; slug: string };
+    session: CustomerSession;
+  };
+  if (!isNavEnabled(parent.bank.manifest, "transfer")) {
+    return <ProductUnavailable manifest={parent.bank.manifest} title="Transfers unavailable" />;
+  }
+  return <TransferPage />;
+}
 
 function fmt(v: number, c: string) {
   try { return new Intl.NumberFormat(undefined, { style: "currency", currency: c }).format(v); }

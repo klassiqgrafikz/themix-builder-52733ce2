@@ -7,6 +7,7 @@ import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerAccount, CustomerSession } from "@/lib/customer/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
 import { openAdditionalAccount } from "@/lib/customer/accounts.functions";
+import { enabledProductsByCategory } from "@/lib/customer/product-gating";
 import {
   countryFieldsToDisplay,
   COUNTRY_FIELD_LABEL,
@@ -26,13 +27,17 @@ function fmt(v: number, currency: string) {
   catch { return `${currency} ${v.toFixed(2)}`; }
 }
 
-const TYPES = [
-  { v: "checking", l: "Checking" },
-  { v: "savings", l: "Savings" },
-  { v: "current", l: "Current" },
-  { v: "business", l: "Business" },
-  { v: "foreign_currency", l: "Foreign currency" },
-];
+const TYPE_LABELS: Record<string, string> = {
+  checking: "Checking",
+  savings: "Savings",
+  current: "Current",
+  business: "Business",
+  foreign_currency: "Foreign currency",
+  corporate: "Corporate",
+  joint: "Joint",
+  student: "Student",
+  fixed_deposit_acct: "Fixed deposit",
+};
 
 function AccountsPage() {
   const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
@@ -44,7 +49,11 @@ function AccountsPage() {
   const theme = manifest.theme;
   const primary = theme.colors.primary;
   const qc = useQueryClient();
-  const [type, setType] = useState("savings");
+  const accountProducts = enabledProductsByCategory(manifest, "accounts");
+  const types = accountProducts
+    .map((p) => ({ v: p.code, l: TYPE_LABELS[p.code] ?? p.name }))
+    .filter((t) => t.l);
+  const [type, setType] = useState(types[0]?.v ?? "savings");
   const [currency, setCurrency] = useState(manifest.bank.currency ?? "USD");
   const [nickname, setNickname] = useState("");
   const doOpen = useServerFn(openAdditionalAccount);
@@ -97,7 +106,7 @@ function AccountsPage() {
             <Label>Type</Label>
             <Select value={type} onValueChange={setType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{TYPES.map((t) => <SelectItem key={t.v} value={t.v}>{t.l}</SelectItem>)}</SelectContent>
+              <SelectContent>{types.map((t) => <SelectItem key={t.v} value={t.v}>{t.l}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div><Label>Currency</Label><Input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} /></div>

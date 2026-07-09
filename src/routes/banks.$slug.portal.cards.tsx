@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerSession } from "@/lib/customer/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
+import { isNavEnabled, ProductUnavailable } from "@/lib/customer/product-gating";
 import { issueCard, listCards, updateCardLimits, updateCardStatus } from "@/lib/customer/cards.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +15,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreditCard, Snowflake, RefreshCcw, Play } from "lucide-react";
 
 export const Route = createFileRoute("/banks/$slug/portal/cards")({
-  component: CardsPage,
+  component: CardsGate,
 });
+
+function CardsGate() {
+  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+    bank: { manifest: WebsiteManifest; slug: string };
+    session: CustomerSession;
+  };
+  if (!isNavEnabled(parent.bank.manifest, "cards")) {
+    return <ProductUnavailable manifest={parent.bank.manifest} title="Cards unavailable" />;
+  }
+  return <CardsPage />;
+}
 
 function CardsPage() {
   const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {

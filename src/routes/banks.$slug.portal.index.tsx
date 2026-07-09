@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerSession } from "@/lib/customer/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
+import { isNavEnabled } from "@/lib/customer/product-gating";
 import { simulateVerifyEmail } from "@/lib/customer/customer.functions";
 import {
   customerListNotifications,
@@ -133,11 +134,18 @@ function DashboardPage() {
   const acctMasked = acctNumber ? formatAccountNumber(acctNumber) : "—";
   const balance = primaryAccount?.available_balance ?? 0;
 
+  const transferEnabled = isNavEnabled(manifest, "transfer");
+  const beneficiariesEnabled = isNavEnabled(manifest, "beneficiaries");
+  const cardsEnabled = isNavEnabled(manifest, "cards");
   const quickActions = [
-    { icon: Send, title: "Send Money", subtitle: "Transfer worldwide", to: "/banks/$slug/portal/transfer" as const },
+    transferEnabled
+      ? { icon: Send, title: "Send Money", subtitle: "Transfer worldwide", to: "/banks/$slug/portal/transfer" as const }
+      : null,
     { icon: ArrowDownToLine, title: "Receive Money", subtitle: "Log incoming funds", to: "/banks/$slug/portal/accounts" as const },
-    { icon: Banknote, title: "Withdraw", subtitle: "Cash or transfer", to: "/banks/$slug/portal/beneficiaries" as const },
-  ];
+    beneficiariesEnabled
+      ? { icon: Banknote, title: "Withdraw", subtitle: "Cash or transfer", to: "/banks/$slug/portal/beneficiaries" as const }
+      : null,
+  ].filter((a): a is NonNullable<typeof a> => a !== null);
 
   const copyAcct = async () => {
     if (!acctNumber) return;
@@ -366,48 +374,52 @@ function DashboardPage() {
           </dl>
         </BrandedCard>
 
-        <BrandedCard manifest={manifest}>
-          <div className="mb-3 flex items-center justify-between">
-            <div className="text-sm font-semibold text-slate-900">Cards</div>
-            <Link to="/banks/$slug/portal/cards" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
-              <CreditCard className="h-3.5 w-3.5" /> Manage cards
-            </Link>
-          </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <StatTile label="Active" value={activeCards} tone="ok" />
-            <StatTile label="Frozen" value={frozenCards} tone="warn" />
-            <StatTile label="Expiring" value={expiringCards} tone="danger" />
-          </div>
-          {cards.length === 0 && (
-            <div className="mt-3 text-xs text-slate-500">No cards issued yet.</div>
-          )}
-        </BrandedCard>
+        {cardsEnabled && (
+          <BrandedCard manifest={manifest}>
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-sm font-semibold text-slate-900">Cards</div>
+              <Link to="/banks/$slug/portal/cards" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
+                <CreditCard className="h-3.5 w-3.5" /> Manage cards
+              </Link>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <StatTile label="Active" value={activeCards} tone="ok" />
+              <StatTile label="Frozen" value={frozenCards} tone="warn" />
+              <StatTile label="Expiring" value={expiringCards} tone="danger" />
+            </div>
+            {cards.length === 0 && (
+              <div className="mt-3 text-xs text-slate-500">No cards issued yet.</div>
+            )}
+          </BrandedCard>
+        )}
 
-        <BrandedCard manifest={manifest}>
-          <div className="mb-3 flex items-center justify-between">
-            <div className="text-sm font-semibold text-slate-900">Beneficiaries</div>
-            <Link to="/banks/$slug/portal/beneficiaries" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
-              <Users className="h-3.5 w-3.5" /> Manage
-            </Link>
-          </div>
-          {beneficiaries.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500">No beneficiaries yet.</div>
-          ) : (
-            <ul className="space-y-2">
-              {beneficiaries.slice(0, 5).map((b) => (
-                <li key={b.id} className="flex items-center justify-between gap-2 text-sm">
-                  <div className="min-w-0">
-                    <div className="truncate font-medium text-slate-800">{b.beneficiary_name}</div>
-                    <div className="truncate text-xs text-slate-500 font-mono">{b.account_number}</div>
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-600">
-                    {b.kind}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </BrandedCard>
+        {beneficiariesEnabled && (
+          <BrandedCard manifest={manifest}>
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-sm font-semibold text-slate-900">Beneficiaries</div>
+              <Link to="/banks/$slug/portal/beneficiaries" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
+                <Users className="h-3.5 w-3.5" /> Manage
+              </Link>
+            </div>
+            {beneficiaries.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500">No beneficiaries yet.</div>
+            ) : (
+              <ul className="space-y-2">
+                {beneficiaries.slice(0, 5).map((b) => (
+                  <li key={b.id} className="flex items-center justify-between gap-2 text-sm">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-slate-800">{b.beneficiary_name}</div>
+                      <div className="truncate text-xs text-slate-500 font-mono">{b.account_number}</div>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-600">
+                      {b.kind}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </BrandedCard>
+        )}
       </section>
     </div>
   );
