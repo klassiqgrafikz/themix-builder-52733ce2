@@ -27,13 +27,17 @@ function fmt(v: number, currency: string) {
   catch { return `${currency} ${v.toFixed(2)}`; }
 }
 
-const TYPES = [
-  { v: "checking", l: "Checking" },
-  { v: "savings", l: "Savings" },
-  { v: "current", l: "Current" },
-  { v: "business", l: "Business" },
-  { v: "foreign_currency", l: "Foreign currency" },
-];
+const TYPE_LABELS: Record<string, string> = {
+  checking: "Checking",
+  savings: "Savings",
+  current: "Current",
+  business: "Business",
+  foreign_currency: "Foreign currency",
+  corporate: "Corporate",
+  joint: "Joint",
+  student: "Student",
+  fixed_deposit_acct: "Fixed deposit",
+};
 
 function AccountsPage() {
   const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
