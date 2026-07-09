@@ -7,11 +7,17 @@ import {
   getPlatformSettings,
   updatePlatformSettings,
 } from "@/lib/gboc/platform-settings.functions";
+import {
+  getPlatformPin,
+  updatePlatformPin,
+} from "@/lib/gboc/platform-pin.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/gboc/settings")({
   component: PlatformSettingsPage,
