@@ -300,6 +300,13 @@ function RegisterWizard() {
         </div>
 
         <header className="mb-8 text-center">
+          {m.brand.login_logo_url && (
+            <img
+              src={m.brand.login_logo_url}
+              alt=""
+              className="mx-auto mb-4 h-16 w-16 rounded-xl object-contain"
+            />
+          )}
           <p
             className="text-xs uppercase tracking-[0.2em]"
             style={{ color: theme.colors.accent }}
