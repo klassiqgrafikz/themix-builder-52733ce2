@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import type { CustomerRestriction } from "./restrictions.functions";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerProfile } from "./types";
 import { logoutCustomer } from "./customer.functions";
