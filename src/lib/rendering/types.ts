@@ -78,6 +78,18 @@ export type NavItem = {
   module_key: string | null;
 };
 
+export type ResolvedProductRef = {
+  code: string;
+  name: string;
+  category_slug: string;
+  description: string;
+  icon: string;
+  visibility: "public" | "private" | "internal";
+  status: "active" | "inactive";
+  sort_order: number;
+};
+
+
 export type WebsiteManifest = {
   version: 1;
   bank: {
@@ -96,6 +108,7 @@ export type WebsiteManifest = {
   modules: ResolvedModule[];
   pages: GeneratedPage[];
   navigation: NavItem[];
+  products: ResolvedProductRef[];
   metadata: {
     title: string;
     description: string;
@@ -119,6 +132,7 @@ export type BankInstance = {
   modules: ResolvedModule[];
   pages: GeneratedPage[];
   navigation: NavItem[];
+  products: ResolvedProductRef[];
   manifest: WebsiteManifest;
   status: RenderStatus;
   logs: RenderLogEntry[];
