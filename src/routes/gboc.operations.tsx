@@ -88,7 +88,8 @@ function OperationsPage() {
         <div>
           <h1 className="text-2xl font-bold">Operations Console</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Choose a bank to begin operations.
+            Choose a published bank to begin operations. Only banks with a live
+            Website Manifest appear here.
           </p>
         </div>
         <Card>
@@ -96,21 +97,59 @@ function OperationsPage() {
             <Label>Bank</Label>
             <Select onValueChange={(id) => navigate({ to: "/gboc/operations", search: { bank: id } })}>
               <SelectTrigger className="mt-1 w-full max-w-md">
-                <SelectValue placeholder={banks.length ? "Select a bank…" : "No banks yet"} />
+                <SelectValue
+                  placeholder={
+                    banksQ.isLoading
+                      ? "Loading published banks…"
+                      : banks.length
+                        ? "Select a published bank…"
+                        : "No published banks yet"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {banks.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
-                    {b.bank_name} · {b.render_status}
+                    {b.bank_name} · {b.slug ?? "no-slug"}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {!banksQ.isLoading && banks.length === 0 && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Publish a bank from the{" "}
+                <Link to="/launch" className="underline">Bank Builder</Link> to
+                enable operations against its tenant.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
     );
   }
+
+  if (!banksQ.isLoading && !selectedBank) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Link to="/gboc/operations" search={{}} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> Back to bank selector
+          </Link>
+        </div>
+        <Card>
+          <CardContent className="p-8 text-center text-sm">
+            <div className="font-semibold">This bank isn't available for operations.</div>
+            <p className="mt-2 text-muted-foreground">
+              GBOC operates only on published tenants. Publish the bank from the
+              Bank Builder to unlock the Operations Console, Audit Center and
+              Simulation Engine.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-5">
