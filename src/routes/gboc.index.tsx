@@ -2,9 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { gbocListBanks } from "@/lib/gboc/operations.functions";
+import { productAdoption, listCatalogProducts } from "@/lib/products/catalog.functions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, ArrowRight, Users, Wallet, Activity } from "lucide-react";
+import { Building2, ArrowRight, Users, Wallet, Activity, Package } from "lucide-react";
 
 export const Route = createFileRoute("/gboc/")({
   component: GbocDashboard,
@@ -12,8 +13,15 @@ export const Route = createFileRoute("/gboc/")({
 
 function GbocDashboard() {
   const listFn = useServerFn(gbocListBanks);
+  const adoptFn = useServerFn(productAdoption);
+  const prodFn = useServerFn(listCatalogProducts);
   const q = useQuery({ queryKey: ["gboc", "banks"], queryFn: () => listFn() });
+  const adoptQ = useQuery({ queryKey: ["gboc", "adoption"], queryFn: () => adoptFn() });
+  const prodQ = useQuery({ queryKey: ["bp-products"], queryFn: () => prodFn() });
   const banks = q.data ?? [];
+  const adoption = adoptQ.data ?? [];
+  const catalog = prodQ.data ?? [];
+  const nameByCode = new Map(catalog.map((p) => [p.code, p.name]));
   const totals = banks.reduce(
     (acc, b) => {
       acc.customers += b.customer_count;
@@ -23,6 +31,8 @@ function GbocDashboard() {
     },
     { customers: 0, accounts: 0, published: 0 },
   );
+  const activeProducts = adoption.filter((a) => a.bank_count > 0).length;
+  const inactiveProducts = catalog.length - activeProducts;
 
   return (
     <div className="space-y-6">
@@ -34,12 +44,45 @@ function GbocDashboard() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard icon={Building2} label="Banks" value={banks.length} />
         <StatCard icon={Activity} label="Published" value={totals.published} />
         <StatCard icon={Users} label="Customers" value={totals.customers} />
         <StatCard icon={Wallet} label="Accounts" value={totals.accounts} />
+        <StatCard icon={Package} label="Active products" value={activeProducts} />
       </div>
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Product adoption
+            </h2>
+            <Link to="/products" className="text-xs underline text-muted-foreground">
+              View catalog
+            </Link>
+          </div>
+          {adoption.length === 0 ? (
+            <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+              No products adopted yet. Publish a bank to see adoption stats.
+              {inactiveProducts > 0 && ` ${inactiveProducts} catalog products available.`}
+            </div>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {adoption.slice(0, 12).map((a) => (
+                <div key={a.product_code} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">{nameByCode.get(a.product_code) ?? a.product_code}</div>
+                    <div className="text-xs text-muted-foreground">{a.product_code}</div>
+                  </div>
+                  <Badge variant="secondary">{a.bank_count} bank{a.bank_count === 1 ? "" : "s"}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
 
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">

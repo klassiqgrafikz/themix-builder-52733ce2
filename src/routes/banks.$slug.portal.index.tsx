@@ -194,6 +194,34 @@ function DashboardPage() {
         </div>
       </BrandedCard>
 
+      {manifest.products && manifest.products.length > 0 && (
+        <BrandedCard manifest={manifest}>
+          <div className="mb-3 text-sm font-semibold" style={{ color: primary }}>
+            Products available to you
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {manifest.products
+              .filter((p) => p.visibility === "public")
+              .map((p) => (
+                <div
+                  key={p.code}
+                  className="rounded-lg p-3 text-sm"
+                  style={{
+                    border: `1px solid ${primary}22`,
+                    backgroundColor: `${primary}06`,
+                  }}
+                >
+                  <div className="font-medium" style={{ color: primary }}>{p.name}</div>
+                  <div className="text-xs opacity-70">{p.category_slug}</div>
+                  {p.description && (
+                    <p className="mt-1 line-clamp-2 text-xs opacity-80">{p.description}</p>
+                  )}
+                </div>
+              ))}
+          </div>
+        </BrandedCard>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         <BrandedCard manifest={manifest}>
           <div className="mb-2 flex items-center justify-between text-sm font-semibold" style={{ color: primary }}>

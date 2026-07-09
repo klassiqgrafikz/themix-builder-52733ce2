@@ -7,6 +7,12 @@ import { generateRoutes } from "./route-generator";
 import { generateNavigation } from "./navigation-generator";
 import { buildManifest } from "./manifest-builder";
 import { assertTransition, nextAfterRender } from "./render-queue";
+import { resolveProducts } from "@/lib/products/resolver";
+import type {
+  BankProductOverride,
+  BlueprintProductLink,
+  CatalogProduct,
+} from "@/lib/products/types";
 import type {
   BankConfigurationInput,
   BankInstance,
@@ -21,6 +27,9 @@ export type RenderEngineInput = {
   config: BankConfigurationInput;
   blueprint: BlueprintInput;
   moduleCatalog: ModuleCatalogEntry[];
+  productCatalog: CatalogProduct[];
+  blueprintProducts: BlueprintProductLink[];
+  bankProducts: BankProductOverride[];
   previousStatus?: RenderStatus;
   previousLogs?: RenderLogEntry[];
 };
@@ -62,6 +71,19 @@ export function renderBankInstance(input: RenderEngineInput): BankInstance {
   const navigation = generateNavigation(pages, modules);
   log("navigation_generated", `${navigation.length} navigation item(s) generated`);
 
+  const products = resolveProducts({
+    catalog: input.productCatalog,
+    blueprintLinks: input.blueprintProducts,
+    bankOverrides: input.bankProducts,
+    enabledModules: modules.map((m) => m.label),
+    countryCode: cfg.identity.country_code ?? cfg.country_code ?? null,
+    currency: cfg.identity.currency ?? null,
+  });
+  log(
+    "modules_resolved",
+    `${products.length} product(s) resolved from catalog`,
+  );
+
   const slug = cfg.identity.subdomain ?? slugify(cfg.identity.bank_name ?? cfg.id);
   const manifest = buildManifest({
     bankId: cfg.id,
@@ -73,6 +95,7 @@ export function renderBankInstance(input: RenderEngineInput): BankInstance {
     modules,
     pages,
     navigation,
+    products,
   });
   log("manifest_generated", `Website manifest v${manifest.version} generated`);
 
@@ -95,6 +118,7 @@ export function renderBankInstance(input: RenderEngineInput): BankInstance {
     modules,
     pages,
     navigation,
+    products,
     manifest,
     status: nextStatus,
     logs: [...(input.previousLogs ?? []), ...logs],

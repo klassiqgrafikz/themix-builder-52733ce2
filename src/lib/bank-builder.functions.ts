@@ -14,6 +14,11 @@ import type {
   BlueprintInput,
   ModuleCatalogEntry,
 } from "./rendering/types";
+import type {
+  BankProductOverride,
+  BlueprintProductLink,
+  CatalogProduct,
+} from "./products/types";
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -211,6 +216,22 @@ export const finalizeDraft = createServerFn({ method: "POST" })
     if (modErr) throw new Error(modErr.message);
     const catalog = (modulesRows ?? []) as ModuleCatalogEntry[];
 
+    // 2b. Load product catalog + blueprint defaults + per-bank overrides.
+    const [
+      { data: productRows, error: pErr },
+      { data: bpProductRows, error: bpErr },
+      { data: bankProductRows, error: bkErr },
+    ] = await Promise.all([
+      sb.from("bp_products").select("*"),
+      draftRow.template_id
+        ? sb.from("bp_blueprint_products").select("*").eq("blueprint_id", draftRow.template_id)
+        : Promise.resolve({ data: [], error: null }),
+      sb.from("bp_bank_products").select("*").eq("draft_id", data.id),
+    ]);
+    if (pErr) throw new Error(pErr.message);
+    if (bpErr) throw new Error(bpErr.message);
+    if (bkErr) throw new Error(bkErr.message);
+
     // 3. Mark as rendering so the UI can reflect the transition.
     await sb
       .from("bb_bank_drafts")
@@ -235,6 +256,9 @@ export const finalizeDraft = createServerFn({ method: "POST" })
       config,
       blueprint,
       moduleCatalog: catalog,
+      productCatalog: (productRows ?? []) as CatalogProduct[],
+      blueprintProducts: (bpProductRows ?? []) as BlueprintProductLink[],
+      bankProducts: (bankProductRows ?? []) as BankProductOverride[],
       previousStatus: (draftRow.render_status as BankDraft["render_status"]) ?? "draft",
       previousLogs: Array.isArray(draftRow.render_logs) ? draftRow.render_logs : [],
     });
