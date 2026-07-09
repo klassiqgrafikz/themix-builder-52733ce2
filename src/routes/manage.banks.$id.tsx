@@ -124,6 +124,23 @@ function BankOverview() {
     onSuccess: () => { invalidate(); toast.success("Bank unpublished"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Unpublish failed"),
   });
+  const deleteBankFn = useServerFn(deleteBank);
+  const clearHistoryFn = useServerFn(clearRenderingHistory);
+  const clearHistoryMut = useMutation({
+    mutationFn: () => clearHistoryFn({ data: { id } }),
+    onSuccess: () => { invalidate(); toast.success("Rendering timeline cleared"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to clear history"),
+  });
+  const deleteMut = useMutation({
+    mutationFn: (purgeAudit: boolean) =>
+      deleteBankFn({ data: { id, purge_audit: purgeAudit } }),
+    onSuccess: () => {
+      toast.success("Bank deleted");
+      qc.invalidateQueries({ queryKey: ["bb-drafts"] });
+      navigate({ to: "/admin" });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Delete failed"),
+  });
 
   if (draftQ.isLoading || !draft) {
     return <div className="p-8 text-center text-muted-foreground">Loading bank…</div>;
