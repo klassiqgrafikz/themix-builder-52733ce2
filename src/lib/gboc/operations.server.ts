@@ -64,7 +64,7 @@ export async function insertNotification(row: {
     kind: row.kind,
     title: row.title,
     body: row.body ?? "",
-    metadata: row.metadata ?? {},
+    metadata: (row.metadata ?? {}) as never,
   });
   if (error) throw new Error(error.message);
 }
@@ -93,7 +93,7 @@ export async function writeAudit(row: {
     new_value: (row.new_value ?? null) as unknown as never,
     reason: row.reason ?? null,
     reference: row.reference ?? null,
-    metadata: row.metadata ?? {},
+    metadata: (row.metadata ?? {}) as never,
   });
   if (error) throw new Error(error.message);
 }
@@ -274,7 +274,8 @@ export async function applyAccountAction(args: {
 
   const { error } = await supabaseAdmin
     .from("bank_customer_accounts")
-    .update(patch)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(patch as any)
     .eq("id", account.id);
   if (error) throw new Error(error.message);
 

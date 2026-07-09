@@ -44,7 +44,7 @@ export type GbocAccount = {
   frozen_at: string | null;
   suspended_at: string | null;
   closed_at: string | null;
-  restriction_summary: Record<string, unknown>;
+  restriction_summary: Record<string, string | number | boolean | null>;
   created_at: string;
 };
 
