@@ -10,6 +10,14 @@ import {
   listTemplates,
 } from "@/lib/bank-builder.functions";
 import { publishDraft, unpublishDraft } from "@/lib/website/registry.functions";
+import {
+  deleteBankProduct,
+  listBankProducts,
+  listBlueprintProducts,
+  listCatalogProducts,
+  listProductCategories,
+  upsertBankProduct,
+} from "@/lib/products/catalog.functions";
 import type {
   BankBranding,
   BankCountry,
@@ -334,6 +342,9 @@ function BankOverview() {
             </CardContent>
           </Card>
         )}
+
+        <BankProductsPanel draftId={id} onChanged={() => rerenderMut.mutate()} rerenderPending={rerenderMut.isPending} />
+
 
         <Card>
           <CardHeader><CardTitle>Rendering Timeline</CardTitle></CardHeader>
