@@ -20,8 +20,14 @@ import { Route as LaunchIndexRouteImport } from './routes/launch.index'
 import { Route as GbocIndexRouteImport } from './routes/gboc.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as LaunchCategoryRouteImport } from './routes/launch.$category'
+import { Route as GbocTransactionsRouteImport } from './routes/gboc.transactions'
 import { Route as GbocSettingsRouteImport } from './routes/gboc.settings'
+import { Route as GbocReportsRouteImport } from './routes/gboc.reports'
 import { Route as GbocOperationsRouteImport } from './routes/gboc.operations'
+import { Route as GbocNotificationsRouteImport } from './routes/gboc.notifications'
+import { Route as GbocCustomersRouteImport } from './routes/gboc.customers'
+import { Route as GbocCommunicationsRouteImport } from './routes/gboc.communications'
+import { Route as GbocBanksRouteImport } from './routes/gboc.banks'
 import { Route as GbocAuditRouteImport } from './routes/gboc.audit'
 import { Route as BanksSlugRouteImport } from './routes/banks.$slug'
 import { Route as AdminSectionRouteImport } from './routes/admin.$section'
@@ -29,6 +35,7 @@ import { Route as LaunchCategoryIndexRouteImport } from './routes/launch.$catego
 import { Route as BanksSlugIndexRouteImport } from './routes/banks.$slug.index'
 import { Route as ManageBanksIdRouteImport } from './routes/manage.banks.$id'
 import { Route as LaunchCategoryCountryRouteImport } from './routes/launch.$category.$country'
+import { Route as GbocCustomersIdRouteImport } from './routes/gboc.customers.$id'
 import { Route as BanksSlugRegisterRouteImport } from './routes/banks.$slug.register'
 import { Route as BanksSlugPortalRouteImport } from './routes/banks.$slug.portal'
 import { Route as BanksSlugLoginRouteImport } from './routes/banks.$slug.login'
@@ -102,14 +109,44 @@ const LaunchCategoryRoute = LaunchCategoryRouteImport.update({
   path: '/$category',
   getParentRoute: () => LaunchRoute,
 } as any)
+const GbocTransactionsRoute = GbocTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => GbocRoute,
+} as any)
 const GbocSettingsRoute = GbocSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => GbocRoute,
 } as any)
+const GbocReportsRoute = GbocReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => GbocRoute,
+} as any)
 const GbocOperationsRoute = GbocOperationsRouteImport.update({
   id: '/operations',
   path: '/operations',
+  getParentRoute: () => GbocRoute,
+} as any)
+const GbocNotificationsRoute = GbocNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => GbocRoute,
+} as any)
+const GbocCustomersRoute = GbocCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => GbocRoute,
+} as any)
+const GbocCommunicationsRoute = GbocCommunicationsRouteImport.update({
+  id: '/communications',
+  path: '/communications',
+  getParentRoute: () => GbocRoute,
+} as any)
+const GbocBanksRoute = GbocBanksRouteImport.update({
+  id: '/banks',
+  path: '/banks',
   getParentRoute: () => GbocRoute,
 } as any)
 const GbocAuditRoute = GbocAuditRouteImport.update({
@@ -146,6 +183,11 @@ const LaunchCategoryCountryRoute = LaunchCategoryCountryRouteImport.update({
   id: '/$country',
   path: '/$country',
   getParentRoute: () => LaunchCategoryRoute,
+} as any)
+const GbocCustomersIdRoute = GbocCustomersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => GbocCustomersRoute,
 } as any)
 const BanksSlugRegisterRoute = BanksSlugRegisterRouteImport.update({
   id: '/register',
@@ -249,8 +291,14 @@ export interface FileRoutesByFullPath {
   '/admin/$section': typeof AdminSectionRoute
   '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/gboc/audit': typeof GbocAuditRoute
+  '/gboc/banks': typeof GbocBanksRoute
+  '/gboc/communications': typeof GbocCommunicationsRoute
+  '/gboc/customers': typeof GbocCustomersRouteWithChildren
+  '/gboc/notifications': typeof GbocNotificationsRoute
   '/gboc/operations': typeof GbocOperationsRoute
+  '/gboc/reports': typeof GbocReportsRoute
   '/gboc/settings': typeof GbocSettingsRoute
+  '/gboc/transactions': typeof GbocTransactionsRoute
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/gboc/': typeof GbocIndexRoute
@@ -260,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/banks/$slug/login': typeof BanksSlugLoginRoute
   '/banks/$slug/portal': typeof BanksSlugPortalRouteWithChildren
   '/banks/$slug/register': typeof BanksSlugRegisterRoute
+  '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/manage/banks/$id': typeof ManageBanksIdRoute
   '/banks/$slug/': typeof BanksSlugIndexRoute
@@ -284,8 +333,14 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsRoute
   '/admin/$section': typeof AdminSectionRoute
   '/gboc/audit': typeof GbocAuditRoute
+  '/gboc/banks': typeof GbocBanksRoute
+  '/gboc/communications': typeof GbocCommunicationsRoute
+  '/gboc/customers': typeof GbocCustomersRouteWithChildren
+  '/gboc/notifications': typeof GbocNotificationsRoute
   '/gboc/operations': typeof GbocOperationsRoute
+  '/gboc/reports': typeof GbocReportsRoute
   '/gboc/settings': typeof GbocSettingsRoute
+  '/gboc/transactions': typeof GbocTransactionsRoute
   '/admin': typeof AdminIndexRoute
   '/gboc': typeof GbocIndexRoute
   '/launch': typeof LaunchIndexRoute
@@ -293,6 +348,7 @@ export interface FileRoutesByTo {
   '/banks/$slug/forgot': typeof BanksSlugForgotRoute
   '/banks/$slug/login': typeof BanksSlugLoginRoute
   '/banks/$slug/register': typeof BanksSlugRegisterRoute
+  '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/manage/banks/$id': typeof ManageBanksIdRoute
   '/banks/$slug': typeof BanksSlugIndexRoute
@@ -322,8 +378,14 @@ export interface FileRoutesById {
   '/admin/$section': typeof AdminSectionRoute
   '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/gboc/audit': typeof GbocAuditRoute
+  '/gboc/banks': typeof GbocBanksRoute
+  '/gboc/communications': typeof GbocCommunicationsRoute
+  '/gboc/customers': typeof GbocCustomersRouteWithChildren
+  '/gboc/notifications': typeof GbocNotificationsRoute
   '/gboc/operations': typeof GbocOperationsRoute
+  '/gboc/reports': typeof GbocReportsRoute
   '/gboc/settings': typeof GbocSettingsRoute
+  '/gboc/transactions': typeof GbocTransactionsRoute
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/gboc/': typeof GbocIndexRoute
@@ -333,6 +395,7 @@ export interface FileRoutesById {
   '/banks/$slug/login': typeof BanksSlugLoginRoute
   '/banks/$slug/portal': typeof BanksSlugPortalRouteWithChildren
   '/banks/$slug/register': typeof BanksSlugRegisterRoute
+  '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/manage/banks/$id': typeof ManageBanksIdRoute
   '/banks/$slug/': typeof BanksSlugIndexRoute
@@ -363,8 +426,14 @@ export interface FileRouteTypes {
     | '/admin/$section'
     | '/banks/$slug'
     | '/gboc/audit'
+    | '/gboc/banks'
+    | '/gboc/communications'
+    | '/gboc/customers'
+    | '/gboc/notifications'
     | '/gboc/operations'
+    | '/gboc/reports'
     | '/gboc/settings'
+    | '/gboc/transactions'
     | '/launch/$category'
     | '/admin/'
     | '/gboc/'
@@ -374,6 +443,7 @@ export interface FileRouteTypes {
     | '/banks/$slug/login'
     | '/banks/$slug/portal'
     | '/banks/$slug/register'
+    | '/gboc/customers/$id'
     | '/launch/$category/$country'
     | '/manage/banks/$id'
     | '/banks/$slug/'
@@ -398,8 +468,14 @@ export interface FileRouteTypes {
     | '/products'
     | '/admin/$section'
     | '/gboc/audit'
+    | '/gboc/banks'
+    | '/gboc/communications'
+    | '/gboc/customers'
+    | '/gboc/notifications'
     | '/gboc/operations'
+    | '/gboc/reports'
     | '/gboc/settings'
+    | '/gboc/transactions'
     | '/admin'
     | '/gboc'
     | '/launch'
@@ -407,6 +483,7 @@ export interface FileRouteTypes {
     | '/banks/$slug/forgot'
     | '/banks/$slug/login'
     | '/banks/$slug/register'
+    | '/gboc/customers/$id'
     | '/launch/$category/$country'
     | '/manage/banks/$id'
     | '/banks/$slug'
@@ -435,8 +512,14 @@ export interface FileRouteTypes {
     | '/admin/$section'
     | '/banks/$slug'
     | '/gboc/audit'
+    | '/gboc/banks'
+    | '/gboc/communications'
+    | '/gboc/customers'
+    | '/gboc/notifications'
     | '/gboc/operations'
+    | '/gboc/reports'
     | '/gboc/settings'
+    | '/gboc/transactions'
     | '/launch/$category'
     | '/admin/'
     | '/gboc/'
@@ -446,6 +529,7 @@ export interface FileRouteTypes {
     | '/banks/$slug/login'
     | '/banks/$slug/portal'
     | '/banks/$slug/register'
+    | '/gboc/customers/$id'
     | '/launch/$category/$country'
     | '/manage/banks/$id'
     | '/banks/$slug/'
@@ -555,6 +639,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LaunchCategoryRouteImport
       parentRoute: typeof LaunchRoute
     }
+    '/gboc/transactions': {
+      id: '/gboc/transactions'
+      path: '/transactions'
+      fullPath: '/gboc/transactions'
+      preLoaderRoute: typeof GbocTransactionsRouteImport
+      parentRoute: typeof GbocRoute
+    }
     '/gboc/settings': {
       id: '/gboc/settings'
       path: '/settings'
@@ -562,11 +653,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GbocSettingsRouteImport
       parentRoute: typeof GbocRoute
     }
+    '/gboc/reports': {
+      id: '/gboc/reports'
+      path: '/reports'
+      fullPath: '/gboc/reports'
+      preLoaderRoute: typeof GbocReportsRouteImport
+      parentRoute: typeof GbocRoute
+    }
     '/gboc/operations': {
       id: '/gboc/operations'
       path: '/operations'
       fullPath: '/gboc/operations'
       preLoaderRoute: typeof GbocOperationsRouteImport
+      parentRoute: typeof GbocRoute
+    }
+    '/gboc/notifications': {
+      id: '/gboc/notifications'
+      path: '/notifications'
+      fullPath: '/gboc/notifications'
+      preLoaderRoute: typeof GbocNotificationsRouteImport
+      parentRoute: typeof GbocRoute
+    }
+    '/gboc/customers': {
+      id: '/gboc/customers'
+      path: '/customers'
+      fullPath: '/gboc/customers'
+      preLoaderRoute: typeof GbocCustomersRouteImport
+      parentRoute: typeof GbocRoute
+    }
+    '/gboc/communications': {
+      id: '/gboc/communications'
+      path: '/communications'
+      fullPath: '/gboc/communications'
+      preLoaderRoute: typeof GbocCommunicationsRouteImport
+      parentRoute: typeof GbocRoute
+    }
+    '/gboc/banks': {
+      id: '/gboc/banks'
+      path: '/banks'
+      fullPath: '/gboc/banks'
+      preLoaderRoute: typeof GbocBanksRouteImport
       parentRoute: typeof GbocRoute
     }
     '/gboc/audit': {
@@ -617,6 +743,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/launch/$category/$country'
       preLoaderRoute: typeof LaunchCategoryCountryRouteImport
       parentRoute: typeof LaunchCategoryRoute
+    }
+    '/gboc/customers/$id': {
+      id: '/gboc/customers/$id'
+      path: '/$id'
+      fullPath: '/gboc/customers/$id'
+      preLoaderRoute: typeof GbocCustomersIdRouteImport
+      parentRoute: typeof GbocCustomersRoute
     }
     '/banks/$slug/register': {
       id: '/banks/$slug/register'
@@ -752,17 +885,41 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface GbocCustomersRouteChildren {
+  GbocCustomersIdRoute: typeof GbocCustomersIdRoute
+}
+
+const GbocCustomersRouteChildren: GbocCustomersRouteChildren = {
+  GbocCustomersIdRoute: GbocCustomersIdRoute,
+}
+
+const GbocCustomersRouteWithChildren = GbocCustomersRoute._addFileChildren(
+  GbocCustomersRouteChildren,
+)
+
 interface GbocRouteChildren {
   GbocAuditRoute: typeof GbocAuditRoute
+  GbocBanksRoute: typeof GbocBanksRoute
+  GbocCommunicationsRoute: typeof GbocCommunicationsRoute
+  GbocCustomersRoute: typeof GbocCustomersRouteWithChildren
+  GbocNotificationsRoute: typeof GbocNotificationsRoute
   GbocOperationsRoute: typeof GbocOperationsRoute
+  GbocReportsRoute: typeof GbocReportsRoute
   GbocSettingsRoute: typeof GbocSettingsRoute
+  GbocTransactionsRoute: typeof GbocTransactionsRoute
   GbocIndexRoute: typeof GbocIndexRoute
 }
 
 const GbocRouteChildren: GbocRouteChildren = {
   GbocAuditRoute: GbocAuditRoute,
+  GbocBanksRoute: GbocBanksRoute,
+  GbocCommunicationsRoute: GbocCommunicationsRoute,
+  GbocCustomersRoute: GbocCustomersRouteWithChildren,
+  GbocNotificationsRoute: GbocNotificationsRoute,
   GbocOperationsRoute: GbocOperationsRoute,
+  GbocReportsRoute: GbocReportsRoute,
   GbocSettingsRoute: GbocSettingsRoute,
+  GbocTransactionsRoute: GbocTransactionsRoute,
   GbocIndexRoute: GbocIndexRoute,
 }
 
