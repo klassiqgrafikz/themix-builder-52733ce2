@@ -71,7 +71,10 @@ function ForgotPage() {
       }}
     >
       <Card className="w-full max-w-md">
-        <CardHeader>
+        <CardHeader className="items-center text-center">
+          {m.brand.login_logo_url && (
+            <img src={m.brand.login_logo_url} alt="" className="mb-3 h-14 w-14 rounded-xl object-contain" />
+          )}
           <CardTitle style={{ fontFamily: theme.typography.heading, color: theme.colors.primary }}>
             Forgot your password?
           </CardTitle>

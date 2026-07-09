@@ -124,7 +124,7 @@ function StatementsPage() {
       doc.rect(0, 0, pageW, 90, "F");
 
       // Logo
-      const logo = manifest.brand.logo_url ? await loadImage(manifest.brand.logo_url) : null;
+      const logo = manifest.brand.dashboard_logo_url ? await loadImage(manifest.brand.dashboard_logo_url) : null;
       if (logo) {
         const targetH = 44;
         const ratio = logo.w / logo.h;

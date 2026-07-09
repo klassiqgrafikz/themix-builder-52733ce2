@@ -318,9 +318,8 @@ function StepBranding({
     accent_color: branding.accent_color ?? "#00c48c",
     font_heading: branding.font_heading ?? "Inter",
     font_body: branding.font_body ?? "Inter",
-    logo_url: branding.logo_url ?? "",
-    favicon_url: branding.favicon_url ?? "",
-    hero_image_url: branding.hero_image_url ?? "",
+    login_logo_url: branding.login_logo_url ?? "",
+    dashboard_logo_url: branding.dashboard_logo_url ?? "",
     button_style: branding.button_style ?? "rounded",
     border_radius: branding.border_radius ?? 8,
     dark_mode: branding.dark_mode ?? false,
@@ -364,39 +363,37 @@ function StepBranding({
                 </SelectContent>
               </Select>
             </Field>
+            <div className="sm:col-span-2 space-y-1">
+              <div className="text-sm font-semibold">Bank logos</div>
+              <p className="text-xs text-muted-foreground">
+                Upload two versions of your bank's logo. JPG, PNG or WEBP. Max 5&nbsp;MB each.
+              </p>
+            </div>
             <UploadField
-              label="Logo"
-              kind="logo"
+              label="Login Page Logo"
+              hint="Shown on Sign in, Register and Forgot password pages."
+              kind="login_logo"
               draftId={draftId!}
-              url={b.logo_url}
+              url={b.login_logo_url}
               uploadFn={uploadFn}
-              onUrl={(u) => set("logo_url", u)}
-              accept="image/png,image/jpeg,image/svg+xml,image/webp"
-              maxMB={5}
-              previewClass="h-16 w-16 rounded-lg bg-slate-100 object-contain p-2"
-            />
-            <UploadField
-              label="Favicon"
-              kind="favicon"
-              draftId={draftId!}
-              url={b.favicon_url}
-              uploadFn={uploadFn}
-              onUrl={(u) => set("favicon_url", u)}
-              accept="image/png,image/x-icon,image/svg+xml"
-              maxMB={1}
-              previewClass="h-10 w-10 rounded bg-slate-100 object-contain p-1"
-            />
-            <UploadField
-              label="Hero Image"
-              kind="hero"
-              draftId={draftId!}
-              url={b.hero_image_url}
-              uploadFn={uploadFn}
-              onUrl={(u) => set("hero_image_url", u)}
+              onUrl={(u) => set("login_logo_url", u)}
               accept="image/png,image/jpeg,image/webp"
-              maxMB={10}
+              maxMB={5}
               wide
-              previewClass="h-24 w-full rounded-lg bg-slate-100 object-cover"
+              previewClass="h-20 w-20 rounded-lg bg-slate-100 object-contain p-2"
+            />
+            <UploadField
+              label="Customer Dashboard Logo"
+              hint="Shown in the sidebar, mobile nav and every authenticated banking screen."
+              kind="dashboard_logo"
+              draftId={draftId!}
+              url={b.dashboard_logo_url}
+              uploadFn={uploadFn}
+              onUrl={(u) => set("dashboard_logo_url", u)}
+              accept="image/png,image/jpeg,image/webp"
+              maxMB={5}
+              wide
+              previewClass="h-20 w-20 rounded-lg bg-slate-100 object-contain p-2"
             />
             <Field label="Button Style">
               <Select value={b.button_style} onValueChange={(v) => set("button_style", v as BankBranding["button_style"])}>
@@ -429,8 +426,8 @@ function StepBranding({
                 fontFamily: b.font_body,
               }}
             >
-              {b.logo_url && (
-                <img src={b.logo_url} alt="" className="mb-3 h-10 w-10 rounded bg-white/10 object-contain p-1" />
+              {b.login_logo_url && (
+                <img src={b.login_logo_url} alt="" className="mb-3 h-10 w-10 rounded bg-white/10 object-contain p-1" />
               )}
               <div style={{ fontFamily: b.font_heading }} className="text-xl font-bold">
                 Your bank
@@ -484,6 +481,7 @@ function ColorField({
 
 function UploadField({
   label,
+  hint,
   kind,
   draftId,
   url,
@@ -495,7 +493,8 @@ function UploadField({
   wide,
 }: {
   label: string;
-  kind: "logo" | "favicon" | "hero";
+  hint?: string;
+  kind: "login_logo" | "dashboard_logo";
   draftId: string;
   url: string;
   onUrl: (u: string) => void;
@@ -542,18 +541,36 @@ function UploadField({
       setBusy(false);
     }
   };
+  const [drag, setDrag] = useState(false);
   return (
     <div className={cn("space-y-2", wide && "sm:col-span-2")}>
       <Label>{label}</Label>
-      <div className="flex items-center gap-3">
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDrag(true);
+        }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDrag(false);
+          const f = e.dataTransfer.files?.[0];
+          if (f) void handleFile(f);
+        }}
+        className={cn(
+          "flex items-center gap-4 rounded-lg border-2 border-dashed p-3 transition",
+          drag ? "border-primary bg-primary/5" : "border-border",
+        )}
+      >
         {url ? (
           <img src={url} alt="" className={previewClass} />
         ) : (
           <div className={cn(previewClass, "flex items-center justify-center text-xs text-muted-foreground")}>
-            No file
+            No logo
           </div>
         )}
-        <div className="flex-1">
+        <div className="flex-1 space-y-2">
           <Input
             type="file"
             accept={accept}
@@ -563,8 +580,23 @@ function UploadField({
               if (f) void handleFile(f);
             }}
           />
-          <div className="mt-1 text-xs text-muted-foreground">
-            {busy ? "Uploading…" : url ? "Uploaded — choose another file to replace" : `Max ${maxMB} MB`}
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs text-muted-foreground">
+              {busy
+                ? "Uploading…"
+                : url
+                  ? "Drag & drop or choose a new file to replace"
+                  : `Drag & drop or click to upload · JPG, PNG, WEBP · Max ${maxMB} MB`}
+            </div>
+            {url && !busy && (
+              <button
+                type="button"
+                onClick={() => onUrl("")}
+                className="text-xs font-medium text-destructive hover:underline"
+              >
+                Remove
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -579,9 +611,11 @@ function BrandingPreviewModal({
   branding: BankBranding;
   onClose: () => void;
 }) {
-  const [tab, setTab] = useState<"homepage" | "login" | "register" | "dashboard" | "sidebar" | "statement" | "email" | "favicon">("homepage");
+  const [tab, setTab] = useState<"homepage" | "login" | "register" | "dashboard" | "sidebar" | "statement" | "email">("homepage");
   const p = branding.primary_color;
   const a = branding.accent_color;
+  const loginLogo = branding.login_logo_url;
+  const dashLogo = branding.dashboard_logo_url;
   const tabs = [
     ["homepage", "Homepage"],
     ["login", "Login"],
@@ -590,7 +624,6 @@ function BrandingPreviewModal({
     ["sidebar", "Sidebar"],
     ["statement", "PDF header"],
     ["email", "Email"],
-    ["favicon", "Favicon"],
   ] as const;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
@@ -617,10 +650,9 @@ function BrandingPreviewModal({
           {tab === "homepage" && (
             <div className="overflow-hidden rounded-xl border">
               <div className="flex items-center justify-between px-6 py-3" style={{ backgroundColor: p, color: "#fff" }}>
-                {branding.logo_url ? <img src={branding.logo_url} alt="" className="h-8" /> : <span className="font-bold" style={{ fontFamily: branding.font_heading }}>Your Bank</span>}
+                {loginLogo ? <img src={loginLogo} alt="" className="h-8" /> : <span className="font-bold" style={{ fontFamily: branding.font_heading }}>Your Bank</span>}
                 <button className="rounded px-3 py-1 text-sm font-medium" style={{ backgroundColor: a }}>Open account</button>
               </div>
-              {branding.hero_image_url && <img src={branding.hero_image_url} alt="" className="h-40 w-full object-cover" />}
               <div className="p-6">
                 <h1 style={{ fontFamily: branding.font_heading, color: p }} className="text-3xl font-bold">Banking, redesigned.</h1>
                 <p className="mt-2 text-sm text-slate-600">Everything you need in one place.</p>
@@ -629,7 +661,7 @@ function BrandingPreviewModal({
           )}
           {tab === "login" && (
             <div className="mx-auto max-w-sm rounded-xl border p-6 text-center">
-              {branding.logo_url && <img src={branding.logo_url} alt="" className="mx-auto mb-4 h-12" />}
+              {loginLogo && <img src={loginLogo} alt="" className="mx-auto mb-4 h-12" />}
               <h2 style={{ fontFamily: branding.font_heading, color: p }} className="text-xl font-bold">Sign in</h2>
               <div className="mt-4 space-y-2 text-left">
                 <div className="h-10 rounded border bg-slate-50" />
@@ -640,6 +672,7 @@ function BrandingPreviewModal({
           )}
           {tab === "register" && (
             <div className="mx-auto max-w-md rounded-xl border p-6">
+              {loginLogo && <img src={loginLogo} alt="" className="mx-auto mb-4 h-12" />}
               <h2 style={{ fontFamily: branding.font_heading, color: p }} className="text-xl font-bold">Open your account</h2>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 {[..."abcdefgh"].map((k) => <div key={k} className="h-10 rounded border bg-slate-50" />)}
@@ -649,6 +682,10 @@ function BrandingPreviewModal({
           )}
           {tab === "dashboard" && (
             <div className="grid gap-3 md:grid-cols-3">
+              <div className="col-span-3 flex items-center gap-3 rounded-xl border bg-white px-4 py-3">
+                {dashLogo ? <img src={dashLogo} alt="" className="h-8" /> : <span className="font-bold" style={{ fontFamily: branding.font_heading, color: p }}>Your Bank</span>}
+                <span className="text-xs uppercase tracking-widest text-slate-500">Customer dashboard</span>
+              </div>
               <div className="col-span-2 rounded-xl p-6 text-white" style={{ background: `linear-gradient(135deg, ${p}, ${branding.secondary_color})` }}>
                 <div className="text-xs opacity-80">Total balance</div>
                 <div className="mt-1 text-3xl font-bold">$12,480.55</div>
@@ -661,7 +698,7 @@ function BrandingPreviewModal({
           {tab === "sidebar" && (
             <div className="mx-auto max-w-xs overflow-hidden rounded-xl" style={{ backgroundColor: p, color: "#fff" }}>
               <div className="px-6 py-6">
-                {branding.logo_url ? <img src={branding.logo_url} alt="" className="h-10" /> : <div className="font-bold" style={{ fontFamily: branding.font_heading }}>Your Bank</div>}
+                {dashLogo ? <img src={dashLogo} alt="" className="h-10" /> : <div className="font-bold" style={{ fontFamily: branding.font_heading }}>Your Bank</div>}
               </div>
               {["Dashboard", "Accounts", "Transfer", "Cards", "Statements"].map((n, i) => (
                 <div key={n} className={cn("px-6 py-3 text-sm", i === 0 && "bg-white/10 font-semibold")}>{n}</div>
@@ -671,7 +708,7 @@ function BrandingPreviewModal({
           {tab === "statement" && (
             <div className="rounded-xl border">
               <div className="flex items-center gap-4 px-6 py-4" style={{ backgroundColor: p, color: "#fff" }}>
-                {branding.logo_url && <img src={branding.logo_url} alt="" className="h-10" />}
+                {dashLogo && <img src={dashLogo} alt="" className="h-10" />}
                 <div>
                   <div className="text-lg font-bold" style={{ fontFamily: branding.font_heading }}>Your Bank</div>
                   <div className="text-xs opacity-80">Official account statement</div>
@@ -687,7 +724,7 @@ function BrandingPreviewModal({
           {tab === "email" && (
             <div className="mx-auto max-w-md overflow-hidden rounded-xl border">
               <div className="px-6 py-4 text-white" style={{ backgroundColor: p }}>
-                {branding.logo_url && <img src={branding.logo_url} alt="" className="h-8" />}
+                {dashLogo && <img src={dashLogo} alt="" className="h-8" />}
                 <div className="mt-2 font-semibold" style={{ fontFamily: branding.font_heading }}>Welcome to Your Bank</div>
               </div>
               <div className="p-6 text-sm">
@@ -695,16 +732,6 @@ function BrandingPreviewModal({
                 <p className="mt-2">Your account has been created. Sign in to explore your dashboard.</p>
                 <button className="mt-4 rounded px-4 py-2 text-sm text-white" style={{ backgroundColor: a }}>Go to your dashboard</button>
               </div>
-            </div>
-          )}
-          {tab === "favicon" && (
-            <div className="flex flex-col items-center gap-3 py-8">
-              {branding.favicon_url ? (
-                <img src={branding.favicon_url} alt="" className="h-16 w-16" />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded bg-slate-100 text-xs text-slate-500">None</div>
-              )}
-              <p className="text-xs text-muted-foreground">Displayed in browser tabs and bookmarks.</p>
             </div>
           )}
         </div>

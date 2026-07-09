@@ -1,8 +1,8 @@
 // Public proxy: serves branding assets from the private `bank-branding` bucket.
-// URL: /api/public/branding/:draftId/:kind  where kind ∈ logo | favicon | hero
+// URL: /api/public/branding/:draftId/:kind  where kind ∈ login_logo | dashboard_logo
 import { createFileRoute } from "@tanstack/react-router";
 
-const ALLOWED = new Set(["logo", "favicon", "hero"]);
+const ALLOWED = new Set(["login_logo", "dashboard_logo"]);
 
 export const Route = createFileRoute("/api/public/branding/$draftId/$kind")({
   server: {

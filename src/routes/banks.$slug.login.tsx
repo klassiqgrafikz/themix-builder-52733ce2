@@ -114,6 +114,9 @@ function LoginPage() {
         >
           <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
+              {m.brand.login_logo_url && (
+                <img src={m.brand.login_logo_url} alt="" className="h-9 w-9 rounded bg-white/10 object-contain p-1" />
+              )}
               <div className="text-lg font-semibold" style={{ fontFamily: theme.typography.heading }}>
                 {m.bank.name}
               </div>
@@ -172,6 +175,9 @@ function LoginPage() {
           style={{ borderColor: "rgba(201,168,76,0.35)", backgroundColor: "rgba(255,255,255,0.02)" }}
         >
           <div className="mb-8 text-center">
+            {m.brand.login_logo_url && (
+              <img src={m.brand.login_logo_url} alt="" className="mx-auto mb-4 h-14 w-14 rounded object-contain" />
+            )}
             <div className="text-xs uppercase tracking-[0.35em]" style={{ color: "#c9a84c" }}>
               Private Banking
             </div>
@@ -206,7 +212,10 @@ function LoginPage() {
       }}
     >
       <Card className="w-full max-w-md rounded-3xl">
-        <CardHeader>
+        <CardHeader className="items-center text-center">
+          {m.brand.login_logo_url && (
+            <img src={m.brand.login_logo_url} alt="" className="mb-3 h-14 w-14 rounded-xl object-contain" />
+          )}
           <CardTitle style={{ fontFamily: theme.typography.heading, color: theme.colors.primary }}>
             {m.bank.name}
           </CardTitle>

@@ -65,9 +65,8 @@ export type BankBranding = {
   accent_color: string;
   font_heading: string;
   font_body: string;
-  logo_url: string;
-  favicon_url: string;
-  hero_image_url: string;
+  login_logo_url: string;
+  dashboard_logo_url: string;
   button_style: "rounded" | "square" | "pill";
   border_radius: number;
   dark_mode: boolean;

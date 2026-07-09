@@ -94,9 +94,9 @@ function SidebarBody({
           onClick={onNavigate}
           className="flex items-center gap-3"
         >
-          {manifest.brand.logo_url ? (
+          {manifest.brand.dashboard_logo_url ? (
             <img
-              src={manifest.brand.logo_url}
+              src={manifest.brand.dashboard_logo_url}
               alt=""
               className="h-11 w-11 rounded-xl bg-white/10 object-contain p-1.5 ring-1 ring-white/15"
             />
@@ -269,8 +269,8 @@ export function PortalShell({
               params={{ slug }}
               className="flex items-center gap-3"
             >
-              {manifest.brand.logo_url ? (
-                <img src={manifest.brand.logo_url} alt="" className="h-9 w-9 object-contain" />
+              {manifest.brand.dashboard_logo_url ? (
+                <img src={manifest.brand.dashboard_logo_url} alt="" className="h-9 w-9 object-contain" />
               ) : (
                 <span
                   className="flex h-9 w-9 items-center justify-center rounded font-bold text-white"
