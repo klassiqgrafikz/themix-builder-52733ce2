@@ -109,6 +109,24 @@ function DashboardPage() {
         )}
       </BrandedCard>
 
+      {restrictions.length > 0 && (
+        <div
+          className="flex items-start gap-2 rounded-md border p-3 text-sm"
+          style={{ borderColor: "#f59e0b", backgroundColor: "#fef3c7", color: "#78350f" }}
+        >
+          <ShieldAlert className="mt-0.5 h-4 w-4" />
+          <div>
+            <div className="font-semibold">Your account has active restrictions</div>
+            {restrictions.map((r) => (
+              <div key={r.id} className="text-xs">
+                {r.types.join(", ")} — {r.reason || "No reason provided"}
+                {r.end_at ? ` (until ${new Date(r.end_at).toLocaleDateString()})` : ""}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-3">
         <BrandedCard manifest={manifest}>
           <div className="text-xs uppercase opacity-70">Available balance</div>
