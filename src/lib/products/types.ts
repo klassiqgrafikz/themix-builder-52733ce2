@@ -18,7 +18,7 @@ export type CatalogProduct = {
   status: "active" | "inactive";
   supported_countries: string[];
   supported_currencies: string[];
-  eligibility: Record<string, unknown>;
+  eligibility: Record<string, string | number | boolean | null>;
   visibility: "public" | "private" | "internal";
   default_visible: boolean;
   sort_order: number;
