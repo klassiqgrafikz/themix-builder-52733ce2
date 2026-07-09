@@ -4,9 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
-import type { CustomerSession } from "@/lib/customer/types";
+import type { CustomerAccount, CustomerSession } from "@/lib/customer/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
 import { openAdditionalAccount } from "@/lib/customer/accounts.functions";
+import {
+  countryFieldsToDisplay,
+  COUNTRY_FIELD_LABEL,
+  type CountryAccountFields,
+} from "@/lib/customer/country-formats";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
