@@ -168,6 +168,7 @@ export type Database = {
           customer_id: string
           frozen_at: string | null
           id: string
+          pending_balance: number
           restriction_summary: Json
           status: string
           suspended_at: string | null
@@ -186,6 +187,7 @@ export type Database = {
           customer_id: string
           frozen_at?: string | null
           id?: string
+          pending_balance?: number
           restriction_summary?: Json
           status?: string
           suspended_at?: string | null
@@ -204,6 +206,7 @@ export type Database = {
           customer_id?: string
           frozen_at?: string | null
           id?: string
+          pending_balance?: number
           restriction_summary?: Json
           status?: string
           suspended_at?: string | null
@@ -401,6 +404,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bank_ledger_entries: {
+        Row: {
+          account_id: string
+          amount: number
+          available_after: number
+          balance_after: number
+          bank_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          description: string | null
+          direction: string
+          entry_type: string
+          event_type: string | null
+          id: string
+          metadata: Json
+          reference: string | null
+          status: string
+          transaction_id: string | null
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          available_after: number
+          balance_after: number
+          bank_id: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          customer_id: string
+          description?: string | null
+          direction: string
+          entry_type: string
+          event_type?: string | null
+          id?: string
+          metadata?: Json
+          reference?: string | null
+          status?: string
+          transaction_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          available_after?: number
+          balance_after?: number
+          bank_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          description?: string | null
+          direction?: string
+          entry_type?: string
+          event_type?: string | null
+          id?: string
+          metadata?: Json
+          reference?: string | null
+          status?: string
+          transaction_id?: string | null
+        }
+        Relationships: []
       }
       bank_notifications: {
         Row: {
