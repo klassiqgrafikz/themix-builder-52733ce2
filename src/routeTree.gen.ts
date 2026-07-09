@@ -10,13 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LaunchRouteImport } from './routes/launch'
+import { Route as GbocRouteImport } from './routes/gboc'
 import { Route as BankBuilderRouteImport } from './routes/bank-builder'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LaunchIndexRouteImport } from './routes/launch.index'
+import { Route as GbocIndexRouteImport } from './routes/gboc.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as LaunchCategoryRouteImport } from './routes/launch.$category'
+import { Route as GbocOperationsRouteImport } from './routes/gboc.operations'
+import { Route as GbocAuditRouteImport } from './routes/gboc.audit'
 import { Route as BanksSlugRouteImport } from './routes/banks.$slug'
 import { Route as AdminSectionRouteImport } from './routes/admin.$section'
 import { Route as LaunchCategoryIndexRouteImport } from './routes/launch.$category.index'
@@ -34,6 +38,11 @@ import { Route as BanksSlugPortalAccountsRouteImport } from './routes/banks.$slu
 const LaunchRoute = LaunchRouteImport.update({
   id: '/launch',
   path: '/launch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GbocRoute = GbocRouteImport.update({
+  id: '/gboc',
+  path: '/gboc',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BankBuilderRoute = BankBuilderRouteImport.update({
@@ -61,6 +70,11 @@ const LaunchIndexRoute = LaunchIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LaunchRoute,
 } as any)
+const GbocIndexRoute = GbocIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GbocRoute,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -70,6 +84,16 @@ const LaunchCategoryRoute = LaunchCategoryRouteImport.update({
   id: '/$category',
   path: '/$category',
   getParentRoute: () => LaunchRoute,
+} as any)
+const GbocOperationsRoute = GbocOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => GbocRoute,
+} as any)
+const GbocAuditRoute = GbocAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => GbocRoute,
 } as any)
 const BanksSlugRoute = BanksSlugRouteImport.update({
   id: '/banks/$slug',
@@ -142,11 +166,15 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
+  '/gboc': typeof GbocRouteWithChildren
   '/launch': typeof LaunchRouteWithChildren
   '/admin/$section': typeof AdminSectionRoute
   '/banks/$slug': typeof BanksSlugRouteWithChildren
+  '/gboc/audit': typeof GbocAuditRoute
+  '/gboc/operations': typeof GbocOperationsRoute
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/gboc/': typeof GbocIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/banks/$slug/$page': typeof BanksSlugPageRoute
   '/banks/$slug/forgot': typeof BanksSlugForgotRoute
@@ -166,7 +194,10 @@ export interface FileRoutesByTo {
   '/bank-builder': typeof BankBuilderRoute
   '/admin/$section': typeof AdminSectionRoute
   '/banks/$slug': typeof BanksSlugRouteWithChildren
+  '/gboc/audit': typeof GbocAuditRoute
+  '/gboc/operations': typeof GbocOperationsRoute
   '/admin': typeof AdminIndexRoute
+  '/gboc': typeof GbocIndexRoute
   '/launch': typeof LaunchIndexRoute
   '/banks/$slug/$page': typeof BanksSlugPageRoute
   '/banks/$slug/forgot': typeof BanksSlugForgotRoute
@@ -185,11 +216,15 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
+  '/gboc': typeof GbocRouteWithChildren
   '/launch': typeof LaunchRouteWithChildren
   '/admin/$section': typeof AdminSectionRoute
   '/banks/$slug': typeof BanksSlugRouteWithChildren
+  '/gboc/audit': typeof GbocAuditRoute
+  '/gboc/operations': typeof GbocOperationsRoute
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/gboc/': typeof GbocIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/banks/$slug/$page': typeof BanksSlugPageRoute
   '/banks/$slug/forgot': typeof BanksSlugForgotRoute
@@ -210,11 +245,15 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/bank-builder'
+    | '/gboc'
     | '/launch'
     | '/admin/$section'
     | '/banks/$slug'
+    | '/gboc/audit'
+    | '/gboc/operations'
     | '/launch/$category'
     | '/admin/'
+    | '/gboc/'
     | '/launch/'
     | '/banks/$slug/$page'
     | '/banks/$slug/forgot'
@@ -234,7 +273,10 @@ export interface FileRouteTypes {
     | '/bank-builder'
     | '/admin/$section'
     | '/banks/$slug'
+    | '/gboc/audit'
+    | '/gboc/operations'
     | '/admin'
+    | '/gboc'
     | '/launch'
     | '/banks/$slug/$page'
     | '/banks/$slug/forgot'
@@ -252,11 +294,15 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/bank-builder'
+    | '/gboc'
     | '/launch'
     | '/admin/$section'
     | '/banks/$slug'
+    | '/gboc/audit'
+    | '/gboc/operations'
     | '/launch/$category'
     | '/admin/'
+    | '/gboc/'
     | '/launch/'
     | '/banks/$slug/$page'
     | '/banks/$slug/forgot'
@@ -276,6 +322,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   BankBuilderRoute: typeof BankBuilderRoute
+  GbocRoute: typeof GbocRouteWithChildren
   LaunchRoute: typeof LaunchRouteWithChildren
   BanksSlugRoute: typeof BanksSlugRouteWithChildren
   ManageBanksIdRoute: typeof ManageBanksIdRoute
@@ -288,6 +335,13 @@ declare module '@tanstack/react-router' {
       path: '/launch'
       fullPath: '/launch'
       preLoaderRoute: typeof LaunchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gboc': {
+      id: '/gboc'
+      path: '/gboc'
+      fullPath: '/gboc'
+      preLoaderRoute: typeof GbocRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bank-builder': {
@@ -325,6 +379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LaunchIndexRouteImport
       parentRoute: typeof LaunchRoute
     }
+    '/gboc/': {
+      id: '/gboc/'
+      path: '/'
+      fullPath: '/gboc/'
+      preLoaderRoute: typeof GbocIndexRouteImport
+      parentRoute: typeof GbocRoute
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
@@ -338,6 +399,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/launch/$category'
       preLoaderRoute: typeof LaunchCategoryRouteImport
       parentRoute: typeof LaunchRoute
+    }
+    '/gboc/operations': {
+      id: '/gboc/operations'
+      path: '/operations'
+      fullPath: '/gboc/operations'
+      preLoaderRoute: typeof GbocOperationsRouteImport
+      parentRoute: typeof GbocRoute
+    }
+    '/gboc/audit': {
+      id: '/gboc/audit'
+      path: '/audit'
+      fullPath: '/gboc/audit'
+      preLoaderRoute: typeof GbocAuditRouteImport
+      parentRoute: typeof GbocRoute
     }
     '/banks/$slug': {
       id: '/banks/$slug'
@@ -445,6 +520,20 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface GbocRouteChildren {
+  GbocAuditRoute: typeof GbocAuditRoute
+  GbocOperationsRoute: typeof GbocOperationsRoute
+  GbocIndexRoute: typeof GbocIndexRoute
+}
+
+const GbocRouteChildren: GbocRouteChildren = {
+  GbocAuditRoute: GbocAuditRoute,
+  GbocOperationsRoute: GbocOperationsRoute,
+  GbocIndexRoute: GbocIndexRoute,
+}
+
+const GbocRouteWithChildren = GbocRoute._addFileChildren(GbocRouteChildren)
+
 interface LaunchCategoryRouteChildren {
   LaunchCategoryCountryRoute: typeof LaunchCategoryCountryRoute
   LaunchCategoryIndexRoute: typeof LaunchCategoryIndexRoute
@@ -513,6 +602,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   BankBuilderRoute: BankBuilderRoute,
+  GbocRoute: GbocRouteWithChildren,
   LaunchRoute: LaunchRouteWithChildren,
   BanksSlugRoute: BanksSlugRouteWithChildren,
   ManageBanksIdRoute: ManageBanksIdRoute,

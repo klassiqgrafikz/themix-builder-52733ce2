@@ -14,6 +14,146 @@ export type Database = {
   }
   public: {
     Tables: {
+      bank_account_restrictions: {
+        Row: {
+          account_id: string
+          active: boolean
+          bank_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          end_at: string | null
+          id: string
+          reason: string
+          reference: string | null
+          start_at: string | null
+          types: string[]
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          active?: boolean
+          bank_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          end_at?: string | null
+          id?: string
+          reason?: string
+          reference?: string | null
+          start_at?: string | null
+          types?: string[]
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          active?: boolean
+          bank_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          end_at?: string | null
+          id?: string
+          reason?: string
+          reference?: string | null
+          start_at?: string | null
+          types?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_account_restrictions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_customer_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_account_restrictions_bank_id_fkey"
+            columns: ["bank_id"]
+            isOneToOne: false
+            referencedRelation: "bb_bank_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_account_restrictions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "bank_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_audit_logs: {
+        Row: {
+          account_id: string | null
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          bank_id: string
+          created_at: string
+          customer_id: string | null
+          id: string
+          metadata: Json
+          new_value: Json | null
+          previous_value: Json | null
+          reason: string | null
+          reference: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          bank_id: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          metadata?: Json
+          new_value?: Json | null
+          previous_value?: Json | null
+          reason?: string | null
+          reference?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          bank_id?: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          metadata?: Json
+          new_value?: Json | null
+          previous_value?: Json | null
+          reason?: string | null
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_audit_logs_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_customer_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_audit_logs_bank_id_fkey"
+            columns: ["bank_id"]
+            isOneToOne: false
+            referencedRelation: "bb_bank_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_audit_logs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "bank_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_customer_accounts: {
         Row: {
           account_name: string
@@ -21,12 +161,16 @@ export type Database = {
           account_type: string
           available_balance: number
           bank_id: string
+          closed_at: string | null
           created_at: string
           currency: string
           current_balance: number
           customer_id: string
+          frozen_at: string | null
           id: string
+          restriction_summary: Json
           status: string
+          suspended_at: string | null
           updated_at: string
         }
         Insert: {
@@ -35,12 +179,16 @@ export type Database = {
           account_type?: string
           available_balance?: number
           bank_id: string
+          closed_at?: string | null
           created_at?: string
           currency?: string
           current_balance?: number
           customer_id: string
+          frozen_at?: string | null
           id?: string
+          restriction_summary?: Json
           status?: string
+          suspended_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -49,12 +197,16 @@ export type Database = {
           account_type?: string
           available_balance?: number
           bank_id?: string
+          closed_at?: string | null
           created_at?: string
           currency?: string
           current_balance?: number
           customer_id?: string
+          frozen_at?: string | null
           id?: string
+          restriction_summary?: Json
           status?: string
+          suspended_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -246,6 +398,145 @@ export type Database = {
             columns: ["bank_id"]
             isOneToOne: false
             referencedRelation: "bb_bank_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_notifications: {
+        Row: {
+          bank_id: string
+          body: string
+          created_at: string
+          customer_id: string
+          id: string
+          kind: string
+          metadata: Json
+          read_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          bank_id: string
+          body?: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          read_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          bank_id?: string
+          body?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          read_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_notifications_bank_id_fkey"
+            columns: ["bank_id"]
+            isOneToOne: false
+            referencedRelation: "bb_bank_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_notifications_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "bank_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_transactions: {
+        Row: {
+          account_id: string
+          amount: number
+          available_after: number
+          balance_after: number
+          bank_id: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          description: string
+          direction: string
+          id: string
+          kind: string
+          metadata: Json
+          reference: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          available_after: number
+          balance_after: number
+          bank_id: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          customer_id: string
+          description?: string
+          direction: string
+          id?: string
+          kind: string
+          metadata?: Json
+          reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          available_after?: number
+          balance_after?: number
+          bank_id?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          description?: string
+          direction?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_customer_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_bank_id_fkey"
+            columns: ["bank_id"]
+            isOneToOne: false
+            referencedRelation: "bb_bank_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "bank_customers"
             referencedColumns: ["id"]
           },
         ]

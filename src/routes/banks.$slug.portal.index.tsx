@@ -1,13 +1,18 @@
 import { createFileRoute, Link, useMatch } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerSession } from "@/lib/customer/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
 import { simulateVerifyEmail } from "@/lib/customer/customer.functions";
+import {
+  customerListNotifications,
+  customerListRestrictions,
+  customerListTransactions,
+} from "@/lib/customer/activity.functions";
 import { Button } from "@/components/ui/button";
-import { Bell, HeadphonesIcon, PlusCircle, Send, ShieldCheck } from "lucide-react";
+import { Bell, HeadphonesIcon, PlusCircle, Send, ShieldAlert, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/banks/$slug/portal/")({
   component: DashboardPage,
@@ -47,6 +52,28 @@ function DashboardPage() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Verification failed"),
   });
 
+  const txFn = useServerFn(customerListTransactions);
+  const notifFn = useServerFn(customerListNotifications);
+  const restrFn = useServerFn(customerListRestrictions);
+  const txQ = useQuery({
+    queryKey: ["portal-tx", bank.slug],
+    queryFn: () => txFn({ data: { slug: bank.slug } }),
+    refetchInterval: 15000,
+  });
+  const notifQ = useQuery({
+    queryKey: ["portal-notif", bank.slug],
+    queryFn: () => notifFn({ data: { slug: bank.slug } }),
+    refetchInterval: 15000,
+  });
+  const restrQ = useQuery({
+    queryKey: ["portal-restr", bank.slug],
+    queryFn: () => restrFn({ data: { slug: bank.slug } }),
+    refetchInterval: 30000,
+  });
+  const transactions = txQ.data ?? [];
+  const notifications = notifQ.data ?? [];
+  const restrictions = restrQ.data ?? [];
+
   return (
     <div className="space-y-6">
       <BrandedCard manifest={manifest} className="!p-8">
@@ -81,6 +108,24 @@ function DashboardPage() {
           </div>
         )}
       </BrandedCard>
+
+      {restrictions.length > 0 && (
+        <div
+          className="flex items-start gap-2 rounded-md border p-3 text-sm"
+          style={{ borderColor: "#f59e0b", backgroundColor: "#fef3c7", color: "#78350f" }}
+        >
+          <ShieldAlert className="mt-0.5 h-4 w-4" />
+          <div>
+            <div className="font-semibold">Your account has active restrictions</div>
+            {restrictions.map((r) => (
+              <div key={r.id} className="text-xs">
+                {r.types.join(", ")} — {r.reason || "No reason provided"}
+                {r.end_at ? ` (until ${new Date(r.end_at).toLocaleDateString()})` : ""}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <BrandedCard manifest={manifest}>
@@ -151,35 +196,60 @@ function DashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <BrandedCard manifest={manifest}>
-          <div className="mb-2 text-sm font-semibold" style={{ color: primary }}>
-            Recent transactions
+          <div className="mb-2 flex items-center justify-between text-sm font-semibold" style={{ color: primary }}>
+            <span>Recent transactions</span>
+            <span className="text-xs opacity-70">{transactions.length}</span>
           </div>
-          <div className="rounded-md border border-dashed p-6 text-center text-sm opacity-70">
-            No transactions yet. Activity will appear here once the transactions module is enabled.
-          </div>
+          {transactions.length === 0 ? (
+            <div className="rounded-md border border-dashed p-6 text-center text-sm opacity-70">
+              No transactions yet.
+            </div>
+          ) : (
+            <ul className="divide-y">
+              {transactions.slice(0, 8).map((t) => (
+                <li key={t.id} className="flex items-center justify-between py-2 text-sm">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">{t.description || t.kind}</div>
+                    <div className="text-xs opacity-70">
+                      {new Date(t.created_at).toLocaleString()} · {t.kind}
+                    </div>
+                  </div>
+                  <div
+                    className="ml-3 whitespace-nowrap font-mono text-sm"
+                    style={{ color: t.direction === "credit" ? "#16a34a" : t.direction === "debit" ? "#dc2626" : undefined }}
+                  >
+                    {t.direction === "debit" ? "-" : t.direction === "credit" ? "+" : ""}
+                    {fmt(t.amount, t.currency)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </BrandedCard>
         <BrandedCard manifest={manifest}>
-          <div className="mb-2 text-sm font-semibold" style={{ color: primary }}>
-            Profile summary
+          <div className="mb-2 flex items-center justify-between text-sm font-semibold" style={{ color: primary }}>
+            <span>Notifications</span>
+            <span className="text-xs opacity-70">{notifications.length}</span>
           </div>
-          <ul className="space-y-1.5 text-sm">
-            <li>
-              <span className="opacity-60">Name: </span>
-              {session.customer.first_name} {session.customer.last_name}
-            </li>
-            <li>
-              <span className="opacity-60">Email: </span>
-              {session.customer.email}
-            </li>
-            <li>
-              <span className="opacity-60">Phone: </span>
-              {session.customer.phone ?? "—"}
-            </li>
-            <li>
-              <span className="opacity-60">Country: </span>
-              {session.customer.country ?? "—"}
-            </li>
-          </ul>
+          {notifications.length === 0 ? (
+            <div className="rounded-md border border-dashed p-6 text-center text-sm opacity-70">
+              You have no notifications.
+            </div>
+          ) : (
+            <ul className="divide-y">
+              {notifications.slice(0, 6).map((n) => (
+                <li key={n.id} className="py-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{n.title}</div>
+                    <span className="text-xs opacity-60">
+                      {new Date(n.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {n.body && <div className="mt-0.5 text-xs opacity-70">{n.body}</div>}
+                </li>
+              ))}
+            </ul>
+          )}
           <Link
             to="/banks/$slug/portal/profile"
             params={{ slug: bank.slug }}
