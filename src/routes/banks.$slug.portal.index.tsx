@@ -98,7 +98,6 @@ const FAQS = [
 ];
 
 function buildTrend(transactions: { created_at: string; amount: number; direction: string }[], balance: number) {
-  // Build a 12-point trend ending at current balance. Walk backwards from now.
   const points: { label: string; balance: number }[] = [];
   let running = balance;
   const now = new Date();
@@ -134,7 +133,6 @@ function buildFlow(transactions: { created_at: string; amount: number; direction
     if (t.direction === "credit") months[idx].inflow += t.amount;
     else if (t.direction === "debit") months[idx].outflow += t.amount;
   }
-  // Seed synthetic baseline so chart never looks flat during onboarding.
   const empty = months.every((m) => m.inflow === 0 && m.outflow === 0);
   if (empty) {
     const seeds = [
@@ -245,20 +243,20 @@ function DashboardPage() {
 
   const quickActions = [
     transferEnabled
-      ? { icon: Send, title: "Send", subtitle: "Transfer worldwide", to: "/banks/$slug/portal/transfer" as const, tone: "primary" as const }
+      ? { icon: Send, title: "Send", subtitle: "Transfer funds", to: "/banks/$slug/portal/transfer" as const }
       : null,
-    { icon: ArrowDownToLine, title: "Receive", subtitle: "Log incoming funds", to: "/banks/$slug/portal/accounts" as const, tone: "neutral" as const },
+    { icon: ArrowDownToLine, title: "Receive", subtitle: "Incoming funds", to: "/banks/$slug/portal/accounts" as const },
     beneficiariesEnabled
-      ? { icon: Banknote, title: "Withdraw", subtitle: "Cash or transfer", to: "/banks/$slug/portal/beneficiaries" as const, tone: "neutral" as const }
+      ? { icon: Banknote, title: "Withdraw", subtitle: "Cash or transfer", to: "/banks/$slug/portal/beneficiaries" as const }
       : null,
     statementsEnabled
-      ? { icon: FileText, title: "Statements", subtitle: "Download PDFs", to: "/banks/$slug/portal/statements" as const, tone: "neutral" as const }
+      ? { icon: FileText, title: "Statements", subtitle: "Download PDF", to: "/banks/$slug/portal/statements" as const }
       : null,
     cardsEnabled
-      ? { icon: CreditCard, title: "Cards", subtitle: "Manage & freeze", to: "/banks/$slug/portal/cards" as const, tone: "neutral" as const }
+      ? { icon: CreditCard, title: "Cards", subtitle: "Manage cards", to: "/banks/$slug/portal/cards" as const }
       : null,
     beneficiariesEnabled
-      ? { icon: Users, title: "Beneficiaries", subtitle: "Saved recipients", to: "/banks/$slug/portal/beneficiaries" as const, tone: "neutral" as const }
+      ? { icon: Users, title: "Beneficiaries", subtitle: "Saved recipients", to: "/banks/$slug/portal/beneficiaries" as const }
       : null,
   ].filter((a): a is NonNullable<typeof a> => a !== null);
 
@@ -272,8 +270,12 @@ function DashboardPage() {
     }
   };
 
+  const dividerColor = { borderColor: "color-mix(in oklab, var(--tenant-primary) 22%, transparent)" };
+  const softText = "text-slate-500";
+  const labelText = "text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400";
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {!session.customer.email_verified && (
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <ShieldCheck className="h-4 w-4" />
@@ -304,113 +306,93 @@ function DashboardPage() {
         </div>
       )}
 
-      {/* Hero */}
-      <section
-        className="relative overflow-hidden rounded-[28px] p-6 text-white shadow-[0_30px_80px_-40px_rgba(6,25,56,0.65)] md:p-10"
-        style={{
-          background:
-            "radial-gradient(120% 120% at 0% 0%, color-mix(in oklab, var(--tenant-accent) 25%, transparent) 0%, transparent 55%), linear-gradient(135deg, var(--tenant-deep) 0%, var(--tenant-dark) 55%, var(--tenant-primary) 100%)",
-        }}
-      >
-        <div aria-hidden className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full opacity-30 blur-3xl" style={{ background: "var(--tenant-accent)" }} />
-        <div aria-hidden className="pointer-events-none absolute -bottom-40 -left-24 h-96 w-96 rounded-full opacity-20 blur-3xl" style={{ background: "var(--tenant-primary)" }} />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
-        />
-
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
+      {/* Account Summary */}
+      <section className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
             {manifest.brand.dashboard_logo_url ? (
-              <img src={manifest.brand.dashboard_logo_url} alt="" className="h-12 w-12 rounded-xl bg-white/10 object-contain p-2 ring-1 ring-white/15" />
+              <img src={manifest.brand.dashboard_logo_url} alt="" className="h-12 w-12 shrink-0 rounded-xl bg-slate-100 object-contain p-2" />
             ) : (
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
-                <Wallet className="h-5 w-5" />
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100">
+                <Wallet className="h-5 w-5 text-slate-600" />
               </span>
             )}
             <div className="min-w-0">
-              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-white/60">
-                Welcome back
-              </p>
+              <p className={labelText}>Welcome back</p>
               <h1
-                className="mt-0.5 text-xl font-semibold md:text-2xl"
+                className="mt-0.5 text-xl font-semibold text-slate-900 md:text-2xl"
                 style={{ fontFamily: theme.typography.heading }}
               >
-                Hello, {session.customer.first_name} {session.customer.last_name}
+                {session.customer.first_name} {session.customer.last_name}
               </h1>
-              <div className="mt-1 text-xs text-white/60">
-                Customer № <span className="font-mono text-white/85">{session.customer.customer_number}</span>
-              </div>
+              <p className={`mt-1 text-xs ${softText}`}>
+                Customer № <span className="font-mono text-slate-700">{session.customer.customer_number}</span>
+              </p>
             </div>
           </div>
-
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/90 ring-1 ring-inset ring-white/15">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-700">
               {primaryAccount?.account_type ?? "Account"}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-300 ring-1 ring-inset ring-emerald-400/30">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               {primaryAccount?.status ?? "Active"}
             </span>
           </div>
         </div>
 
-        <div className="relative mt-10 grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-end">
-          <div>
-            <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-white/60">
-              Available Balance · {currency}
-            </div>
-            <div className="mt-2 flex items-end gap-3">
-              <div className="text-4xl font-bold tracking-tight md:text-6xl" style={{ fontFamily: theme.typography.heading }}>
-                {balanceVisible ? fmt(balance, currency) : "••••••"}
-              </div>
-              <button
-                type="button"
-                onClick={() => setBalanceVisible((v) => !v)}
-                aria-label={balanceVisible ? "Hide balance" : "Show balance"}
-                className="mb-2 rounded-lg p-1.5 text-white/70 transition hover:bg-white/10 hover:text-white"
-              >
-                {balanceVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-              </button>
-            </div>
-            <div className="mt-3 text-xs text-white/60">
-              Current balance:{" "}
-              <span className="font-medium text-white/85">
-                {balanceVisible && primaryAccount ? fmt(primaryAccount.current_balance, currency) : "••••"}
-              </span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-white/[0.06] p-4 ring-1 ring-inset ring-white/10 backdrop-blur">
-            <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-white/60">
-              Account Number
-            </div>
-            <div className="mt-1.5 flex items-center justify-between gap-3">
-              <span
-                className="truncate text-lg font-medium tracking-[0.18em] text-white/95 md:text-xl"
+        <div className="space-y-0">
+          {/* Account Number */}
+          <div className="flex items-center justify-between gap-4 py-5 border-b" style={dividerColor}>
+            <div className="min-w-0">
+              <p className={labelText}>Account Number</p>
+              <p
+                className="mt-1 truncate text-lg font-medium tracking-[0.12em] text-slate-900 md:text-xl"
                 style={{ fontFamily: theme.typography.heading }}
               >
                 {acctMasked}
-              </span>
-              <button
-                type="button"
-                onClick={() => copyText(acctNumber, "Account number")}
-                className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white/85 ring-1 ring-inset ring-white/15 transition hover:bg-white/20"
-              >
-                <Copy className="h-3.5 w-3.5" /> Copy
-              </button>
+              </p>
+              {primaryAccount?.iban && (
+                <p className="mt-1 truncate font-mono text-xs text-slate-400">{primaryAccount.iban}</p>
+              )}
             </div>
-            {primaryAccount?.iban && (
-              <div className="mt-3 text-[11px] uppercase tracking-widest text-white/50">
-                IBAN
-                <div className="mt-0.5 truncate font-mono text-xs text-white/80">{primaryAccount.iban}</div>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => copyText(acctNumber, "Account number")}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+            >
+              <Copy className="h-3.5 w-3.5" /> Copy
+            </button>
+          </div>
+
+          {/* Available Balance */}
+          <div className="flex items-center justify-between gap-4 py-5 border-b" style={dividerColor}>
+            <div className="min-w-0">
+              <p className={labelText}>Available Balance · {currency}</p>
+              <p
+                className="mt-1 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl"
+                style={{ fontFamily: theme.typography.heading }}
+              >
+                {balanceVisible ? fmt(balance, currency) : "••••••"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setBalanceVisible((v) => !v)}
+              aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+            >
+              {balanceVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              {balanceVisible ? "Hide" : "Show"}
+            </button>
+          </div>
+
+          {/* Current Balance */}
+          <div className="py-5">
+            <p className={labelText}>Current Balance</p>
+            <p className="mt-1 text-xl font-semibold text-slate-700 md:text-2xl">
+              {balanceVisible && primaryAccount ? fmt(primaryAccount.current_balance, currency) : "••••"}
+            </p>
           </div>
         </div>
       </section>
@@ -418,48 +400,61 @@ function DashboardPage() {
       {/* Quick Actions */}
       <section>
         <SectionHeading title="Quick actions" subtitle="Move money and manage your banking essentials" />
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {quickActions.map((a) => (
-            <Link
-              key={a.title}
-              to={a.to}
-              params={{ slug }}
-              className="group relative flex flex-col items-start gap-3 overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_40px_-20px_rgba(15,23,42,0.35)]"
-            >
-              <span
-                className="flex h-11 w-11 items-center justify-center rounded-xl text-white transition group-hover:scale-105"
-                style={{
-                  background:
-                    a.tone === "primary"
-                      ? "linear-gradient(135deg, var(--tenant-primary), var(--tenant-dark))"
-                      : "linear-gradient(135deg, #0f172a, #334155)",
-                }}
+        <div className="mt-5">
+          {Array.from({ length: Math.ceil(quickActions.length / 3) }).map((_, rowIdx) => {
+            const row = quickActions.slice(rowIdx * 3, rowIdx * 3 + 3);
+            const isLastRow = rowIdx === Math.ceil(quickActions.length / 3) - 1;
+            return (
+              <div
+                key={rowIdx}
+                className={`grid gap-0 sm:grid-cols-2 lg:grid-cols-3 ${isLastRow ? "" : "border-b"}`}
+                style={isLastRow ? undefined : dividerColor}
               >
-                <a.icon className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold text-slate-900">{a.title}</div>
-                <div className="text-[11px] text-slate-500">{a.subtitle}</div>
+                {row.map((a) => (
+                  <Link
+                    key={a.title}
+                    to={a.to}
+                    params={{ slug }}
+                    className="group flex items-center gap-4 py-5 transition hover:bg-slate-50/50 sm:px-4"
+                  >
+                    <span
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
+                      style={{ background: "var(--tenant-primary)" }}
+                    >
+                      <a.icon className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1 text-sm font-semibold text-slate-900">
+                        {a.title}
+                        <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 transition group-hover:text-slate-500" />
+                      </div>
+                      <div className="text-[11px] text-slate-500">{a.subtitle}</div>
+                    </div>
+                  </Link>
+                ))}
+                {row.length < 3 &&
+                  Array.from({ length: 3 - row.length }).map((_, i) => (
+                    <div key={`empty-${i}`} className="hidden py-5 lg:block" />
+                  ))}
               </div>
-              <ArrowUpRight className="absolute right-3 top-3 h-4 w-4 text-slate-300 transition group-hover:text-slate-500" />
-            </Link>
-          ))}
+            );
+          })}
         </div>
       </section>
 
-      {/* Financial Overview: charts */}
-      <section className="grid gap-5 lg:grid-cols-5">
-        <div className="lg:col-span-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      {/* Financial Overview */}
+      <section className="grid gap-8 lg:grid-cols-5">
+        <div className="lg:col-span-3 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-slate-900">Balance trend</div>
-              <div className="text-xs text-slate-500">Last 24 days · simulated</div>
+              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Balance trend</h2>
+              <p className="text-xs text-slate-500">Last 24 days · simulated</p>
             </div>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
               <TrendingUp className="h-3 w-3" /> Trending
             </span>
           </div>
-          <div className="mt-4 h-56">
+          <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={trend} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
                 <defs>
@@ -481,11 +476,11 @@ function DashboardPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-slate-900">Inflow vs outflow</div>
-              <div className="text-xs text-slate-500">Last 6 months</div>
+              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Inflow vs outflow</h2>
+              <p className="text-xs text-slate-500">Last 6 months</p>
             </div>
             <div className="text-right">
               <div className="text-[10px] uppercase tracking-wider text-slate-500">Net</div>
@@ -495,7 +490,7 @@ function DashboardPage() {
               </div>
             </div>
           </div>
-          <div className="mt-4 h-56">
+          <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={flow} margin={{ top: 5, right: 8, left: 0, bottom: 0 }} barCategoryGap="30%">
                 <CartesianGrid stroke="#eef2f7" vertical={false} />
@@ -513,20 +508,22 @@ function DashboardPage() {
         </div>
       </section>
 
+      <div className="border-t" style={dividerColor} />
+
       {/* Recent transactions + FX + notifications */}
-      <section className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-          <div className="mb-3 flex items-center justify-between">
+      <section className="grid gap-10 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-slate-900">Recent transactions</div>
-              <div className="text-xs text-slate-500">Latest activity across your accounts</div>
+              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Recent transactions</h2>
+              <p className="text-xs text-slate-500">Latest activity across your accounts</p>
             </div>
             <Link to="/banks/$slug/portal/transactions" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
               <ListOrdered className="h-3.5 w-3.5" /> View all
             </Link>
           </div>
           {transactions.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">No transactions yet.</div>
+            <p className="py-6 text-center text-sm text-slate-500">No transactions yet.</p>
           ) : (
             <ul className="divide-y divide-slate-100">
               {transactions.slice(0, 6).map((t) => {
@@ -563,17 +560,17 @@ function DashboardPage() {
           )}
         </div>
 
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">Exchange rates</div>
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Exchange rates</h2>
               <span className="text-[10px] uppercase tracking-wider text-slate-500">Indicative</span>
             </div>
-            <ul className="space-y-2.5">
+            <ul className="space-y-3">
               {FX_RATES.map((r) => {
                 const up = r.change >= 0;
                 return (
-                  <li key={r.pair} className="flex items-center justify-between text-sm">
+                  <li key={r.pair} className="flex items-center justify-between text-sm py-1 border-b" style={dividerColor}>
                     <span className="font-medium text-slate-700">{r.pair}</span>
                     <span className="flex items-center gap-2">
                       <span className="font-mono text-slate-900">{r.rate.toFixed(3)}</span>
@@ -587,15 +584,15 @@ function DashboardPage() {
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">Notifications</div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Notifications</h2>
               <Link to="/banks/$slug/portal/notifications" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
                 <Bell className="h-3.5 w-3.5" /> View all
               </Link>
             </div>
             {notifications.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500">You have no notifications.</div>
+              <p className="py-4 text-center text-xs text-slate-500">You have no notifications.</p>
             ) : (
               <ul className="divide-y divide-slate-100">
                 {notifications.slice(0, 3).map((n) => (
@@ -613,6 +610,8 @@ function DashboardPage() {
         </div>
       </section>
 
+      <div className="border-t" style={dividerColor} />
+
       {/* Accounts */}
       <section>
         <SectionHeading
@@ -624,29 +623,55 @@ function DashboardPage() {
             </Link>
           }
         />
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {session.accounts.map((a) => (
-            <AccountCard
+        <div className="mt-5 space-y-0">
+          {session.accounts.map((a, idx) => (
+            <div
               key={a.id}
-              account={a}
-              visible={balanceVisible}
-              onCopy={() => copyText(a.account_number, "Account number")}
-            />
+              className={`flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between ${
+                idx < session.accounts.length - 1 ? "border-b" : ""
+              }`}
+              style={idx < session.accounts.length - 1 ? dividerColor : undefined}
+            >
+              <div className="min-w-0">
+                <p className={labelText}>{a.account_type}</p>
+                <p className="mt-0.5 text-sm font-medium text-slate-900">{a.account_name}</p>
+                <p className="mt-1 font-mono text-xs tracking-[0.12em] text-slate-500">
+                  {formatAccountNumber(a.account_number)}
+                </p>
+              </div>
+              <div className="flex items-center gap-6 sm:gap-10">
+                <div className="text-right">
+                  <p className={labelText}>Available</p>
+                  <p className="mt-0.5 text-lg font-semibold text-slate-900" style={{ fontFamily: theme.typography.heading }}>
+                    {balanceVisible ? fmt(a.available_balance, a.currency) : "••••"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyText(a.account_number, "Account number")}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       </section>
 
+      <div className="border-t" style={dividerColor} />
+
       {/* FAQ */}
       <section>
         <SectionHeading title="Frequently asked questions" subtitle="Answers to common banking questions" />
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <div className="mt-5">
           <Accordion type="single" collapsible className="w-full">
             {FAQS.map((f, i) => (
-              <AccordionItem key={i} value={`faq-${i}`} className="px-3">
-                <AccordionTrigger className="text-left text-sm font-semibold text-slate-800 hover:no-underline">
+              <AccordionItem key={i} value={`faq-${i}`} className="border-b" style={dividerColor}>
+                <AccordionTrigger className="text-left text-sm font-semibold text-slate-800 hover:no-underline py-4">
                   {f.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-sm leading-relaxed text-slate-600">
+                <AccordionContent className="pb-4 text-sm leading-relaxed text-slate-600">
                   {f.a}
                 </AccordionContent>
               </AccordionItem>
@@ -668,65 +693,12 @@ function SectionHeading({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-end justify-between gap-4">
+    <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h2 className="text-base font-semibold text-slate-900 md:text-lg">{title}</h2>
-        {subtitle && <p className="text-xs text-slate-500 md:text-sm">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
       </div>
       {right}
-    </div>
-  );
-}
-
-function AccountCard({
-  account,
-  visible,
-  onCopy,
-}: {
-  account: CustomerAccount;
-  visible: boolean;
-  onCopy: () => void;
-}) {
-  return (
-    <div
-      className="group relative overflow-hidden rounded-2xl p-5 text-white shadow-[0_18px_40px_-25px_rgba(6,25,56,0.55)] transition hover:-translate-y-0.5"
-      style={{
-        background:
-          "linear-gradient(135deg, var(--tenant-deep) 0%, var(--tenant-dark) 60%, var(--tenant-primary) 100%)",
-      }}
-    >
-      <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full opacity-30 blur-2xl" style={{ background: "var(--tenant-accent)" }} />
-      <div className="relative flex items-center justify-between">
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/60">
-            {account.account_type}
-          </div>
-          <div className="mt-0.5 text-sm font-medium text-white/90">{account.account_name}</div>
-        </div>
-        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/80 ring-1 ring-inset ring-white/15">
-          {account.currency}
-        </span>
-      </div>
-
-      <div className="relative mt-6">
-        <div className="text-[10px] uppercase tracking-widest text-white/60">Available</div>
-        <div className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">
-          {visible ? fmt(account.available_balance, account.currency) : "••••••"}
-        </div>
-      </div>
-
-      <div className="relative mt-5 flex items-center justify-between gap-2">
-        <span className="truncate font-mono text-xs tracking-[0.2em] text-white/80">
-          {formatAccountNumber(account.account_number)}
-        </span>
-        <button
-          type="button"
-          onClick={onCopy}
-          className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2 py-1 text-[11px] font-medium text-white/85 ring-1 ring-inset ring-white/15 transition hover:bg-white/20"
-        >
-          <Copy className="h-3 w-3" /> Copy
-        </button>
-      </div>
     </div>
   );
 }
