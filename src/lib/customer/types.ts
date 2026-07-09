@@ -13,6 +13,13 @@ export type CustomerAccount = {
   available_balance: number;
   created_at: string;
   updated_at: string;
+  iban: string | null;
+  swift_bic: string | null;
+  routing_number: string | null;
+  sort_code: string | null;
+  bsb: string | null;
+  transit_number: string | null;
+  institution_number: string | null;
 };
 
 export type CustomerProfile = {

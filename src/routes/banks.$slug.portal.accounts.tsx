@@ -4,9 +4,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
-import type { CustomerSession } from "@/lib/customer/types";
+import type { CustomerAccount, CustomerSession } from "@/lib/customer/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
 import { openAdditionalAccount } from "@/lib/customer/accounts.functions";
+import {
+  countryFieldsToDisplay,
+  COUNTRY_FIELD_LABEL,
+  type CountryAccountFields,
+} from "@/lib/customer/country-formats";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,9 +71,10 @@ function AccountsPage() {
         {session.accounts.map((a) => (
           <BrandedCard key={a.id} manifest={manifest}>
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <div className="text-base font-semibold" style={{ color: primary }}>{a.account_name}</div>
                 <div className="mt-1 text-xs opacity-70">#{a.account_number} · {a.account_type} · {a.status}</div>
+                <CountryIdentifierList account={a} country={manifest.bank.country_code ?? ""} />
               </div>
               <div className="text-right">
                 <div className="text-xs uppercase opacity-70">Available</div>
@@ -104,5 +110,32 @@ function AccountsPage() {
         </div>
       </BrandedCard>
     </div>
+  );
+}
+
+function CountryIdentifierList({
+  account,
+  country,
+}: {
+  account: CustomerAccount;
+  country: string;
+}) {
+  const fields = countryFieldsToDisplay(country).filter((k) => k !== "account_number");
+  const rows = fields
+    .map((k) => ({ key: k, value: (account as unknown as CountryAccountFields)[k] }))
+    .filter((r) => typeof r.value === "string" && r.value.length > 0) as {
+    key: keyof CountryAccountFields;
+    value: string;
+  }[];
+  if (!rows.length) return null;
+  return (
+    <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs opacity-80">
+      {rows.map((r) => (
+        <div key={r.key} className="contents">
+          <dt className="uppercase tracking-wide opacity-70">{COUNTRY_FIELD_LABEL[r.key]}</dt>
+          <dd className="font-mono">{r.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

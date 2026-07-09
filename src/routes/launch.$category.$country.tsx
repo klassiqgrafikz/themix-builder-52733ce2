@@ -1,5 +1,14 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Input } from "@/components/ui/input";
+import {
+  Select as FSelect,
+  SelectContent as FSelectContent,
+  SelectItem as FSelectItem,
+  SelectTrigger as FSelectTrigger,
+  SelectValue as FSelectValue,
+} from "@/components/ui/select";
+import { Search } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -59,6 +68,9 @@ function BlueprintsList() {
   const list = (bpQ.data as BankTemplate[]) ?? [];
 
   const [preview, setPreview] = useState<BankTemplate | null>(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [tierFilter, setTierFilter] = useState<string>("all");
 
   const useMut = useMutation({
     mutationFn: (b: BankTemplate) => useBpFn({ data: { blueprintId: b.id } }),
@@ -67,6 +79,27 @@ function BlueprintsList() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+
+  const bankingTypes = useMemo(() => {
+    const s = new Set<string>();
+    for (const b of list) if (b.category) s.add(b.category);
+    return Array.from(s).sort();
+  }, [list]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return list.filter((b) => {
+      if (q) {
+        const hay = `${b.name} ${b.description ?? ""} ${b.category ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (typeFilter !== "all" && b.category !== typeFilter) return false;
+      if (tierFilter === "premium" && !b.is_premium) return false;
+      if (tierFilter === "recommended" && !b.recommended) return false;
+      if (tierFilter === "standard" && (b.is_premium || b.recommended)) return false;
+      return true;
+    });
+  }, [list, search, typeFilter, tierFilter]);
 
   return (
     <div className="space-y-6">
@@ -86,8 +119,41 @@ function BlueprintsList() {
         </p>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search blueprints by name or description…"
+            className="pl-8"
+          />
+        </div>
+        <FSelect value={typeFilter} onValueChange={setTypeFilter}>
+          <FSelectTrigger className="w-[180px]"><FSelectValue placeholder="Banking type" /></FSelectTrigger>
+          <FSelectContent>
+            <FSelectItem value="all">All banking types</FSelectItem>
+            {bankingTypes.map((t) => (
+              <FSelectItem key={t} value={t}>{t}</FSelectItem>
+            ))}
+          </FSelectContent>
+        </FSelect>
+        <FSelect value={tierFilter} onValueChange={setTierFilter}>
+          <FSelectTrigger className="w-[160px]"><FSelectValue placeholder="Tier" /></FSelectTrigger>
+          <FSelectContent>
+            <FSelectItem value="all">All tiers</FSelectItem>
+            <FSelectItem value="recommended">Recommended</FSelectItem>
+            <FSelectItem value="premium">Premium</FSelectItem>
+            <FSelectItem value="standard">Standard</FSelectItem>
+          </FSelectContent>
+        </FSelect>
+        <div className="text-xs text-muted-foreground">
+          {filtered.length} of {list.length}
+        </div>
+      </div>
+
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {list.map((b) => (
+        {filtered.map((b) => (
           <BlueprintCard
             key={b.id}
             b={b}
@@ -97,9 +163,9 @@ function BlueprintsList() {
             busy={useMut.isPending}
           />
         ))}
-        {!list.length && (
+        {!filtered.length && (
           <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No blueprints yet for this combination.
+            {list.length ? "No blueprints match the current filters." : "No blueprints yet for this combination."}
           </div>
         )}
       </div>
