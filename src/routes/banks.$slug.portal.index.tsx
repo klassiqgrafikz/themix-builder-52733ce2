@@ -170,26 +170,25 @@ function DashboardPage() {
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { icon: Send, label: "Transfer" },
-            { icon: PlusCircle, label: "Deposit" },
-            { icon: Bell, label: "Alerts" },
-            { icon: HeadphonesIcon, label: "Support" },
+            { icon: Send, label: "Transfer", to: "/banks/$slug/portal/transfer" as const },
+            { icon: PlusCircle, label: "Beneficiaries", to: "/banks/$slug/portal/beneficiaries" as const },
+            { icon: Bell, label: "Alerts", to: "/banks/$slug/portal/notifications" as const },
+            { icon: HeadphonesIcon, label: "Support", to: "/banks/$slug/portal/support" as const },
           ].map((a) => (
-            <button
+            <Link
               key={a.label}
-              type="button"
-              disabled
-              className="flex cursor-not-allowed flex-col items-center gap-2 rounded-xl p-4 text-sm opacity-70"
+              to={a.to}
+              params={{ slug: bank.slug }}
+              className="flex flex-col items-center gap-2 rounded-xl p-4 text-sm transition hover:opacity-90"
               style={{
-                border: `1px dashed ${primary}44`,
+                border: `1px solid ${primary}44`,
                 color: primary,
                 backgroundColor: `${primary}08`,
               }}
-              title="Coming soon"
             >
               <a.icon className="h-5 w-5" />
               {a.label}
-            </button>
+            </Link>
           ))}
         </div>
       </BrandedCard>
