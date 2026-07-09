@@ -15,8 +15,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreditCard, Snowflake, RefreshCcw, Play } from "lucide-react";
 
 export const Route = createFileRoute("/banks/$slug/portal/cards")({
-  component: CardsPage,
+  component: CardsGate,
 });
+
+function CardsGate() {
+  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+    bank: { manifest: WebsiteManifest; slug: string };
+    session: CustomerSession;
+  };
+  if (!isNavEnabled(parent.bank.manifest, "cards")) {
+    return <ProductUnavailable manifest={parent.bank.manifest} title="Cards unavailable" />;
+  }
+  return <CardsPage />;
+}
 
 function CardsPage() {
   const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
@@ -24,9 +35,6 @@ function CardsPage() {
     session: CustomerSession;
   };
   const { bank, session } = parent;
-  if (!isNavEnabled(bank.manifest, "cards")) {
-    return <ProductUnavailable manifest={bank.manifest} title="Cards unavailable" />;
-  }
   const primary = bank.manifest.theme.colors.primary;
   const secondary = bank.manifest.theme.colors.secondary ?? primary;
   const qc = useQueryClient();
