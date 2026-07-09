@@ -104,7 +104,8 @@ const updateSchema = z.object({
   chat_config: chatConfigSchema.optional(),
 });
 
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+
 
 export const updatePlatformSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
