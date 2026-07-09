@@ -102,7 +102,9 @@ export type WebsiteManifest = {
     currency: string | null;
     language: string | null;
     timezone: string | null;
+    template_variant: "modern" | "corporate" | "premium";
   };
+
   theme: ThemeSpec;
   brand: BrandAssets;
   modules: ResolvedModule[];
@@ -168,7 +170,9 @@ export type BankConfigurationInput = {
     button_style?: "rounded" | "square" | "pill";
     border_radius?: number;
     dark_mode?: boolean;
+    template_variant?: "modern" | "corporate" | "premium";
   };
+
   features: Record<string, boolean>;
   created_at: string;
   updated_at: string;

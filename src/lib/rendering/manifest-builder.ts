@@ -9,6 +9,8 @@ import type {
   ThemeSpec,
   WebsiteManifest,
 } from "./types";
+import { variantFromConfig } from "./template-variant";
+
 
 export function buildManifest(args: {
   bankId: string;
@@ -24,6 +26,7 @@ export function buildManifest(args: {
 }): WebsiteManifest {
   const { bankId, slug, cfg, blueprint, theme, brand, modules, pages, navigation, products } = args;
   const name = cfg.identity.bank_name ?? "Untitled bank";
+  const template_variant = variantFromConfig(cfg, blueprint);
 
   return {
     version: 1,
@@ -37,7 +40,9 @@ export function buildManifest(args: {
       currency: cfg.identity.currency ?? null,
       language: cfg.identity.language ?? null,
       timezone: cfg.identity.timezone ?? null,
+      template_variant,
     },
+
     theme,
     brand,
     modules,

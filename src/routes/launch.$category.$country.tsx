@@ -16,7 +16,11 @@ import {
   listCountries,
   listBlueprints,
   useBlueprint,
+  createDraft,
+  updateDraft,
 } from "@/lib/bank-builder.functions";
+import { TEMPLATE_VARIANTS, type TemplateVariant } from "@/lib/rendering/template-variant";
+
 import type {
   BankCountry,
   BlueprintCategory,
@@ -119,6 +123,10 @@ function BlueprintsList() {
         </p>
       </div>
 
+      <MasterTemplates country={countryRow} />
+
+
+
       <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3">
         <div className="relative min-w-[220px] flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -182,6 +190,99 @@ function BlueprintsList() {
     </div>
   );
 }
+
+function MasterTemplates({ country }: { country?: BankCountry }) {
+  const navigate = useNavigate();
+  const createFn = useServerFn(createDraft);
+  const updateFn = useServerFn(updateDraft);
+  const [busy, setBusy] = useState<TemplateVariant | null>(null);
+
+  async function launch(variant: TemplateVariant) {
+    if (!country) {
+      toast.error("Select a country first");
+      return;
+    }
+    setBusy(variant);
+    try {
+      const d = await createFn({ data: { mode: "custom" } });
+      await updateFn({
+        data: {
+          id: d.id,
+          patch: {
+            country_code: country.code,
+            identity: {
+              country_code: country.code,
+              currency: country.currency,
+              language: country.default_language,
+              timezone: country.timezone,
+            },
+            branding: { template_variant: variant },
+            current_step: 2,
+          },
+        },
+      });
+      navigate({ to: "/bank-builder", search: { draftId: d.id } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to launch template");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const variantStyle: Record<TemplateVariant, { bg: string; fg: string; accent: string; sub: string }> = {
+    modern: { bg: "linear-gradient(135deg,#0ea5e9,#6366f1)", fg: "#fff", accent: "#38bdf8", sub: "Rounded · Fintech" },
+    corporate: { bg: "linear-gradient(135deg,#0f172a,#1e40af)", fg: "#fff", accent: "#60a5fa", sub: "Formal · Enterprise" },
+    premium: { bg: "linear-gradient(135deg,#0a0a0f,#3b2f10)", fg: "#f5f2ea", accent: "#c9a84c", sub: "Executive · Luxury" },
+  };
+
+  return (
+    <section className="rounded-xl border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Master templates</h2>
+          <p className="text-xs text-muted-foreground">
+            Three fully-editable master layouts. Each works with every country and category —
+            branding, colours, and content stay yours.
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {TEMPLATE_VARIANTS.map((v) => {
+          const s = variantStyle[v.id];
+          return (
+            <div key={v.id} className="overflow-hidden rounded-xl border">
+              <div
+                className="relative h-32 p-4"
+                style={{ background: s.bg, color: s.fg, fontFamily: v.id === "premium" ? "'Cormorant Garamond',serif" : undefined }}
+              >
+                <div className="text-[10px] uppercase tracking-widest opacity-80">
+                  Template
+                </div>
+                <div className="mt-1 text-xl font-semibold">{v.name}</div>
+                <div className="mt-2 h-1 w-14 rounded-full" style={{ backgroundColor: s.accent }} />
+                <div className="absolute bottom-3 right-3 text-[10px] uppercase tracking-widest opacity-70">
+                  {s.sub}
+                </div>
+              </div>
+              <div className="space-y-3 p-4">
+                <p className="line-clamp-3 text-sm text-muted-foreground">{v.description}</p>
+                <Button
+                  size="sm"
+                  className="w-full"
+                  disabled={busy !== null}
+                  onClick={() => launch(v.id)}
+                >
+                  {busy === v.id ? "Preparing…" : `Use ${v.name.split(" ")[0]} template`}
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 
 function BlueprintCard({
   b, country, onPreview, onUse, busy,
