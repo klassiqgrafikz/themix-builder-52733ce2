@@ -87,6 +87,13 @@ const shapeAccount = (row: any): CustomerAccount => ({
   available_balance: Number(row.available_balance),
   created_at: row.created_at,
   updated_at: row.updated_at,
+  iban: row.iban ?? null,
+  swift_bic: row.swift_bic ?? null,
+  routing_number: row.routing_number ?? null,
+  sort_code: row.sort_code ?? null,
+  bsb: row.bsb ?? null,
+  transit_number: row.transit_number ?? null,
+  institution_number: row.institution_number ?? null,
 });
 
 // ---- register ----
