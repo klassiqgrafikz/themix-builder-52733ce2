@@ -102,13 +102,14 @@ const updateSchema = z.object({
   chat_config: chatConfigSchema.optional(),
 });
 
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
 export const updatePlatformSettings = createServerFn({ method: "POST" })
-  .middleware([
-    (await import("@/integrations/supabase/auth-middleware")).requireSupabaseAuth,
-  ])
+  .middleware([requireSupabaseAuth])
   .inputValidator((d: z.input<typeof updateSchema>) => updateSchema.parse(d))
   .handler(async ({ data, context }): Promise<PlatformSettings> => {
     const supabaseAdmin = context.supabase;
+
 
     // read current settings JSON for merge
     const { data: current } = await supabaseAdmin
