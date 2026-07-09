@@ -9,6 +9,8 @@ import type {
   ThemeSpec,
   WebsiteManifest,
 } from "./types";
+import { variantFromConfig } from "./template-variant";
+
 
 export function buildManifest(args: {
   bankId: string;
