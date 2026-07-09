@@ -54,6 +54,7 @@ import { Route as BanksSlugPortalCardsRouteImport } from './routes/banks.$slug.p
 import { Route as BanksSlugPortalBeneficiariesRouteImport } from './routes/banks.$slug.portal.beneficiaries'
 import { Route as BanksSlugPortalAccountsRouteImport } from './routes/banks.$slug.portal.accounts'
 import { Route as BanksSlugPortalTransactionsIdRouteImport } from './routes/banks.$slug.portal.transactions.$id'
+import { Route as ApiPublicBrandingDraftIdKindRouteImport } from './routes/api/public/branding.$draftId.$kind'
 
 const ProductsRoute = ProductsRouteImport.update({
   id: '/products',
@@ -285,6 +286,12 @@ const BanksSlugPortalTransactionsIdRoute =
     path: '/$id',
     getParentRoute: () => BanksSlugPortalTransactionsRoute,
   } as any)
+const ApiPublicBrandingDraftIdKindRoute =
+  ApiPublicBrandingDraftIdKindRouteImport.update({
+    id: '/api/public/branding/$draftId/$kind',
+    path: '/api/public/branding/$draftId/$kind',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -331,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/banks/$slug/portal/transactions': typeof BanksSlugPortalTransactionsRouteWithChildren
   '/banks/$slug/portal/transfer': typeof BanksSlugPortalTransferRoute
   '/banks/$slug/portal/': typeof BanksSlugPortalIndexRoute
+  '/api/public/branding/$draftId/$kind': typeof ApiPublicBrandingDraftIdKindRoute
   '/banks/$slug/portal/transactions/$id': typeof BanksSlugPortalTransactionsIdRoute
 }
 export interface FileRoutesByTo {
@@ -371,6 +379,7 @@ export interface FileRoutesByTo {
   '/banks/$slug/portal/transactions': typeof BanksSlugPortalTransactionsRouteWithChildren
   '/banks/$slug/portal/transfer': typeof BanksSlugPortalTransferRoute
   '/banks/$slug/portal': typeof BanksSlugPortalIndexRoute
+  '/api/public/branding/$draftId/$kind': typeof ApiPublicBrandingDraftIdKindRoute
   '/banks/$slug/portal/transactions/$id': typeof BanksSlugPortalTransactionsIdRoute
 }
 export interface FileRoutesById {
@@ -419,6 +428,7 @@ export interface FileRoutesById {
   '/banks/$slug/portal/transactions': typeof BanksSlugPortalTransactionsRouteWithChildren
   '/banks/$slug/portal/transfer': typeof BanksSlugPortalTransferRoute
   '/banks/$slug/portal/': typeof BanksSlugPortalIndexRoute
+  '/api/public/branding/$draftId/$kind': typeof ApiPublicBrandingDraftIdKindRoute
   '/banks/$slug/portal/transactions/$id': typeof BanksSlugPortalTransactionsIdRoute
 }
 export interface FileRouteTypes {
@@ -468,6 +478,7 @@ export interface FileRouteTypes {
     | '/banks/$slug/portal/transactions'
     | '/banks/$slug/portal/transfer'
     | '/banks/$slug/portal/'
+    | '/api/public/branding/$draftId/$kind'
     | '/banks/$slug/portal/transactions/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -508,6 +519,7 @@ export interface FileRouteTypes {
     | '/banks/$slug/portal/transactions'
     | '/banks/$slug/portal/transfer'
     | '/banks/$slug/portal'
+    | '/api/public/branding/$draftId/$kind'
     | '/banks/$slug/portal/transactions/$id'
   id:
     | '__root__'
@@ -555,6 +567,7 @@ export interface FileRouteTypes {
     | '/banks/$slug/portal/transactions'
     | '/banks/$slug/portal/transfer'
     | '/banks/$slug/portal/'
+    | '/api/public/branding/$draftId/$kind'
     | '/banks/$slug/portal/transactions/$id'
   fileRoutesById: FileRoutesById
 }
@@ -568,6 +581,7 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRoute
   BanksSlugRoute: typeof BanksSlugRouteWithChildren
   ManageBanksIdRoute: typeof ManageBanksIdRoute
+  ApiPublicBrandingDraftIdKindRoute: typeof ApiPublicBrandingDraftIdKindRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -887,6 +901,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BanksSlugPortalTransactionsIdRouteImport
       parentRoute: typeof BanksSlugPortalTransactionsRoute
     }
+    '/api/public/branding/$draftId/$kind': {
+      id: '/api/public/branding/$draftId/$kind'
+      path: '/api/public/branding/$draftId/$kind'
+      fullPath: '/api/public/branding/$draftId/$kind'
+      preLoaderRoute: typeof ApiPublicBrandingDraftIdKindRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1050,6 +1071,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRoute,
   BanksSlugRoute: BanksSlugRouteWithChildren,
   ManageBanksIdRoute: ManageBanksIdRoute,
+  ApiPublicBrandingDraftIdKindRoute: ApiPublicBrandingDraftIdKindRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
