@@ -262,21 +262,6 @@ function DashboardPage() {
 
   return (
     <div className="space-y-10">
-      {!session.customer.email_verified && (
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <ShieldCheck className="h-4 w-4" />
-          <span>Your email isn't verified yet.</span>
-          <Button
-            size="sm"
-            disabled={verifyMut.isPending}
-            onClick={() => verifyMut.mutate()}
-            style={{ backgroundColor: "var(--tenant-accent)" }}
-          >
-            {verifyMut.isPending ? "Verifying…" : "Verify email (simulate)"}
-          </Button>
-        </div>
-      )}
-
       {restrictions.length > 0 && (
         <div className="flex items-start gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           <ShieldAlert className="mt-0.5 h-4 w-4" />
