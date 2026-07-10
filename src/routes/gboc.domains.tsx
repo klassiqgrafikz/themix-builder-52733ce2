@@ -914,6 +914,115 @@ function ProviderCard({
 }
 
 // -----------------------------------------------------------------------------
+// Live lifecycle timeline — Vercel/Netlify-style animated progress showing
+// every stage from "Domain Added" through "Domain Connected". Uses the
+// deterministic stage derived by deriveStage(). No manual clicks required.
+function LifecycleTimeline({
+  stage,
+  timedOut,
+  propagationStart,
+  onRetry,
+}: {
+  stage: LifecycleStage;
+  timedOut: boolean;
+  propagationStart: number | null;
+  onRetry: () => void;
+}) {
+  const currentIndex = LIFECYCLE_ORDER.indexOf(stage);
+  const failed = stage === "failed" || timedOut || stage === "timed_out";
+
+  const elapsed = propagationStart ? Date.now() - propagationStart : 0;
+  const elapsedText =
+    elapsed < 60_000
+      ? `${Math.max(1, Math.round(elapsed / 1000))}s`
+      : elapsed < 60 * 60_000
+        ? `${Math.round(elapsed / 60_000)}m`
+        : `${Math.round(elapsed / 3_600_000)}h`;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Activity className="h-4 w-4" /> Automatic activation timeline
+          </CardTitle>
+          <CardDescription>
+            {stage === "connected"
+              ? "Your bank is live. Background health checks continue hourly."
+              : failed
+                ? timedOut
+                  ? "Verification did not complete within 48 hours."
+                  : "A step failed. We keep retrying automatically."
+                : "The platform is progressing your domain through each stage — no manual clicks required."}
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={failed ? "destructive" : stage === "connected" ? "default" : "secondary"}>
+            {LIFECYCLE_LABEL[stage]}
+          </Badge>
+          {propagationStart ? (
+            <span className="text-[11px] text-muted-foreground">for {elapsedText}</span>
+          ) : null}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <ol className="space-y-1">
+          {TIMELINE_ITEMS.map((item, i) => {
+            const stageIdx = LIFECYCLE_ORDER.indexOf(item.stage);
+            const done = !failed && stageIdx <= currentIndex && currentIndex >= 0;
+            const active = !failed && stageIdx === currentIndex + 1;
+            const failedHere = failed && i === Math.max(0, currentIndex + 1);
+            return (
+              <li
+                key={item.key}
+                className={`flex items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors ${
+                  done
+                    ? "border-emerald-500/30 bg-emerald-500/5"
+                    : active
+                      ? "border-primary/40 bg-primary/5"
+                      : failedHere
+                        ? "border-destructive/40 bg-destructive/5"
+                        : "border-border"
+                }`}
+              >
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                  {done ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 animate-in fade-in zoom-in duration-300" />
+                  ) : failedHere ? (
+                    <XCircle className="h-4 w-4 text-destructive" />
+                  ) : active ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <Timer className="h-3.5 w-3.5 text-muted-foreground/50" />
+                  )}
+                </span>
+                <span
+                  className={`flex-1 ${
+                    done ? "font-medium" : active ? "font-medium text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {done ? "✓ " : active ? "⏳ " : ""}
+                  {item.label}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+        {failed ? (
+          <Button size="sm" variant="outline" onClick={onRetry} className="mt-2">
+            <RefreshCw className="mr-1 h-3.5 w-3.5" /> Retry Verification
+          </Button>
+        ) : stage !== "connected" ? (
+          <p className="text-[11px] text-muted-foreground">
+            Retries: every 60s (first hour) · every 5m (next 6h) · every 30m thereafter · stops after 48h.
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+
 function ChecklistCard({
   row,
   diagnostics,
