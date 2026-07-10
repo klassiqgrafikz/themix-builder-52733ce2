@@ -5,6 +5,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { logActivity } from "@/lib/gboc/domain-activity";
 
 export type DomainStatus = "pending" | "connected" | "error" | "verified" | "failed";
 export type DnsStatus =
