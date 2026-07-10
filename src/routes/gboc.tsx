@@ -36,8 +36,12 @@ const NAV: NavGroup[] = [
   },
   {
     label: "Tenants",
-    items: [{ to: "/gboc/banks", label: "Banks", icon: Building2 }],
+    items: [
+      { to: "/gboc/banks", label: "Banks", icon: Building2 },
+      { to: "/gboc/domains", label: "Domain Manager", icon: Globe },
+    ],
   },
+
   {
     label: "Customer Ops",
     items: [
