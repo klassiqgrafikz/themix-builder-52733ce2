@@ -598,6 +598,36 @@ export const verifyBankDomain = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+
+    const action =
+      diagnostics.overall === "verified"
+        ? "verification_passed"
+        : diagnostics.overall === "propagating"
+          ? "verification_propagating"
+          : "verification_failed";
+    const result =
+      diagnostics.overall === "verified"
+        ? "success"
+        : diagnostics.overall === "propagating"
+          ? "info"
+          : "error";
+    const failMsgs = diagnostics.checks
+      .filter((c) => c.status === "fail")
+      .map((c) => `${c.label}: ${c.message}`)
+      .join(" ");
+    await logActivity(context.supabase, {
+      bank_id: data.bank_id,
+      domain: existingRow.domain,
+      action,
+      result,
+      message:
+        diagnostics.overall === "verified"
+          ? `Verified ${existingRow.domain}. Propagation ${diagnostics.meta.propagation_percent}%.`
+          : diagnostics.overall === "propagating"
+            ? `Still propagating (${diagnostics.meta.propagation_percent}%).`
+            : failMsgs || "Verification failed.",
+      actor_id: context.userId,
+    });
     return { domain: shape(row as DomainRow, slug), diagnostics };
   });
 
@@ -605,10 +635,24 @@ export const removeBankDomain = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { bank_id: string }) => bankIdSchema.parse(d))
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
+    const { data: existing } = await context.supabase
+      .from("bank_custom_domains")
+      .select("domain")
+      .eq("bank_id", data.bank_id)
+      .maybeSingle();
+    const domain = (existing as { domain: string | null } | null)?.domain ?? null;
     const { error } = await context.supabase
       .from("bank_custom_domains")
       .delete()
       .eq("bank_id", data.bank_id);
     if (error) throw new Error(error.message);
+    await logActivity(context.supabase, {
+      bank_id: data.bank_id,
+      domain,
+      action: "domain_removed",
+      result: "warning",
+      message: domain ? `Removed custom domain ${domain}.` : "Removed custom domain.",
+      actor_id: context.userId,
+    });
     return { ok: true };
   });
