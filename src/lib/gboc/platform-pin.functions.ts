@@ -15,7 +15,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createHash } from "node:crypto";
 
 const DEFAULT_PIN = "0499";
-const ADMIN_EMAIL = "platform-admin@themixweb.internal";
+// Namespaced under a versioned local-part so bootstrap doesn't collide with
+// any pre-existing test user under the same base name. Auto-confirm is on for
+// the project, so `signUp` immediately returns a usable account.
+const ADMIN_EMAIL = "themix-platform-admin-v1@themixweb.internal";
 
 function hash(pin: string): string {
   return createHash("sha256").update(pin, "utf8").digest("hex");
@@ -35,70 +38,44 @@ async function loadRow() {
 type AdminSession = { access_token: string; refresh_token: string };
 type VerifyResult = { ok: false } | { ok: true; session: AdminSession };
 
-/**
- * Ensure a shared platform-admin auth user exists with the configured
- * password. Idempotent: creates the user on first call, resets the password
- * on subsequent calls so it always matches the server env var.
- *
- * Uses a dedicated `@supabase/supabase-js` client for the Auth Admin API so
- * the service-role bearer is preserved end-to-end (the generated
- * `supabaseAdmin` wrapper strips the Authorization header when the key is a
- * new `sb_secret_*` value, which the Auth Admin API rejects).
- */
-async function ensurePlatformAdmin(password: string): Promise<void> {
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!SUPABASE_URL || !SERVICE_ROLE) {
-    throw new Error("Supabase service-role env not configured");
-  }
-  const { createClient } = await import("@supabase/supabase-js");
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
-  }).auth.admin;
-
-  const created = await admin.createUser({
-    email: ADMIN_EMAIL,
-    password,
-    email_confirm: true,
-    user_metadata: { role: "platform_admin" },
-  });
-  if (!created.error) return;
-
-  let page = 1;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let match: any = null;
-  for (let i = 0; i < 20 && !match; i += 1) {
-    const list = await admin.listUsers({ page, perPage: 200 });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const users = (list.data?.users ?? []) as any[];
-    match = users.find((u) => u.email === ADMIN_EMAIL) ?? null;
-    if (users.length < 200) break;
-    page += 1;
-  }
-  if (!match) {
-    throw new Error(
-      created.error?.message
-        ? `Unable to provision platform admin: ${created.error.message}`
-        : "Unable to provision platform admin",
-    );
-  }
-  const upd = await admin.updateUserById(match.id, {
-    password,
-    email_confirm: true,
-  });
-  if (upd.error) throw new Error(upd.error.message);
-}
-
-async function mintAdminSession(password: string): Promise<AdminSession> {
+function createPublishableClient() {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     throw new Error("Supabase env not configured");
   }
-  const { createClient } = await import("@supabase/supabase-js");
-  const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  // Local import so the SDK isn't pulled into client bundles.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createClient } = require("@supabase/supabase-js") as typeof import("@supabase/supabase-js");
+  return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
   });
+}
+
+/**
+ * Ensure the shared platform-admin auth user exists with the configured
+ * password. Uses the public sign-up endpoint (auto_confirm_email must be
+ * enabled on the project). Idempotent: on a subsequent call sign-up returns
+ * "User already registered" and we fall through to signInWithPassword.
+ */
+async function ensurePlatformAdmin(password: string): Promise<void> {
+  const sb = createPublishableClient();
+  const { error } = await sb.auth.signUp({
+    email: ADMIN_EMAIL,
+    password,
+    options: { data: { role: "platform_admin" } },
+  });
+  if (!error) return;
+  // Already-registered is fine; anything else is a real failure.
+  const msg = error.message.toLowerCase();
+  if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+    return;
+  }
+  throw new Error(`Unable to provision platform admin: ${error.message}`);
+}
+
+async function mintAdminSession(password: string): Promise<AdminSession> {
+  const sb = createPublishableClient();
   const { data, error } = await sb.auth.signInWithPassword({
     email: ADMIN_EMAIL,
     password,
@@ -131,8 +108,8 @@ export const verifyPlatformPin = createServerFn({ method: "POST" })
       throw new Error("PLATFORM_ADMIN_PASSWORD is not configured");
     }
 
-    // Try minting a session first; only pay the ensure/reset cost if the
-    // shared admin account is missing or its password drifted.
+    // Try minting a session first; only pay the sign-up cost on the very
+    // first unlock (or if the account was manually removed).
     try {
       const session = await mintAdminSession(password);
       return { ok: true, session };
