@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { createPublicServerClient } from "@/integrations/supabase/public-server";
 import type {
   BankProductOverride,
   BlueprintProductLink,
@@ -11,36 +12,35 @@ import type {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyClient = (c: any) => c as any;
 
-export const listProductCategories = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<ProductCategory[]> => {
-    const { data, error } = await anyClient(context.supabase)
+export const listProductCategories = createServerFn({ method: "GET" }).handler(
+  async (): Promise<ProductCategory[]> => {
+    const { data, error } = await anyClient(createPublicServerClient())
       .from("bp_product_categories")
       .select("*")
       .order("sort_order");
     if (error) throw new Error(error.message);
     return (data ?? []) as ProductCategory[];
-  });
+  },
+);
 
-export const listCatalogProducts = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<CatalogProduct[]> => {
-    const { data, error } = await anyClient(context.supabase)
+export const listCatalogProducts = createServerFn({ method: "GET" }).handler(
+  async (): Promise<CatalogProduct[]> => {
+    const { data, error } = await anyClient(createPublicServerClient())
       .from("bp_products")
       .select("*")
       .order("category_slug")
       .order("sort_order");
     if (error) throw new Error(error.message);
     return (data ?? []) as CatalogProduct[];
-  });
+  },
+);
 
 export const listBlueprintProducts = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: { blueprintId: string }) =>
     z.object({ blueprintId: z.string().uuid() }).parse(d),
   )
-  .handler(async ({ context, data }): Promise<BlueprintProductLink[]> => {
-    const { data: rows, error } = await anyClient(context.supabase)
+  .handler(async ({ data }): Promise<BlueprintProductLink[]> => {
+    const { data: rows, error } = await anyClient(createPublicServerClient())
       .from("bp_blueprint_products")
       .select("*")
       .eq("blueprint_id", data.blueprintId)
