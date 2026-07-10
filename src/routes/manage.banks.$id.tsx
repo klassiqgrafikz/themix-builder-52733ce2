@@ -449,10 +449,12 @@ function BankOverview() {
             <Button
               variant="outline"
               className="justify-start"
-              onClick={() => navigate({ to: "/manage/banks/$id/dashboard-designer", params: { id } })}
+              asChild
             >
-              <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard Layout Designer
-              <span className="ml-1">⭐</span>
+              <Link to="/manage/banks/$id/dashboard-designer" params={{ id }}>
+                <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard Layout Designer
+                <span className="ml-1">⭐</span>
+              </Link>
             </Button>
             <Button
               variant="outline"
@@ -590,11 +592,8 @@ function BankProductsPanel({
     queryKey: ["bp-bank-products", draftId],
     queryFn: () => bankFn({ data: { draftId } }),
   });
-  const draftQ = useQuery<BankDraft | undefined>({
-    queryKey: ["bb-draft", draftId],
-    enabled: false,
-  });
-  const blueprintId = draftQ.data?.template_id ?? null;
+  const cachedDraft = qc.getQueryData<BankDraft>(["bb-draft", draftId]);
+  const blueprintId = cachedDraft?.template_id ?? null;
   const bpQ = useQuery({
     queryKey: ["bp-blueprint-products", blueprintId],
     queryFn: () => (blueprintId ? bpFn({ data: { blueprintId } }) : Promise.resolve([])),
