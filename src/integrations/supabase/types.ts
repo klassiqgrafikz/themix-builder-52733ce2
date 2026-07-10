@@ -274,6 +274,53 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_custom_domains: {
+        Row: {
+          bank_id: string
+          connected_since: string | null
+          created_at: string
+          domain: string | null
+          id: string
+          is_primary: boolean
+          last_verified_at: string | null
+          ssl_status: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bank_id: string
+          connected_since?: string | null
+          created_at?: string
+          domain?: string | null
+          id?: string
+          is_primary?: boolean
+          last_verified_at?: string | null
+          ssl_status?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bank_id?: string
+          connected_since?: string | null
+          created_at?: string
+          domain?: string | null
+          id?: string
+          is_primary?: boolean
+          last_verified_at?: string | null
+          ssl_status?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_custom_domains_bank_id_fkey"
+            columns: ["bank_id"]
+            isOneToOne: true
+            referencedRelation: "bb_bank_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_customer_accounts: {
         Row: {
           account_name: string
