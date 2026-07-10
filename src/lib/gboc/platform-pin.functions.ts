@@ -57,7 +57,7 @@ async function createPublishableClient() {
  * "User already registered" and we fall through to signInWithPassword.
  */
 async function ensurePlatformAdmin(password: string): Promise<void> {
-  const sb = createPublishableClient();
+  const sb = await createPublishableClient();
   const { error } = await sb.auth.signUp({
     email: ADMIN_EMAIL,
     password,
