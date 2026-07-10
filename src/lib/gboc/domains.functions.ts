@@ -30,6 +30,8 @@ export type DomainKind = "apex" | "subdomain";
 export type DnsRecord = {
   type: "CNAME" | "TXT" | "A";
   host: string;
+  host_fqdn?: string;
+  host_note?: string;
   value: string;
   ttl: number;
   purpose: string;
@@ -148,9 +150,16 @@ function subdomainLabel(domain: string): string {
 
 function buildDnsRecords(domain: string, token: string): DnsRecord[] {
   const kind = classifyDomain(domain);
+  // Most DNS UIs (Namecheap, GoDaddy, Cloudflare, Hostinger, Porkbun,
+  // DigitalOcean, Squarespace) expect the "short" host and append the zone
+  // automatically. Route53 / Google Cloud DNS / Azure DNS accept either.
+  // We display the short form and also expose the FQDN as an alternative.
   const txt: DnsRecord = {
     type: "TXT",
-    host: `_themix.${domain}`,
+    host: "_themix",
+    host_fqdn: `_themix.${domain}`,
+    host_note:
+      `Enter "_themix" in the Host/Name field. If your DNS provider requires the fully-qualified name, use "_themix.${domain}" instead. Never enter both.`,
     value: `themix-verify=${token}`,
     ttl: 3600,
     purpose: "Proves ownership of the domain during verification.",
@@ -160,6 +169,7 @@ function buildDnsRecords(domain: string, token: string): DnsRecord[] {
       ...PLATFORM_A_RECORDS.map<DnsRecord>((ip) => ({
         type: "A",
         host: "@",
+        host_fqdn: domain,
         value: ip,
         ttl: 3600,
         purpose: "Points the apex domain to TheMixWeb's edge.",
@@ -171,6 +181,7 @@ function buildDnsRecords(domain: string, token: string): DnsRecord[] {
     {
       type: "CNAME",
       host: subdomainLabel(domain),
+      host_fqdn: domain,
       value: DNS_TARGET,
       ttl: 3600,
       purpose: "Routes the subdomain to your bank on TheMixWeb.",
@@ -178,6 +189,7 @@ function buildDnsRecords(domain: string, token: string): DnsRecord[] {
     txt,
   ];
 }
+
 
 type DomainRow = {
   id: string;
@@ -502,47 +514,101 @@ async function runDiagnostics(
     return bits.join(" · ");
   };
 
-  // --- TXT verification (multi-resolver) ------------------------------------
-  const txtHost = `_themix.${domain}`;
-  const txt = await multiLookup(txtHost, "TXT");
-  allLogs.push(...txt.logs);
-  resolverResults.push(txt.summary);
-  const txtValues = txt.union;
-  const txtMatch = (v: string): boolean => {
-    const clean = v.replace(/"/g, "").replace(/\s+/g, "");
-    return clean === expectedTxt || clean.split(/[,;]/).includes(expectedTxt);
-  };
-  const resolversSawToken = txt.summary.per_resolver.filter((r) =>
-    r.parsed.some(txtMatch),
+  // --- TXT verification (multi-hostname + multi-resolver) -------------------
+  // Providers disagree on Host format: Namecheap wants "_themix", Route53
+  // accepts either, and users occasionally publish the token under the apex
+  // or a doubled hostname ("_themix.example.com.example.com"). We look in
+  // every RFC-valid location and accept the record wherever it appears.
+  const txtCanonical = `_themix.${domain}`;
+  const txtCandidates = Array.from(
+    new Set([
+      txtCanonical,
+      // User pasted the FQDN into a provider that auto-appends the zone.
+      `_themix.${domain}.${domain}`,
+      // Some users publish the token on the apex itself.
+      domain,
+    ]),
   );
-  const txtOk = resolversSawToken.length === txt.successful && txt.successful > 0;
-  const txtPartial = resolversSawToken.length > 0 && !txtOk;
-  const anyNx = txt.logs.some((l) => l.status === "nxdomain");
+
+  const txtLookups = await Promise.all(
+    txtCandidates.map((h) => multiLookup(h, "TXT")),
+  );
+  const txt = txtLookups[0]; // canonical — used as the "primary" summary
+  for (const l of txtLookups) allLogs.push(...l.logs);
+  resolverResults.push(txt.summary);
+
+  const txtMatch = (v: string): boolean => {
+    // Normalize: strip surrounding whitespace, collapse quoted parts, and
+    // ignore optional whitespace or provider-inserted separators.
+    const clean = v.replace(/"/g, "").replace(/\s+/g, "");
+    if (clean === expectedTxt) return true;
+    // Some providers wrap multiple TXT strings with ";" or ",".
+    return clean.split(/[,;]/).some((part) => part.trim() === expectedTxt);
+  };
+
+  // Which resolvers, across which candidate hostnames, saw the token?
+  const resolverHits = new Map<string, string>(); // resolver -> hostname that matched
+  const wrongHostnameHits: string[] = [];
+  for (let i = 0; i < txtLookups.length; i++) {
+    const l = txtLookups[i];
+    const host = txtCandidates[i];
+    for (const r of l.summary.per_resolver) {
+      if (r.parsed.some(txtMatch)) {
+        if (!resolverHits.has(r.resolver)) resolverHits.set(r.resolver, host);
+        if (host !== txtCanonical) wrongHostnameHits.push(host);
+      }
+    }
+  }
+  const canonicalHits = [...resolverHits.entries()].filter(
+    ([, host]) => host === txtCanonical,
+  );
+  const anyHits = resolverHits.size;
+  const txtValuesUnion = Array.from(
+    new Set(txtLookups.flatMap((l) => l.union)),
+  );
+  const anyNx = txt.logs.every((l) => l.status === "nxdomain");
   const allNetErr = txt.successful === 0;
+
+  // Confidence scoring — if authoritative DNS (any recursive resolver
+  // successfully returned the token at the canonical hostname), accept it.
+  // We do NOT require unanimity across resolvers; propagation lag on a
+  // single resolver must not block verification.
   let txtStatus: DiagnosticStatus = "pass";
-  let txtMessage = `Verification token found at ${txtHost} on all ${txt.successful} resolvers.`;
+  let txtMessage = `Verification token confirmed at ${txtCanonical}.`;
+  const txtOk = canonicalHits.length > 0;
   if (!txtOk) {
-    if (txtPartial) {
-      txtStatus = "warn";
-      txtMessage = `Resolver disagreement: ${resolversSawToken.map((r) => r.resolver).join(", ")} see the token, others do not yet. DNS is still propagating — retrying automatically.`;
-      failureReasons.push("resolver_disagreement");
-    } else if (txtValues.length > 0) {
+    if (anyHits > 0 && wrongHostnameHits.length > 0) {
+      // Smart suggestion: token found at the wrong hostname.
+      const wrong = Array.from(new Set(wrongHostnameHits))[0];
       txtStatus = "fail";
-      txtMessage = `TXT record at ${txtHost} exists but the value does not match. Expected "${expectedTxt}", found "${txtValues.join('", "')}". Update the TXT record value and re-verify.`;
+      const hint = wrong === `_themix.${domain}.${domain}`
+        ? `Your DNS provider auto-appended the zone. Set the Host to "_themix" (without ".${domain}").`
+        : wrong === domain
+          ? `Move the TXT record to the "_themix" subrecord instead of the apex.`
+          : `Move the TXT record to "${txtCanonical}".`;
+      txtMessage = `TXT record found under "${wrong}" but the platform expects "${txtCanonical}". ${hint}`;
+      failureReasons.push("txt_wrong_hostname");
+    } else if (txtValuesUnion.length > 0) {
+      txtStatus = "fail";
+      txtMessage = `TXT record at ${txtCanonical} exists but the value does not match. Expected "${expectedTxt}", found "${txtValuesUnion.join('", "')}". Update the TXT value and re-verify.`;
       failureReasons.push("txt_value_mismatch");
     } else if (allNetErr) {
       txtStatus = "pending";
-      txtMessage = `Could not reach any DNS resolver for ${txtHost}. Retrying automatically.`;
+      txtMessage = `Could not reach any DNS resolver for ${txtCanonical}. Retrying automatically.`;
       failureReasons.push("resolvers_unreachable");
     } else if (anyNx) {
       txtStatus = "fail";
-      txtMessage = `No TXT record found at ${txtHost} (NXDOMAIN). Add the TXT record shown below and wait for propagation. Resolver detail: ${summarizeResolvers(txt)}.`;
+      txtMessage = `No TXT record found at ${txtCanonical}. Add the TXT record shown below and wait for propagation.`;
       failureReasons.push("txt_missing");
     } else {
       txtStatus = "pending";
-      txtMessage = `No TXT record found at ${txtHost} yet. DNS may still be propagating. Resolver detail: ${summarizeResolvers(txt)}.`;
+      txtMessage = `No TXT record found at ${txtCanonical} yet. DNS may still be propagating (${summarizeResolvers(txt)}).`;
       failureReasons.push("txt_propagating");
     }
+  } else if (canonicalHits.length < txt.successful) {
+    // Passed on some resolvers but not all — still a pass under confidence
+    // scoring, but surface the propagation detail for transparency.
+    txtMessage = `Verification token confirmed at ${txtCanonical} on ${canonicalHits.map(([r]) => r).join(", ")}. Other resolvers are still catching up — no action required.`;
   }
   checks.push({
     key: "txt",
@@ -550,8 +616,9 @@ async function runDiagnostics(
     status: txtStatus,
     message: txtMessage,
     expected: [expectedTxt],
-    found: txtValues,
+    found: txtValuesUnion,
   });
+
 
   // --- CNAME (subdomain) or A (apex) ----------------------------------------
   let resolvedA: string[] = [];
@@ -717,7 +784,7 @@ async function runDiagnostics(
     meta: {
       resolved_a: resolvedA,
       resolved_cname: resolvedCname,
-      txt_records: txtValues,
+      txt_records: txtValuesUnion,
       ttl,
       http_status: httpRes.status,
       https_status: httpsRes.status,
