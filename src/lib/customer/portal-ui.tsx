@@ -41,7 +41,6 @@ const NAV: NavEntry[] = [
   { key: "transactions", label: "Transactions", path: "/transactions", icon: ListOrdered },
   { key: "cards", label: "Cards", path: "/cards", icon: CreditCard },
   { key: "statements", label: "Statements", path: "/statements", icon: FileText },
-  { key: "notifications", label: "Notifications", path: "/notifications", icon: Bell },
   { key: "support", label: "Support", path: "/support", icon: LifeBuoy },
   { key: "security", label: "Security", path: "/security", icon: ShieldCheck },
   { key: "profile", label: "Profile", path: "/profile", icon: User },
