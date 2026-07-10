@@ -68,7 +68,7 @@ async function createPublishableClient() {
 async function ensurePlatformAdmin(password: string): Promise<void> {
   const sb = await createPublishableClient();
   const { error } = await sb.auth.signUp({
-    email: ADMIN_EMAIL,
+    email: getAdminEmail(),
     password,
     options: { data: { role: "platform_admin" } },
   });
@@ -84,7 +84,7 @@ async function ensurePlatformAdmin(password: string): Promise<void> {
 async function mintAdminSession(password: string): Promise<AdminSession> {
   const sb = await createPublishableClient();
   const { data, error } = await sb.auth.signInWithPassword({
-    email: ADMIN_EMAIL,
+    email: getAdminEmail(),
     password,
   });
   if (error || !data.session) {
