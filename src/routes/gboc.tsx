@@ -19,10 +19,12 @@ import {
   FileCheck2,
   FileBarChart2,
   Settings2,
+  Globe,
   Menu,
   Search,
   type LucideIcon,
 } from "lucide-react";
+
 
 type NavItem = { to: string; label: string; icon: LucideIcon; exact?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
@@ -34,8 +36,12 @@ const NAV: NavGroup[] = [
   },
   {
     label: "Tenants",
-    items: [{ to: "/gboc/banks", label: "Banks", icon: Building2 }],
+    items: [
+      { to: "/gboc/banks", label: "Banks", icon: Building2 },
+      { to: "/gboc/domains", label: "Domain Manager", icon: Globe },
+    ],
   },
+
   {
     label: "Customer Ops",
     items: [
