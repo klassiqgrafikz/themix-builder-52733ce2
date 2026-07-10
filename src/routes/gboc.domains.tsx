@@ -252,7 +252,12 @@ function Wizard({
   const [autoPaused, setAutoPaused] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [, forceTick] = useState(0);
+  const [timedOut, setTimedOut] = useState(false);
   const propagationStartRef = useRef<number | null>(null);
+  const lastStageRef = useRef<LifecycleStage | null>(null);
+  const inFlightRef = useRef(false); // prevents overlapping polling
+  const pollTimerRef = useRef<number | null>(null);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
     setDomain(row?.domain ?? "");
@@ -262,6 +267,11 @@ function Wizard({
     setProvider(null);
     setShowSuccess(false);
     setAutoPaused(false);
+    setTimedOut(false);
+    lastStageRef.current = null;
+    // Resume from a previously persisted start time so background polling
+    // survives a page refresh. If the domain changed, start fresh.
+    propagationStartRef.current = getPersistedStart(bankId, row?.domain ?? null);
   }, [bankId, row?.domain, row?.is_primary]);
 
   const invalidate = useCallback(() => {
@@ -304,10 +314,20 @@ function Wizard({
     mutationFn: () =>
       saveFn({ data: { bank_id: bankId, domain: domain.trim(), is_primary: isPrimary } }),
     onSuccess: async (saved) => {
-      toast.success("Domain saved. Publish the DNS records below, then Verify.");
+      toast.success("Domain saved. Auto-verification starting…");
+      // Reset lifecycle clock for the new/updated domain.
+      const startedAt = Date.now();
+      propagationStartRef.current = startedAt;
+      if (saved?.domain) persistStart(bankId, saved.domain, startedAt);
+      setTimedOut(false);
+      cancelledRef.current = false;
+      lastStageRef.current = null;
       invalidate();
       invalidateActivity();
       if (saved?.domain) runProviderDetection(saved.domain);
+      // Kick off the first verification immediately in the background —
+      // no user click required.
+      window.setTimeout(() => verifyMut.mutate(), 500);
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to save"),
   });
@@ -321,20 +341,17 @@ function Wizard({
     onSuccess: (res) => {
       setDiagnostics(res.diagnostics);
       setLastCheckedAt(Date.now());
-      if (res.diagnostics.overall === "verified") {
-        toast.success("Domain verified. Custom domain is live.");
-        setShowSuccess(true);
-      } else if (res.diagnostics.overall === "propagating") {
-        toast.info("DNS is still propagating. We'll auto-recheck every 60s.");
-        if (!propagationStartRef.current) propagationStartRef.current = Date.now();
-      } else {
-        toast.error("Verification failed. See the checklist below.");
+      if (res.diagnostics.overall === "propagating" && !propagationStartRef.current) {
+        propagationStartRef.current = Date.now();
+        if (res.domain.domain) persistStart(bankId, res.domain.domain, propagationStartRef.current);
       }
+      if (res.diagnostics.overall === "verified") setShowSuccess(true);
       invalidate();
       invalidateActivity();
     },
     onError: (e: unknown) => {
-      toast.error(e instanceof Error ? e.message : "Verification failed");
+      // Do not spam toast on background polls; only log activity refresh.
+      console.error("[domain-verify]", e);
       invalidate();
       invalidateActivity();
     },
@@ -359,10 +376,19 @@ function Wizard({
     mutationFn: () => removeFn({ data: { bank_id: bankId } }),
     onSuccess: () => {
       toast.success("Custom domain removed. The fallback URL still works.");
+      cancelledRef.current = true;
+      if (pollTimerRef.current != null) {
+        window.clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+      clearPersistedStart(bankId);
+      propagationStartRef.current = null;
+      lastStageRef.current = null;
       setDomain("");
       setDiagnostics(null);
       setProvider(null);
       setShowSuccess(false);
+      setTimedOut(false);
       invalidate();
       invalidateActivity();
     },
@@ -370,16 +396,93 @@ function Wizard({
   });
 
   const domainSaved = Boolean(row?.domain);
-  const propagating =
-    !autoPaused &&
-    (diagnostics?.overall === "propagating" || row?.dns_status === "propagating");
+  const stage: LifecycleStage = deriveStage(row, diagnostics, timedOut);
 
-  // Auto-recheck every 60s while propagating.
+  // Milestone toasts: fire once per transition into a new stage.
   useEffect(() => {
-    if (!domainSaved || !propagating) return;
-    const id = window.setInterval(() => diagnoseMut.mutate(), 60_000);
+    if (!domainSaved) return;
+    const prev = lastStageRef.current;
+    if (prev === stage) return;
+    lastStageRef.current = stage;
+    if (!prev) return; // don't announce initial derivation
+    const messages: Partial<Record<LifecycleStage, string>> = {
+      dns_detected: "DNS records detected — verifying token…",
+      txt_verified: "TXT record verified — checking routing…",
+      routing_ready: "Routing enabled — provisioning SSL…",
+      ssl_requested: "SSL certificate requested.",
+      ssl_provisioning: "SSL is provisioning…",
+      ssl_active: "HTTPS is active.",
+      connected: "🎉 Domain connected. Your bank is now live.",
+      failed: "Verification failed. See the checklist below.",
+      timed_out: "Verification timed out after 48h. Click Retry to resume.",
+    };
+    const msg = messages[stage];
+    if (!msg) return;
+    if (stage === "failed" || stage === "timed_out") toast.error(msg);
+    else if (stage === "connected") toast.success(msg);
+    else toast.info(msg);
+  }, [stage, domainSaved]);
+
+  // Automatic background verification with smart-retry cadence.
+  // - Never blocks UI (uses setTimeout, not sync work)
+  // - Prevents overlapping polls via inFlightRef
+  // - Resumes after page refresh via persisted start time
+  // - Stops on Connected / Failed / Timed Out / Paused / Removed
+  useEffect(() => {
+    if (!domainSaved || autoPaused || cancelledRef.current) return;
+    if (stageIsTerminal(stage)) return;
+
+    // Ensure we have a start reference so cadence can compute elapsed time.
+    if (propagationStartRef.current == null && row?.domain) {
+      const startedAt = Date.now();
+      propagationStartRef.current = startedAt;
+      persistStart(bankId, row.domain, startedAt);
+    }
+    const startedAt = propagationStartRef.current ?? Date.now();
+    const delay = nextRetryDelayMs(startedAt);
+    if (delay == null) {
+      setTimedOut(true);
+      return;
+    }
+
+    // If we've never verified yet, run immediately in the background.
+    const immediate = !row?.last_verified_at && !inFlightRef.current;
+    const runOnce = () => {
+      if (cancelledRef.current || autoPaused || inFlightRef.current) return;
+      inFlightRef.current = true;
+      verifyMut.mutate(undefined, {
+        onSettled: () => {
+          inFlightRef.current = false;
+        },
+      });
+    };
+
+    if (immediate) {
+      pollTimerRef.current = window.setTimeout(runOnce, 800);
+    } else {
+      pollTimerRef.current = window.setTimeout(runOnce, delay);
+    }
+    return () => {
+      if (pollTimerRef.current != null) {
+        window.clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, [
+    domainSaved, autoPaused, stage, row?.domain, row?.last_verified_at,
+    bankId, verifyMut, lastCheckedAt,
+  ]);
+
+  // Background health monitoring once Connected: lightweight passive check
+  // every hour so we can surface warnings (expired SSL, DNS gone, routing
+  // lost) without disconnecting immediately.
+  useEffect(() => {
+    if (stage !== "connected" || autoPaused) return;
+    const id = window.setInterval(() => {
+      diagnoseMut.mutate();
+    }, HEALTH_CHECK_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [domainSaved, propagating, diagnoseMut]);
+  }, [stage, autoPaused, diagnoseMut]);
 
   // Ticking clock for "Last checked: Xs ago" + propagation remaining.
   useEffect(() => {
@@ -391,6 +494,11 @@ function Wizard({
   useEffect(() => {
     if (row?.domain && !provider) runProviderDetection(row.domain);
   }, [row?.domain, provider, runProviderDetection]);
+
+  // Once connected we can safely clear the persisted lifecycle-start marker.
+  useEffect(() => {
+    if (stage === "connected") clearPersistedStart(bankId);
+  }, [stage, bankId]);
 
   const overallVerified =
     row?.status === "connected" && row?.dns_status === "verified";
