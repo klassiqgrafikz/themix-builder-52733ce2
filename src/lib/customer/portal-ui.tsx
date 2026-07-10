@@ -470,6 +470,10 @@ export function PortalShell({
           </div>
         )}
 
+        <div className="fixed right-4 top-4 z-30 hidden md:block">
+          <NotificationBell slug={slug} tone="gold" />
+        </div>
+
         <main className="min-w-0 flex-1 pt-16 md:ml-64 md:pt-0">
           <div className="mx-auto max-w-[1200px] px-6 py-8 md:px-10 md:py-10">{content}</div>
         </main>
