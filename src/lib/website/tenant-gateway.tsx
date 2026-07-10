@@ -42,21 +42,6 @@ export function TenantGateway({ manifest }: { manifest: WebsiteManifest }) {
           </div>
         )}
 
-        <h1
-          className="mt-10 text-3xl font-bold leading-tight sm:text-4xl"
-          style={{
-            fontFamily: theme.typography.heading,
-            color: theme.colors.primary,
-          }}
-        >
-          Banking that keeps up with your day.
-        </h1>
-
-        <p className="mt-5 text-base opacity-80">
-          Open a {bank.name} account in minutes. Instant transfers, real-time
-          notifications and a portal designed around your money — not paperwork.
-        </p>
-
         <div className="mt-10 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
             to="/banks/$slug/login"
@@ -78,6 +63,21 @@ export function TenantGateway({ manifest }: { manifest: WebsiteManifest }) {
             Open Account
           </Link>
         </div>
+
+        <h1
+          className="mt-10 text-3xl font-bold leading-tight sm:text-4xl"
+          style={{
+            fontFamily: theme.typography.heading,
+            color: theme.colors.primary,
+          }}
+        >
+          Banking that keeps up with your day.
+        </h1>
+
+        <p className="mt-5 max-w-sm text-base opacity-80">
+          Open a {bank.name} account in minutes. Instant transfers, real-time
+          notifications and a portal designed around your money — not paperwork.
+        </p>
       </div>
     </div>
   );
