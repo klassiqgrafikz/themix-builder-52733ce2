@@ -38,15 +38,13 @@ async function loadRow() {
 type AdminSession = { access_token: string; refresh_token: string };
 type VerifyResult = { ok: false } | { ok: true; session: AdminSession };
 
-function createPublishableClient() {
+async function createPublishableClient() {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     throw new Error("Supabase env not configured");
   }
-  // Local import so the SDK isn't pulled into client bundles.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { createClient } = require("@supabase/supabase-js") as typeof import("@supabase/supabase-js");
+  const { createClient } = await import("@supabase/supabase-js");
   return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
   });
