@@ -692,6 +692,47 @@ export type Database = {
           },
         ]
       }
+      bank_domain_activity: {
+        Row: {
+          action: string
+          actor_id: string | null
+          bank_id: string
+          created_at: string
+          domain: string | null
+          id: string
+          message: string | null
+          result: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          bank_id: string
+          created_at?: string
+          domain?: string | null
+          id?: string
+          message?: string | null
+          result?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          bank_id?: string
+          created_at?: string
+          domain?: string | null
+          id?: string
+          message?: string | null
+          result?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_domain_activity_bank_id_fkey"
+            columns: ["bank_id"]
+            isOneToOne: false
+            referencedRelation: "bb_bank_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_financial_events: {
         Row: {
           account_id: string | null
