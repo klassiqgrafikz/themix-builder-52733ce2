@@ -47,6 +47,7 @@ import {
   Trash2,
   History,
   LayoutDashboard,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
