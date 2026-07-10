@@ -132,13 +132,15 @@ function AdminSection() {
             Opening {meta.label} in the Global Banking Operations Center…
             {target && (
               <div className="mt-3">
-                <Link
-                  to={target.to}
-                  search={target.to === "/gboc/operations" ? target.search : undefined}
-                  className="text-primary underline"
-                >
-                  Continue
-                </Link>
+                {target.to === "/gboc/operations" ? (
+                  <Link to={target.to} search={target.search} className="text-primary underline">
+                    Continue
+                  </Link>
+                ) : (
+                  <Link to={target.to} className="text-primary underline">
+                    Continue
+                  </Link>
+                )}
               </div>
             )}
           </CardContent>
