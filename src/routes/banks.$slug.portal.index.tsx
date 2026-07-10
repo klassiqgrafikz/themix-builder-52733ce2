@@ -15,6 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import type { WebsiteManifest } from "@/lib/rendering/types";
+import { defaultDashboardLayout, type DashboardComponentKind, type DashboardLayout, type WidthSize } from "@/lib/dashboard-layout/types";
 import type { CustomerSession, CustomerAccount } from "@/lib/customer/types";
 import { isNavEnabled } from "@/lib/customer/product-gating";
 import {
@@ -305,8 +306,41 @@ function DashboardPage() {
   const softText = "text-slate-500";
   const labelText = "text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400";
 
+  // Layout-driven rendering (Phase 3): if the bank publishes a dashboard
+  // layout via the Designer, render sections in that order/width/visibility.
+  // Otherwise fall through to the existing default dashboard below.
+  const publishedLayout = (manifest as unknown as { dashboard_layout?: DashboardLayout })
+    .dashboard_layout;
+  if (publishedLayout && Array.isArray(publishedLayout.items) && publishedLayout.items.length) {
+    return (
+      <LayoutDrivenDashboard
+        layout={publishedLayout}
+        slug={slug}
+        currency={currency}
+        balance={balance}
+        balanceVisible={balanceVisible}
+        setBalanceVisible={setBalanceVisible}
+        session={session}
+        manifest={manifest}
+        acctNumber={acctNumber}
+        acctMasked={acctMasked}
+        transactions={transactions}
+        trend={trend}
+        fxRates={fxRates}
+        fxLoading={fxQ.isLoading}
+        fxError={fxQ.isError}
+        fxUpdatedAt={fxUpdatedAt}
+        cards={cards}
+        beneficiaries={beneficiaries}
+        restrictions={restrictions}
+        onCopy={copyText}
+      />
+    );
+  }
+
   return (
     <div className="space-y-10">
+
       {restrictions.length > 0 && (
         <div className="flex items-start gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           <ShieldAlert className="mt-0.5 h-4 w-4" />
@@ -793,3 +827,392 @@ function SectionHeading({
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  Layout-driven dashboard renderer (Phase 3)                         */
+/*  Consumes manifest.dashboard_layout published by the Designer.      */
+/* ------------------------------------------------------------------ */
+
+const WIDTH_SPAN: Record<WidthSize, string> = {
+  full: "col-span-12",
+  half: "col-span-12 md:col-span-6",
+  third: "col-span-12 md:col-span-4",
+};
+
+type Restr = { id: string; types: string[]; reason: string | null; end_at: string | null };
+type Tx = { id: string; created_at: string; balance_after: number; amount: number; currency: string; direction: string; kind: string; description: string | null };
+type Bene = { id: string; name?: string; account_number?: string; nickname?: string | null };
+type Card = { id: string; masked_number?: string | null; card_type?: string | null };
+
+function LayoutDrivenDashboard(props: {
+  layout: DashboardLayout;
+  slug: string;
+  currency: string;
+  balance: number;
+  balanceVisible: boolean;
+  setBalanceVisible: (fn: (v: boolean) => boolean) => void;
+  session: CustomerSession;
+  manifest: WebsiteManifest;
+  acctNumber: string;
+  acctMasked: string;
+  transactions: Tx[];
+  trend: { label: string; balance: number }[];
+  fxRates: FxRow[];
+  fxLoading: boolean;
+  fxError: boolean;
+  fxUpdatedAt: string | undefined;
+  cards: Card[];
+  beneficiaries: Bene[];
+  restrictions: Restr[];
+  onCopy: (v: string, label: string) => void | Promise<void>;
+}) {
+  const { layout, slug, currency, balance, balanceVisible, setBalanceVisible, session, manifest,
+          acctNumber, acctMasked, transactions, trend, fxRates, fxLoading, fxError, fxUpdatedAt,
+          cards, beneficiaries, restrictions, onCopy } = props;
+  const theme = manifest.theme;
+  const primaryAccount = session.accounts[0];
+  const dividerColor = { borderColor: "color-mix(in oklab, var(--tenant-primary) 55%, transparent)" };
+  const labelText = "text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400";
+
+  const readStr = (p: DashboardLayout["items"][number]["props"], k: string, fb: string): string => {
+    const v = p?.[k]; return typeof v === "string" ? v : fb;
+  };
+  const readNum = (p: DashboardLayout["items"][number]["props"], k: string, fb: number): number => {
+    const v = p?.[k]; return typeof v === "number" ? v : fb;
+  };
+
+  function renderKind(kind: DashboardComponentKind, p: DashboardLayout["items"][number]["props"]) {
+    switch (kind) {
+      case "header": {
+        const style = readStr(p, "style", "welcome");
+        const align = ({ left: "text-left", center: "text-center", right: "text-right" } as Record<string, string>)[readStr(p, "alignment", "left")] || "text-left";
+        if (style === "minimal") {
+          return (
+            <section className={align}>
+              <p className={labelText}>Customer</p>
+              <p className="mt-1 font-mono text-lg text-slate-800">{session.customer.customer_number}</p>
+            </section>
+          );
+        }
+        if (style === "photo") {
+          const initials = `${session.customer.first_name?.[0] ?? ""}${session.customer.last_name?.[0] ?? ""}`;
+          return (
+            <section className={`flex items-center gap-4 ${align}`}>
+              <div className="grid h-12 w-12 place-items-center rounded-full text-white text-lg font-bold" style={{ background: "var(--tenant-primary)" }}>{initials}</div>
+              <div>
+                <h1 className="text-lg font-semibold text-slate-900" style={{ fontFamily: theme.typography.heading }}>
+                  {session.customer.first_name} {session.customer.last_name}
+                </h1>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Verified</span>
+                <div className="text-xs text-slate-500 mt-0.5">Member since {new Date(session.customer.created_at ?? Date.now()).getFullYear()}</div>
+              </div>
+            </section>
+          );
+        }
+        return (
+          <section className={align}>
+            <p className={labelText}>Welcome back</p>
+            <h1 className="mt-0.5 text-xl font-semibold text-slate-900 md:text-2xl" style={{ fontFamily: theme.typography.heading }}>
+              {session.customer.first_name} {session.customer.last_name}
+            </h1>
+            <p className="mt-1 text-xs text-slate-500">
+              Customer № <span className="font-mono text-slate-700">{session.customer.customer_number}</span>
+            </p>
+          </section>
+        );
+      }
+      case "account_summary": {
+        const style = readStr(p, "style", "minimal");
+        const thick = readNum(p, "divider_thickness", 2);
+        const balanceEl = balanceVisible ? fmt(balance, currency) : "••••••";
+        if (style === "compact") {
+          return (
+            <section className="flex items-center justify-between rounded-xl border p-4" style={dividerColor}>
+              <div>
+                <p className={labelText}>Available balance</p>
+                <p className="text-2xl font-bold text-slate-900" style={{ fontFamily: theme.typography.heading }}>{balanceEl}</p>
+              </div>
+              <div className="font-mono text-sm text-slate-500">{acctMasked}</div>
+            </section>
+          );
+        }
+        if (style === "modern") {
+          return (
+            <section className="rounded-2xl p-6 text-white" style={{ background: "linear-gradient(135deg, var(--tenant-primary), var(--tenant-secondary, var(--tenant-primary)))" }}>
+              <p className="text-xs opacity-80">Available balance</p>
+              <p className="mt-1 text-3xl font-bold" style={{ fontFamily: theme.typography.heading }}>{balanceEl}</p>
+              <div className="mt-3 flex items-center justify-between font-mono text-xs opacity-90">
+                <span>{acctMasked}</span>
+                <button onClick={() => setBalanceVisible((v) => !v)} className="rounded bg-white/20 px-2 py-1">
+                  {balanceVisible ? "Hide" : "Show"}
+                </button>
+              </div>
+            </section>
+          );
+        }
+        if (style === "executive") {
+          return (
+            <section className="rounded-2xl border p-6" style={{ ...dividerColor, borderWidth: 1 }}>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Executive Account</div>
+              <p className="mt-1 text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: theme.typography.heading }}>{balanceEl}</p>
+              <div className="my-4 h-px" style={{ background: "var(--tenant-primary)" }} />
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div><div className="text-slate-500 text-xs">Account</div><div className="font-mono">{acctMasked}</div></div>
+                <div><div className="text-slate-500 text-xs">Holder</div><div>{session.customer.first_name} {session.customer.last_name}</div></div>
+              </div>
+            </section>
+          );
+        }
+        // minimal (divider-based)
+        return (
+          <section>
+            <div className="py-6 border-b-2" style={{ ...dividerColor, borderBottomWidth: thick }}>
+              <p className={labelText}>Account Number</p>
+              <div className="mt-1 flex items-center justify-between">
+                <p className="truncate text-lg font-medium tracking-[0.12em] text-slate-900 md:text-xl" style={{ fontFamily: theme.typography.heading }}>{acctMasked}</p>
+                <button type="button" onClick={() => onCopy(acctNumber, "Account number")} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100">
+                  <Copy className="h-3.5 w-3.5" /> Copy
+                </button>
+              </div>
+            </div>
+            <div className="py-6 border-b-2" style={{ ...dividerColor, borderBottomWidth: thick }}>
+              <p className={labelText}>Available Balance · {currency}</p>
+              <div className="mt-1 flex items-center justify-between">
+                <p className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl" style={{ fontFamily: theme.typography.heading }}>{balanceEl}</p>
+                <button type="button" onClick={() => setBalanceVisible((v) => !v)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100">
+                  {balanceVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                  {balanceVisible ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
+          </section>
+        );
+      }
+      case "quick_actions": {
+        const columns = readNum(p, "columns", 3);
+        const orientation = readStr(p, "orientation", "grid");
+        const enabled = manifest;
+        type QA = { icon: typeof Send; title: string; to: "/banks/$slug/portal/transfer" | "/banks/$slug/portal/accounts" | "/banks/$slug/portal/beneficiaries" | "/banks/$slug/portal/statements" | "/banks/$slug/portal/cards" };
+        const raw: (QA | null)[] = [
+          isNavEnabled(enabled, "transfer") ? { icon: Send, title: "Send", to: "/banks/$slug/portal/transfer" } : null,
+          { icon: ArrowDownToLine, title: "Receive", to: "/banks/$slug/portal/accounts" },
+          isNavEnabled(enabled, "beneficiaries") ? { icon: Banknote, title: "Withdraw", to: "/banks/$slug/portal/beneficiaries" } : null,
+          isNavEnabled(enabled, "statements") ? { icon: FileText, title: "Statements", to: "/banks/$slug/portal/statements" } : null,
+          isNavEnabled(enabled, "cards") ? { icon: CreditCard, title: "Cards", to: "/banks/$slug/portal/cards" } : null,
+          isNavEnabled(enabled, "beneficiaries") ? { icon: Users, title: "Beneficiaries", to: "/banks/$slug/portal/beneficiaries" } : null,
+        ];
+        const items: QA[] = raw.filter((x): x is QA => x !== null);
+        const colClass = ({ 2: "grid-cols-2", 3: "grid-cols-2 sm:grid-cols-3", 4: "grid-cols-2 sm:grid-cols-4" } as Record<number, string>)[columns] ?? "grid-cols-2 sm:grid-cols-3";
+        const wrap = orientation === "horizontal" ? "flex flex-wrap gap-3" : `grid gap-4 ${colClass}`;
+        return (
+          <section>
+            <h2 className="text-base font-semibold text-slate-900 md:text-lg">Quick actions</h2>
+            <div className={`mt-4 ${wrap}`}>
+              {items.map((a) => (
+                <Link key={a.title} to={a.to} params={{ slug }} className="group flex items-center gap-3 rounded-xl border p-3 transition hover:bg-slate-50" style={dividerColor}>
+                  <span className="grid h-10 w-10 place-items-center rounded-xl text-white" style={{ background: "var(--tenant-primary)" }}>
+                    <a.icon className="h-4 w-4" />
+                  </span>
+                  <span className="text-sm font-semibold text-slate-800">{a.title}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        );
+      }
+      case "balance_trend": {
+        const chartSize = readStr(p, "chart_size", "medium");
+        const h = chartSize === "large" ? "h-72" : chartSize === "small" ? "h-40" : "h-56";
+        return (
+          <section>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 md:text-lg">Balance trend</h2>
+                <p className="text-xs text-slate-500">{trend.length <= 1 ? "Not enough transaction history yet" : `Based on ${trend.length - 1} recent transactions`}</p>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200"><TrendingUp className="h-3 w-3" /> Live</span>
+            </div>
+            <div className={`mt-3 ${h}`}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trend} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id={`balArea-${Math.random().toString(36).slice(2, 6)}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--tenant-primary)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--tenant-primary)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="#eef2f7" vertical={false} />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                  <YAxis tickLine={false} axisLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} width={48} />
+                  <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }} formatter={(v: number) => [fmt(v, currency), "Balance"]} />
+                  <Area type="monotone" dataKey="balance" stroke="var(--tenant-primary)" strokeWidth={2.5} fill="var(--tenant-primary)" fillOpacity={0.15} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+        );
+      }
+      case "exchange_rates":
+        return (
+          <section>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Exchange rates</h2>
+              <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                {fxLoading ? "Updating…" : fxUpdatedAt ? `Updated ${new Date(fxUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Live"}
+              </span>
+            </div>
+            {fxError ? (
+              <p className="mt-3 text-xs text-slate-500">Rates temporarily unavailable.</p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {fxRates.map((r) => (
+                  <li key={r.pair} className="flex items-center justify-between border-b py-1 text-sm" style={dividerColor}>
+                    <span className="font-medium text-slate-700">{r.pair}</span>
+                    <span className="font-mono text-slate-900">{r.rate ? (r.rate < 10 ? r.rate.toFixed(4) : r.rate.toFixed(2)) : "—"}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      case "recent_transactions":
+        return (
+          <section>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Recent transactions</h2>
+              <Link to="/banks/$slug/portal/transactions" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
+                <ListOrdered className="h-3.5 w-3.5" /> View all
+              </Link>
+            </div>
+            {transactions.length === 0 ? (
+              <p className="py-6 text-center text-sm text-slate-500">No transactions yet.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-slate-100">
+                {transactions.slice(0, 6).map((t) => {
+                  const isCredit = t.direction === "credit"; const isDebit = t.direction === "debit";
+                  return (
+                    <li key={t.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-xl ${isCredit ? "bg-emerald-50 text-emerald-600" : isDebit ? "bg-rose-50 text-rose-600" : "bg-slate-100 text-slate-600"}`}>
+                          {isCredit ? <ArrowDownToLine className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="truncate font-medium text-slate-800">{t.description || t.kind}</div>
+                          <div className="text-xs text-slate-500">{new Date(t.created_at).toLocaleString()} · <span className="capitalize">{t.kind}</span></div>
+                        </div>
+                      </div>
+                      <div className="ml-3 whitespace-nowrap font-mono text-sm font-semibold" style={{ color: isCredit ? "#16a34a" : isDebit ? "#dc2626" : undefined }}>
+                        {isDebit ? "-" : isCredit ? "+" : ""}{fmt(t.amount, t.currency)}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        );
+      case "cards":
+        return (
+          <section>
+            <h2 className="text-base font-semibold text-slate-900 md:text-lg">Cards</h2>
+            <div className="mt-3 space-y-2">
+              {cards.length === 0 ? <p className="text-xs text-slate-500">No cards yet.</p> : cards.slice(0, 3).map((c) => (
+                <div key={c.id} className="flex items-center justify-between rounded-xl border p-3 text-sm" style={dividerColor}>
+                  <span className="font-mono">{c.masked_number || "•••• ••••"}</span>
+                  <span className="text-xs text-slate-500">{c.card_type || "Card"}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      case "beneficiaries":
+        return (
+          <section>
+            <h2 className="text-base font-semibold text-slate-900 md:text-lg">Beneficiaries</h2>
+            <div className="mt-3 flex flex-wrap gap-3 text-xs">
+              {beneficiaries.length === 0 ? <p className="text-xs text-slate-500">No saved beneficiaries.</p> : beneficiaries.slice(0, 6).map((b) => (
+                <div key={b.id} className="flex flex-col items-center">
+                  <div className="grid h-10 w-10 place-items-center rounded-full text-white" style={{ background: "var(--tenant-primary)" }}>{(b.name || b.nickname || "?").slice(0, 2).toUpperCase()}</div>
+                  <div className="mt-1 truncate max-w-[80px] text-slate-600">{b.name || b.nickname}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      case "notifications":
+        return (
+          <section>
+            <h2 className="text-base font-semibold text-slate-900 md:text-lg">Notifications</h2>
+            <p className="mt-2 text-xs text-slate-500">Open the bell icon in the header for the full list.</p>
+          </section>
+        );
+      case "faq":
+        return (
+          <section>
+            <h2 className="text-base font-semibold text-slate-900 md:text-lg">Frequently asked questions</h2>
+            <div className="mt-3">
+              <Accordion type="single" collapsible className="w-full">
+                {FAQS.map((f, i) => (
+                  <AccordionItem key={i} value={`faq-${i}`} className="border-b" style={dividerColor}>
+                    <AccordionTrigger className="text-left text-sm font-semibold text-slate-800 hover:no-underline py-4">{f.q}</AccordionTrigger>
+                    <AccordionContent className="pb-4 text-sm leading-relaxed text-slate-600">{f.a}</AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          </section>
+        );
+      case "support":
+        return (
+          <section>
+            <h2 className="text-base font-semibold text-slate-900 md:text-lg">Support</h2>
+            <Link to="/banks/$slug/portal/support" params={{ slug }} className="mt-2 inline-block text-xs font-medium text-slate-600 hover:text-slate-900">
+              Contact support →
+            </Link>
+          </section>
+        );
+      default:
+        return null;
+    }
+  }
+
+  void primaryAccount; // reserved for future kinds
+
+  return (
+    <div className="space-y-8">
+      {restrictions.length > 0 && (
+        <div className="flex items-start gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <ShieldAlert className="mt-0.5 h-4 w-4" />
+          <div>
+            <div className="font-semibold">Your account has active restrictions</div>
+            {restrictions.map((r) => (
+              <div key={r.id} className="text-xs">
+                {r.types.join(", ")} — {r.reason || "No reason provided"}
+                {r.end_at ? ` (until ${new Date(r.end_at).toLocaleDateString()})` : ""}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-12 gap-6">
+        {layout.items
+          .filter((it) => it.visible !== false)
+          .map((it) => {
+            const width = (it.width ?? "full") as WidthSize;
+            const kind = it.kind as DashboardComponentKind;
+            const node = renderKind(kind, it.props);
+            if (!node) return null;
+            return (
+              <div key={it.id} className={WIDTH_SPAN[width]}>
+                {node}
+              </div>
+            );
+          })}
+      </div>
+    </div>
+  );
+}
+
+// Silence unused import if defaultDashboardLayout is imported but not referenced yet.
+void defaultDashboardLayout;
+
