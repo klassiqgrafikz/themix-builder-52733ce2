@@ -784,7 +784,7 @@ async function runDiagnostics(
     meta: {
       resolved_a: resolvedA,
       resolved_cname: resolvedCname,
-      txt_records: txtValues,
+      txt_records: txtValuesUnion,
       ttl,
       http_status: httpRes.status,
       https_status: httpsRes.status,
