@@ -278,8 +278,11 @@ function DashboardPage() {
       )}
 
       {/* Account Summary */}
-      <section className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <section className="space-y-8">
+        <div
+          className="flex flex-col gap-4 border-b-2 pb-7 sm:flex-row sm:items-end sm:justify-between"
+          style={dividerColor}
+        >
           <div className="flex min-w-0 items-center gap-4">
             {manifest.brand.dashboard_logo_url ? (
               <img src={manifest.brand.dashboard_logo_url} alt="" className="h-12 w-12 shrink-0 rounded-xl bg-slate-100 object-contain p-2" />
@@ -314,7 +317,7 @@ function DashboardPage() {
 
         <div className="space-y-0">
           {/* Account Number */}
-          <div className="flex items-center justify-between gap-4 py-5 border-b" style={dividerColor}>
+          <div className="flex items-center justify-between gap-4 border-b-2 py-7" style={dividerColor}>
             <div className="min-w-0">
               <p className={labelText}>Account Number</p>
               <p
@@ -337,7 +340,7 @@ function DashboardPage() {
           </div>
 
           {/* Available Balance */}
-          <div className="flex items-center justify-between gap-4 py-5 border-b" style={dividerColor}>
+          <div className="flex items-center justify-between gap-4 border-b-2 py-7" style={dividerColor}>
             <div className="min-w-0">
               <p className={labelText}>Available Balance · {currency}</p>
               <p
@@ -359,7 +362,7 @@ function DashboardPage() {
           </div>
 
           {/* Current Balance */}
-          <div className="py-5">
+          <div className="py-7">
             <p className={labelText}>Current Balance</p>
             <p className="mt-1 text-xl font-semibold text-slate-700 md:text-2xl">
               {balanceVisible && primaryAccount ? fmt(primaryAccount.current_balance, currency) : "••••"}
