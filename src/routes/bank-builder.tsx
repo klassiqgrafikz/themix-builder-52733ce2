@@ -17,7 +17,7 @@ import {
   type BankIdentity,
   type BankModule,
 } from "@/lib/bank-builder.types";
-import { RequireAuth } from "@/components/launch/require-auth";
+import { PlatformPinGate } from "@/components/platform/pin-gate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -70,9 +70,9 @@ function BankBuilderPage() {
   const { draftId } = Route.useSearch();
   if (!draftId) return <Navigate to="/launch" />;
   return (
-    <RequireAuth>
+    <PlatformPinGate area="Launch New Bank">
       <Wizard draftId={draftId} />
-    </RequireAuth>
+    </PlatformPinGate>
   );
 }
 

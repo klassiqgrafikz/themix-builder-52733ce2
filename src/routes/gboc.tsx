@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tan
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { RequireAuth } from "@/components/launch/require-auth";
+
 import { PlatformPinGate } from "@/components/platform/pin-gate";
 import { cn } from "@/lib/utils";
 import { gbocListBanks, gbocListCustomers } from "@/lib/gboc/operations.functions";
@@ -83,8 +83,7 @@ function GbocLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <RequireAuth>
-      <PlatformPinGate area="Global Banking Operations Center">
+    <PlatformPinGate area="Global Banking Operations Center">
       <div className="min-h-screen bg-muted/30">
         <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
           <div className="mx-auto flex max-w-[1500px] items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4">
@@ -126,8 +125,7 @@ function GbocLayout() {
           </main>
         </div>
       </div>
-      </PlatformPinGate>
-    </RequireAuth>
+    </PlatformPinGate>
   );
 }
 

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { RequireAuth } from "@/components/launch/require-auth";
+import { PlatformPinGate } from "@/components/platform/pin-gate";
 import {
   listCatalogProducts,
   listProductCategories,
@@ -27,9 +27,9 @@ export const Route = createFileRoute("/products")({
 
 function ProductsPage() {
   return (
-    <RequireAuth>
+    <PlatformPinGate area="Products Catalog">
       <Catalog />
-    </RequireAuth>
+    </PlatformPinGate>
   );
 }
 
