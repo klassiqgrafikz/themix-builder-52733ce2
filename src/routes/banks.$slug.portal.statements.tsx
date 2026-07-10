@@ -164,7 +164,7 @@ function StatementsPage() {
 
 
       // Customer + account block
-      let y = 120;
+      let y = 140;
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       doc.text("Customer", 32, y);
