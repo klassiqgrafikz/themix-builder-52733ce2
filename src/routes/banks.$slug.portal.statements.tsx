@@ -119,40 +119,49 @@ function StatementsPage() {
       };
       const primaryRgb = hexToRgb(primary);
 
-      // Header background band
+      // Header background band — taller to give the logo breathing room
+      const headerH = 110;
       doc.setFillColor(primaryRgb[0], primaryRgb[1], primaryRgb[2]);
-      doc.rect(0, 0, pageW, 90, "F");
+      doc.rect(0, 0, pageW, headerH, "F");
 
-      // Logo
+      // Logo — left-aligned, vertically centered in the header band
       const logo = manifest.brand.dashboard_logo_url ? await loadImage(manifest.brand.dashboard_logo_url) : null;
+      let textX = 32;
       if (logo) {
-        const targetH = 44;
+        const targetH = 56;
         const ratio = logo.w / logo.h;
-        const targetW = targetH * ratio;
-        doc.addImage(logo.dataUrl, "PNG", 32, 22, targetW, targetH);
+        const targetW = Math.min(targetH * ratio, 120);
+        const logoY = (headerH - targetH) / 2;
+        doc.addImage(logo.dataUrl, "PNG", 32, logoY, targetW, targetH);
+        textX = 32 + targetW + 20; // clear gap after logo
       }
 
-      // Bank name & address in header
+      // Bank name — clearly separated from the logo
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.text(manifest.bank.name, logo ? 100 : 32, 44);
+      doc.setFontSize(17);
+      doc.text(manifest.bank.name, textX, 52);
+
+      // Sub-line (country · timezone), no website URL
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      const bankAddress = [
+      const bankSub = [
         manifest.bank.country_code,
         manifest.bank.timezone,
-      ].filter(Boolean).join(" · ");
-      doc.text(bankAddress || "Digital banking", logo ? 100 : 32, 62);
-      doc.text(`www.${bank.slug}.themixweb.app`, logo ? 100 : 32, 76);
+      ].filter(Boolean).join(" · ") || "Digital banking";
+      doc.text(bankSub, textX, 70);
 
-      // Title on the right
-      doc.setFontSize(22);
+      // Title on the right, vertically aligned with bank name
       doc.setFont("helvetica", "bold");
-      doc.text("Account Statement", pageW - 32, 50, { align: "right" });
+      doc.setFontSize(20);
+      doc.text("Account Statement", pageW - 32, 58, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Issued ${new Date().toLocaleDateString()}`, pageW - 32, 76, { align: "right" });
 
       // Reset text color
       doc.setTextColor(15, 23, 42);
+
 
       // Customer + account block
       let y = 120;
