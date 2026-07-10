@@ -30,6 +30,8 @@ export type DomainKind = "apex" | "subdomain";
 export type DnsRecord = {
   type: "CNAME" | "TXT" | "A";
   host: string;
+  host_fqdn?: string;
+  host_note?: string;
   value: string;
   ttl: number;
   purpose: string;
