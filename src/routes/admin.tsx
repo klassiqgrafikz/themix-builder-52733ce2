@@ -114,28 +114,23 @@ function Sidebar({ onNav }: { onNav?: () => void }) {
 }
 
 function BankSwitcher() {
-  const fn = useServerFn(listDrafts);
-  const q = useQuery({ queryKey: ["bb-drafts"], queryFn: () => fn() });
-  const drafts = (q.data as BankDraft[]) ?? [];
-  const path = useRouterState({ select: (s) => s.location.pathname });
-  const match = path.match(/^\/banks\/([^/]+)/);
-  const currentId = match?.[1] ?? "";
+  const fn = useServerFn(gbocListBanks);
+  const q = useQuery({ queryKey: ["gboc", "banks"], queryFn: () => fn() });
+  const banks = q.data ?? [];
+  const [bankId, setBankId] = useSelectedBankId();
   return (
     <Select
-      value={currentId}
-      onValueChange={(id) => {
-        if (id) window.location.assign(`/banks/${id}`);
-      }}
+      value={bankId ?? ""}
+      onValueChange={(id) => setBankId(id || null)}
     >
       <SelectTrigger className="h-9 w-56 text-xs">
-        <SelectValue placeholder={drafts.length ? "Select a bank…" : "No banks yet"} />
+        <SelectValue placeholder={banks.length ? "Select a bank…" : "No published banks"} />
       </SelectTrigger>
       <SelectContent>
-        {drafts.map((d) => (
-          <SelectItem key={d.id} value={d.id}>
-            {(d.identity as { bank_name?: string })?.bank_name || "Untitled draft"}
-            {" · "}
-            {d.status}
+        {banks.map((b) => (
+          <SelectItem key={b.id} value={b.id}>
+            {b.bank_name}
+            {b.country ? ` · ${b.country}` : ""}
           </SelectItem>
         ))}
       </SelectContent>
