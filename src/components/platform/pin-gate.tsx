@@ -13,14 +13,20 @@ const KEY = "themix.platform-pin.ok";
 
 /** Wraps administration surfaces. Prompts for the Platform PIN once per tab. */
 export function PlatformPinGate({ children, area }: { children: React.ReactNode; area: string }) {
-  const [ok, setOk] = useState<boolean>(false);
+  // Read sessionStorage synchronously so client-side navigations between
+  // gated pages don't flash the PIN card when it's already unlocked.
+  const [ok, setOk] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.sessionStorage.getItem(KEY) === "1";
+  });
   const [pin, setPin] = useState("");
   const verifyFn = useServerFn(verifyPlatformPin);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setOk(window.sessionStorage.getItem(KEY) === "1");
+    if (window.sessionStorage.getItem(KEY) === "1") setOk(true);
   }, []);
+
 
   const mut = useMutation({
     mutationFn: () => verifyFn({ data: { pin } }),
