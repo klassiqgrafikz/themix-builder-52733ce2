@@ -992,14 +992,16 @@ function LayoutDrivenDashboard(props: {
         const columns = readNum(p, "columns", 3);
         const orientation = readStr(p, "orientation", "grid");
         const enabled = manifest;
-        const items = [
-          isNavEnabled(enabled, "transfer") && { icon: Send, title: "Send", to: "/banks/$slug/portal/transfer" as const },
-          { icon: ArrowDownToLine, title: "Receive", to: "/banks/$slug/portal/accounts" as const },
-          isNavEnabled(enabled, "beneficiaries") && { icon: Banknote, title: "Withdraw", to: "/banks/$slug/portal/beneficiaries" as const },
-          isNavEnabled(enabled, "statements") && { icon: FileText, title: "Statements", to: "/banks/$slug/portal/statements" as const },
-          isNavEnabled(enabled, "cards") && { icon: CreditCard, title: "Cards", to: "/banks/$slug/portal/cards" as const },
-          isNavEnabled(enabled, "beneficiaries") && { icon: Users, title: "Beneficiaries", to: "/banks/$slug/portal/beneficiaries" as const },
-        ].filter((x): x is NonNullable<typeof x> => Boolean(x));
+        type QA = { icon: typeof Send; title: string; to: "/banks/$slug/portal/transfer" | "/banks/$slug/portal/accounts" | "/banks/$slug/portal/beneficiaries" | "/banks/$slug/portal/statements" | "/banks/$slug/portal/cards" };
+        const raw: (QA | null)[] = [
+          isNavEnabled(enabled, "transfer") ? { icon: Send, title: "Send", to: "/banks/$slug/portal/transfer" } : null,
+          { icon: ArrowDownToLine, title: "Receive", to: "/banks/$slug/portal/accounts" },
+          isNavEnabled(enabled, "beneficiaries") ? { icon: Banknote, title: "Withdraw", to: "/banks/$slug/portal/beneficiaries" } : null,
+          isNavEnabled(enabled, "statements") ? { icon: FileText, title: "Statements", to: "/banks/$slug/portal/statements" } : null,
+          isNavEnabled(enabled, "cards") ? { icon: CreditCard, title: "Cards", to: "/banks/$slug/portal/cards" } : null,
+          isNavEnabled(enabled, "beneficiaries") ? { icon: Users, title: "Beneficiaries", to: "/banks/$slug/portal/beneficiaries" } : null,
+        ];
+        const items: QA[] = raw.filter((x): x is QA => x !== null);
         const colClass = ({ 2: "grid-cols-2", 3: "grid-cols-2 sm:grid-cols-3", 4: "grid-cols-2 sm:grid-cols-4" } as Record<number, string>)[columns] ?? "grid-cols-2 sm:grid-cols-3";
         const wrap = orientation === "horizontal" ? "flex flex-wrap gap-3" : `grid gap-4 ${colClass}`;
         return (
