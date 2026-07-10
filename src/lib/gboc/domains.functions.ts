@@ -76,7 +76,7 @@ export type DnsLogEntry = {
   status_code: number | null;
   http_status: number | null;
   ttl: number | null;
-  raw: unknown;
+  raw: string;
   parsed: string[];
   latency_ms: number;
   error?: string;
