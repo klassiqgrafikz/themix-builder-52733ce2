@@ -298,6 +298,16 @@ export const saveBankDomain = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     const slug = await fetchSlug(context.supabase as never, data.bank_id);
+    await logActivity(context.supabase, {
+      bank_id: data.bank_id,
+      domain,
+      action: domainChanged ? "domain_added" : "domain_updated",
+      result: "info",
+      message: domainChanged
+        ? `Custom domain ${domain} configured.`
+        : `Domain settings updated for ${domain}.`,
+      actor_id: context.userId,
+    });
     return shape(row as DomainRow, slug);
   });
 
