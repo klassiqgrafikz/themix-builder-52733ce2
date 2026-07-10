@@ -32,6 +32,19 @@ import {
   type DnsProvider,
   type DomainActivityEntry,
 } from "@/lib/gboc/domain-activity.functions";
+import {
+  deriveStage,
+  stageIsTerminal,
+  nextRetryDelayMs,
+  getPersistedStart,
+  persistStart,
+  clearPersistedStart,
+  HEALTH_CHECK_INTERVAL_MS,
+  LIFECYCLE_LABEL,
+  LIFECYCLE_ORDER,
+  TIMELINE_ITEMS,
+  type LifecycleStage,
+} from "@/lib/gboc/domain-lifecycle";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
