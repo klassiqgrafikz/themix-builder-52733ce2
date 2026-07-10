@@ -643,16 +643,25 @@ function DashboardPage() {
           )}
         </div>
 
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Exchange rates</h2>
-              <span className="text-[10px] uppercase tracking-wider text-slate-500">
-                Indicative
-              </span>
-            </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-slate-900 md:text-lg">Exchange rates</h2>
+            <span className="text-[10px] uppercase tracking-wider text-slate-500">
+              {fxQ.isLoading
+                ? "Updating…"
+                : fxUpdatedAt
+                  ? `Updated ${new Date(fxUpdatedAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}`
+                  : "Live"}
+            </span>
+          </div>
+          {fxQ.isError ? (
+            <p className="py-2 text-xs text-slate-500">Rates temporarily unavailable.</p>
+          ) : (
             <ul className="space-y-3">
-              {FX_RATES.map((r) => {
+              {(fxRates.length ? fxRates : [{ pair: "USD → EUR", rate: 0, change: 0 }, { pair: "USD → GBP", rate: 0, change: 0 }, { pair: "USD → JPY", rate: 0, change: 0 }, { pair: "USD → CAD", rate: 0, change: 0 }]).map((r) => {
                 const up = r.change >= 0;
                 return (
                   <li
@@ -662,52 +671,25 @@ function DashboardPage() {
                   >
                     <span className="font-medium text-slate-700">{r.pair}</span>
                     <span className="flex items-center gap-2">
-                      <span className="font-mono text-slate-900">{r.rate.toFixed(3)}</span>
-                      <span
-                        className={`text-[11px] font-semibold ${up ? "text-emerald-600" : "text-rose-600"}`}
-                      >
-                        {up ? "▲" : "▼"} {Math.abs(r.change).toFixed(2)}%
+                      <span className="font-mono text-slate-900">
+                        {r.rate ? (r.rate < 10 ? r.rate.toFixed(4) : r.rate.toFixed(2)) : "—"}
                       </span>
+                      {r.rate > 0 && (
+                        <span
+                          className={`text-[11px] font-semibold ${up ? "text-emerald-600" : "text-rose-600"}`}
+                        >
+                          {up ? "▲" : "▼"} {Math.abs(r.change).toFixed(2)}%
+                        </span>
+                      )}
                     </span>
                   </li>
                 );
               })}
             </ul>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Notifications</h2>
-              <Link
-                to="/banks/$slug/portal/notifications"
-                params={{ slug }}
-                className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900"
-              >
-                <Bell className="h-3.5 w-3.5" /> View all
-              </Link>
-            </div>
-            {notifications.length === 0 ? (
-              <p className="py-4 text-center text-xs text-slate-500">You have no notifications.</p>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {notifications.slice(0, 3).map((n) => (
-                  <li key={n.id} className="py-2.5 text-sm">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="truncate font-medium text-slate-800">{n.title}</div>
-                      <span className="whitespace-nowrap text-[11px] text-slate-500">
-                        {new Date(n.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    {n.body && (
-                      <div className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.body}</div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          )}
         </div>
       </section>
+
 
       <div className="border-t" style={dividerColor} />
 
