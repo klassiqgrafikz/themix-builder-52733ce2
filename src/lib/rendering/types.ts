@@ -118,6 +118,24 @@ export type WebsiteManifest = {
     generator: "themixweb-rendering-engine";
     generated_at: string;
   };
+  /**
+   * Customer-dashboard layout published from the Dashboard Layout Designer.
+   * Optional — omitted means the portal renders the default layout.
+   * Mirrors `@/lib/dashboard-layout/types#DashboardLayout` but inlined to
+   * avoid a dependency cycle with the rendering engine.
+   */
+  dashboard_layout?: {
+    version: 1;
+    items: {
+      id: string;
+      kind: string;
+      width?: "full" | "half" | "third";
+      visible?: boolean;
+      locked?: boolean;
+      props?: { [key: string]: string | number | boolean | null | undefined };
+    }[];
+    updated_at: string;
+  };
 };
 
 export type BankInstance = {

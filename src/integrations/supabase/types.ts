@@ -982,6 +982,8 @@ export type Database = {
           country_code: string | null
           created_at: string
           current_step: number
+          dashboard_layout: Json | null
+          dashboard_layout_draft: Json | null
           features: Json
           id: string
           identity: Json
@@ -1005,6 +1007,8 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           current_step?: number
+          dashboard_layout?: Json | null
+          dashboard_layout_draft?: Json | null
           features?: Json
           id?: string
           identity?: Json
@@ -1028,6 +1032,8 @@ export type Database = {
           country_code?: string | null
           created_at?: string
           current_step?: number
+          dashboard_layout?: Json | null
+          dashboard_layout_draft?: Json | null
           features?: Json
           id?: string
           identity?: Json

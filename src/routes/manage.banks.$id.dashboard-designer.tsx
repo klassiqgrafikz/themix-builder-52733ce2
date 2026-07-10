@@ -1,19 +1,34 @@
 import { createFileRoute, Link, useParams, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getDraft } from "@/lib/bank-builder.functions";
 import type { BankBranding, BankDraft, BankIdentity } from "@/lib/bank-builder.types";
+import {
+  getDashboardLayout,
+  saveDashboardLayoutDraft,
+  publishDashboardLayout,
+  resetDashboardLayout,
+  duplicateDashboardLayout,
+  listOwnedBanksForDuplicate,
+} from "@/lib/dashboard-layout/functions";
+import {
+  defaultDashboardLayout,
+  type DashboardComponentKind,
+  type DashboardLayout,
+  type DashboardLayoutItem,
+  type DashboardPropValue,
+  type WidthSize,
+} from "@/lib/dashboard-layout/types";
 import { PlatformPinGate } from "@/components/platform/pin-gate";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import {
-  ArrowLeft, Save, Eye, RotateCcw, Undo2, Redo2,
+  ArrowLeft, Save, Eye, RotateCcw, Undo2, Redo2, UploadCloud, CopyPlus,
   LayoutDashboard, Wallet, Zap, Receipt, TrendingUp, Globe2,
   CreditCard, Users, Bell, HelpCircle, LifeBuoy, GripVertical,
   Monitor, Tablet, Smartphone, ChevronDown, ChevronRight,
@@ -39,51 +54,9 @@ function DesignerPage() {
   );
 }
 
-/* --------------------------------- Types --------------------------------- */
+/* --------------------------------- Meta --------------------------------- */
 
-type ComponentKind =
-  | "header" | "account_summary" | "quick_actions" | "recent_transactions"
-  | "balance_trend" | "exchange_rates" | "cards" | "beneficiaries"
-  | "notifications" | "faq" | "support";
-
-type WidthSize = "full" | "half" | "third";
-type ChartSize = "small" | "medium" | "large";
-
-type BaseProps = { visible?: boolean; locked?: boolean; width?: WidthSize };
-
-type HeaderProps = BaseProps & { alignment?: "left" | "center" | "right"; typography?: "sm" | "md" | "lg" | "xl" };
-type SummaryProps = BaseProps & {
-  divider_thickness?: number; divider_color?: string; padding?: number;
-  density?: "compact" | "standard"; copy_button?: boolean; hide_balance_button?: boolean;
-};
-type QuickActionProps = BaseProps & {
-  columns?: 2 | 3 | 4; orientation?: "grid" | "horizontal";
-  icon_size?: number; show_labels?: boolean;
-};
-type ChartProps = BaseProps & { padding?: number; chart_size?: ChartSize };
-type GenericProps = BaseProps & { padding?: number };
-
-type PropsByKind = {
-  header: HeaderProps;
-  account_summary: SummaryProps;
-  quick_actions: QuickActionProps;
-  recent_transactions: GenericProps;
-  balance_trend: ChartProps;
-  exchange_rates: GenericProps;
-  cards: GenericProps;
-  beneficiaries: GenericProps;
-  notifications: GenericProps;
-  faq: GenericProps;
-  support: GenericProps;
-};
-
-type CanvasItem<K extends ComponentKind = ComponentKind> = {
-  id: string; kind: K; props: PropsByKind[K];
-};
-
-type LayoutDraft = { version: 1; items: CanvasItem[]; updated_at: string };
-
-const COMPONENT_META: Record<ComponentKind, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
+const COMPONENT_META: Record<DashboardComponentKind, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
   header:              { label: "Header",              icon: LayoutDashboard },
   account_summary:     { label: "Account Summary",    icon: Wallet },
   quick_actions:       { label: "Quick Actions",      icon: Zap },
@@ -97,46 +70,21 @@ const COMPONENT_META: Record<ComponentKind, { label: string; icon: React.Compone
   support:             { label: "Support",            icon: LifeBuoy },
 };
 
-const DEFAULTS: { [K in ComponentKind]: PropsByKind[K] } = {
-  header: { visible: true, alignment: "left", typography: "lg", width: "full" },
-  account_summary: {
-    visible: true, divider_thickness: 2, divider_color: "", padding: 16,
-    density: "standard", copy_button: true, hide_balance_button: true, width: "full",
-  },
-  quick_actions: { visible: true, columns: 3, orientation: "grid", icon_size: 20, show_labels: true, width: "full" },
-  recent_transactions: { visible: true, padding: 16, width: "full" },
-  balance_trend:       { visible: true, padding: 16, width: "half", chart_size: "medium" },
-  exchange_rates:      { visible: true, padding: 16, width: "half" },
-  cards:               { visible: true, padding: 16, width: "half" },
-  beneficiaries:       { visible: true, padding: 16, width: "half" },
-  notifications:       { visible: true, padding: 16, width: "full" },
-  faq:                 { visible: true, padding: 16, width: "full" },
-  support:             { visible: true, padding: 16, width: "full" },
+const DEFAULT_PROPS: Record<DashboardComponentKind, Record<string, DashboardPropValue>> = {
+  header: { style: "welcome", alignment: "left", typography: "lg" },
+  account_summary: { style: "minimal", divider_thickness: 2, padding: 16, copy_button: true, hide_balance_button: true },
+  quick_actions: { columns: 3, orientation: "grid", icon_size: 20, show_labels: true },
+  recent_transactions: { padding: 16 },
+  balance_trend: { padding: 16, chart_size: "medium" },
+  exchange_rates: { padding: 16 },
+  cards: { padding: 16 },
+  beneficiaries: { padding: 16 },
+  notifications: { padding: 16 },
+  faq: { padding: 16 },
+  support: { padding: 16 },
 };
 
-function defaultLayout(): LayoutDraft {
-  const items: CanvasItem[] = [
-    { id: uid(), kind: "header",              props: { ...DEFAULTS.header } },
-    { id: uid(), kind: "account_summary",     props: { ...DEFAULTS.account_summary } },
-    { id: uid(), kind: "quick_actions",       props: { ...DEFAULTS.quick_actions } },
-    { id: uid(), kind: "recent_transactions", props: { ...DEFAULTS.recent_transactions } },
-  ];
-  return { version: 1, items, updated_at: new Date().toISOString() };
-}
-
 function uid() { return Math.random().toString(36).slice(2, 10); }
-function storageKey(id: string) { return `themix.dashboard-designer.${id}`; }
-
-function loadDraft(id: string): LayoutDraft {
-  if (typeof window === "undefined") return defaultLayout();
-  try {
-    const raw = window.localStorage.getItem(storageKey(id));
-    if (!raw) return defaultLayout();
-    const parsed = JSON.parse(raw) as LayoutDraft;
-    if (!parsed?.items) return defaultLayout();
-    return parsed;
-  } catch { return defaultLayout(); }
-}
 
 const WIDTH_SPAN: Record<WidthSize, string> = {
   full: "col-span-12",
@@ -156,24 +104,45 @@ const DEVICE_MAX: Record<Device, string> = {
 function Designer() {
   const { id } = useParams({ from: "/manage/banks/$id/dashboard-designer" });
   const navigate = useNavigate();
+  const qc = useQueryClient();
+
   const getDraftFn = useServerFn(getDraft);
+  const getLayoutFn = useServerFn(getDashboardLayout);
+  const saveFn = useServerFn(saveDashboardLayoutDraft);
+  const publishFn = useServerFn(publishDashboardLayout);
+  const resetFn = useServerFn(resetDashboardLayout);
+  const duplicateFn = useServerFn(duplicateDashboardLayout);
+  const listOwnedFn = useServerFn(listOwnedBanksForDuplicate);
+
   const draftQ = useQuery({ queryKey: ["bb-draft", id], queryFn: () => getDraftFn({ data: { id } }) });
+  const layoutQ = useQuery({ queryKey: ["dash-layout", id], queryFn: () => getLayoutFn({ data: { id } }) });
+  const ownedQ = useQuery({ queryKey: ["dash-owned"], queryFn: () => listOwnedFn() });
+
   const draft = draftQ.data as BankDraft | undefined;
 
-  const [layout, _setLayout] = useState<LayoutDraft>(() => loadDraft(id));
+  const [layout, _setLayout] = useState<DashboardLayout>(() => defaultDashboardLayout());
+  const initialisedRef = useRef(false);
+  useEffect(() => {
+    if (initialisedRef.current) return;
+    if (layoutQ.data) {
+      _setLayout(layoutQ.data.draft);
+      initialisedRef.current = true;
+    }
+  }, [layoutQ.data]);
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewNonce, setPreviewNonce] = useState(0);
   const [device, setDevice] = useState<Device>("desktop");
   const [layersOpen, setLayersOpen] = useState(true);
 
   // Undo/redo history (layout-only)
-  const pastRef = useRef<LayoutDraft[]>([]);
-  const futureRef = useRef<LayoutDraft[]>([]);
+  const pastRef = useRef<DashboardLayout[]>([]);
+  const futureRef = useRef<DashboardLayout[]>([]);
   const [, forceRerender] = useState(0);
 
-  const setLayout = useCallback((updater: LayoutDraft | ((prev: LayoutDraft) => LayoutDraft), opts?: { history?: boolean }) => {
+  const setLayout = useCallback((updater: DashboardLayout | ((prev: DashboardLayout) => DashboardLayout), opts?: { history?: boolean }) => {
     _setLayout((prev) => {
-      const next = typeof updater === "function" ? (updater as (p: LayoutDraft) => LayoutDraft)(prev) : updater;
+      const next = typeof updater === "function" ? (updater as (p: DashboardLayout) => DashboardLayout)(prev) : updater;
       if (opts?.history !== false) {
         pastRef.current.push(prev);
         if (pastRef.current.length > 100) pastRef.current.shift();
@@ -194,20 +163,31 @@ function Designer() {
   const fontHeading = branding.font_heading ?? "Inter";
   const fontBody    = branding.font_body    ?? "Inter";
 
-  /* ---- Mutations (all go through setLayout so history is tracked) ---- */
+  /* ---- Mutations ---- */
 
-  const updateItem = useCallback((idToUpdate: string, patch: Partial<CanvasItem["props"]>) => {
+  const updateItem = useCallback((idToUpdate: string, patch: Partial<DashboardLayoutItem["props"]>) => {
     setLayout((l) => ({
       ...l,
       items: l.items.map((it) =>
-        it.id === idToUpdate ? ({ ...it, props: { ...it.props, ...patch } } as CanvasItem) : it,
+        it.id === idToUpdate ? { ...it, props: { ...it.props, ...patch } } : it,
       ),
     }));
   }, [setLayout]);
 
-  const addComponent = useCallback((kind: ComponentKind, atIndex?: number) => {
+  const updateItemMeta = useCallback((idToUpdate: string, patch: Partial<Pick<DashboardLayoutItem, "width" | "visible" | "locked">>) => {
+    setLayout((l) => ({
+      ...l,
+      items: l.items.map((it) =>
+        it.id === idToUpdate ? { ...it, ...patch } : it,
+      ),
+    }));
+  }, [setLayout]);
+
+  const addComponent = useCallback((kind: DashboardComponentKind, atIndex?: number) => {
     setLayout((l) => {
-      const item = { id: uid(), kind, props: { ...DEFAULTS[kind] } } as CanvasItem;
+      const item: DashboardLayoutItem = {
+        id: uid(), kind, width: "full", visible: true, props: { ...DEFAULT_PROPS[kind] },
+      };
       const next = l.items.slice();
       if (typeof atIndex === "number") next.splice(atIndex, 0, item);
       else next.push(item);
@@ -216,7 +196,7 @@ function Designer() {
   }, [setLayout]);
 
   const removeItem = useCallback((idToRemove: string) => {
-    setLayout((l) => ({ ...l, items: l.items.filter((i) => i.id !== idToRemove || i.props.locked) }));
+    setLayout((l) => ({ ...l, items: l.items.filter((i) => i.id !== idToRemove) }));
     if (selectedId === idToRemove) setSelectedId(null);
   }, [selectedId, setLayout]);
 
@@ -224,7 +204,7 @@ function Designer() {
     setLayout((l) => {
       const idx = l.items.findIndex((i) => i.id === idToDup);
       if (idx < 0) return l;
-      const copy = { ...l.items[idx], id: uid(), props: { ...l.items[idx].props, locked: false } } as CanvasItem;
+      const copy: DashboardLayoutItem = { ...l.items[idx], id: uid(), locked: false };
       const next = l.items.slice();
       next.splice(idx + 1, 0, copy);
       return { ...l, items: next };
@@ -235,7 +215,7 @@ function Designer() {
     setLayout((l) => ({
       ...l,
       items: l.items.map((it) =>
-        it.id === idT ? ({ ...it, props: { ...it.props, visible: it.props.visible === false ? true : false } } as CanvasItem) : it,
+        it.id === idT ? { ...it, visible: it.visible === false ? true : false } : it,
       ),
     }));
   }, [setLayout]);
@@ -244,7 +224,7 @@ function Designer() {
     setLayout((l) => ({
       ...l,
       items: l.items.map((it) =>
-        it.id === idT ? ({ ...it, props: { ...it.props, locked: !it.props.locked } } as CanvasItem) : it,
+        it.id === idT ? { ...it, locked: !it.locked } : it,
       ),
     }));
   }, [setLayout]);
@@ -261,43 +241,45 @@ function Designer() {
     });
   }, [setLayout]);
 
-  /* --------------------------- Save / Reset --------------------------- */
+  /* --------------------------- Save / Publish --------------------------- */
 
-  function saveDraft() {
-    const payload = { ...layout, updated_at: new Date().toISOString() };
-    try {
-      window.localStorage.setItem(storageKey(id), JSON.stringify(payload));
-      _setLayout(payload);
-      toast.success("Layout draft saved");
-    } catch {
-      toast.error("Could not save draft");
-    }
-  }
-  function resetLayout() {
-    setLayout(defaultLayout());
-    setSelectedId(null);
-    toast.message("Layout reset to defaults");
-  }
+  const saveMut = useMutation({
+    mutationFn: () => saveFn({ data: { id, layout } }),
+    onSuccess: () => { toast.success("Layout draft saved"); qc.invalidateQueries({ queryKey: ["dash-layout", id] }); },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"),
+  });
+
+  const publishMut = useMutation({
+    mutationFn: () => publishFn({ data: { id, layout } }),
+    onSuccess: () => { toast.success("Layout published to this bank"); qc.invalidateQueries({ queryKey: ["dash-layout", id] }); },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Publish failed"),
+  });
+
+  const resetMut = useMutation({
+    mutationFn: () => resetFn({ data: { id } }),
+    onSuccess: (r) => { setLayout(r.layout); setSelectedId(null); toast.message("Layout reset to defaults"); },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Reset failed"),
+  });
+
+  const [dupFromId, setDupFromId] = useState<string>("");
+  const duplicateMut = useMutation({
+    mutationFn: () => duplicateFn({ data: { from_id: dupFromId, to_id: id } }),
+    onSuccess: (r) => { setLayout(r.layout); toast.success("Layout duplicated into draft"); },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Duplicate failed"),
+  });
 
   /* ------------------------------ Undo/Redo --------------------------- */
 
   const undo = useCallback(() => {
     const prev = pastRef.current.pop();
     if (!prev) return;
-    _setLayout((cur) => {
-      futureRef.current.push(cur);
-      return prev;
-    });
+    _setLayout((cur) => { futureRef.current.push(cur); return prev; });
     forceRerender((n) => n + 1);
   }, []);
-
   const redo = useCallback(() => {
     const next = futureRef.current.pop();
     if (!next) return;
-    _setLayout((cur) => {
-      pastRef.current.push(cur);
-      return next;
-    });
+    _setLayout((cur) => { pastRef.current.push(cur); return next; });
     forceRerender((n) => n + 1);
   }, []);
 
@@ -315,7 +297,6 @@ function Designer() {
   /* ----------------------------- DnD helpers -------------------------- */
 
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-
   function onItemDragStart(e: React.DragEvent, itemId: string) {
     e.dataTransfer.setData("text/x-item-id", itemId);
     e.dataTransfer.effectAllowed = "move";
@@ -326,7 +307,7 @@ function Designer() {
   }
   function onCanvasDrop(e: React.DragEvent, dropIndex?: number) {
     e.preventDefault();
-    const componentKind = e.dataTransfer.getData("text/x-component") as ComponentKind;
+    const componentKind = e.dataTransfer.getData("text/x-component") as DashboardComponentKind;
     const movingId = e.dataTransfer.getData("text/x-item-id");
     const targetIndex = dropIndex ?? layout.items.length;
     if (componentKind && COMPONENT_META[componentKind]) {
@@ -334,13 +315,14 @@ function Designer() {
     } else if (movingId) {
       const from = layout.items.findIndex((i) => i.id === movingId);
       if (from >= 0) {
-        // Adjust index when moving down
         const to = targetIndex > from ? targetIndex - 1 : targetIndex;
         reorder(from, to);
       }
     }
     setDragOverIndex(null);
   }
+
+  const ownedBanks = (ownedQ.data ?? []).filter((b) => b.id !== id);
 
   return (
     <div className="flex h-screen flex-col bg-muted/30">
@@ -373,18 +355,40 @@ function Designer() {
             })}
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {ownedBanks.length > 0 && (
+              <div className="flex items-center gap-1">
+                <Select value={dupFromId} onValueChange={setDupFromId}>
+                  <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Duplicate from…" /></SelectTrigger>
+                  <SelectContent>
+                    {ownedBanks.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" disabled={!dupFromId || duplicateMut.isPending} onClick={() => duplicateMut.mutate()}>
+                  <CopyPlus className="mr-1 h-4 w-4" /> Duplicate
+                </Button>
+              </div>
+            )}
             <Button variant="outline" size="sm" onClick={undo} disabled={pastRef.current.length === 0} title="Undo (Ctrl+Z)">
               <Undo2 className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="sm" onClick={redo} disabled={futureRef.current.length === 0} title="Redo (Ctrl+Y)">
               <Redo2 className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={resetLayout}><RotateCcw className="mr-1 h-4 w-4" /> Reset</Button>
+            <Button variant="outline" size="sm" onClick={() => resetMut.mutate()} disabled={resetMut.isPending}>
+              <RotateCcw className="mr-1 h-4 w-4" /> Restore Default
+            </Button>
             <Button variant="outline" size="sm" onClick={() => { setPreviewNonce((n) => n + 1); toast.success("Preview refreshed"); }}>
               <Eye className="mr-1 h-4 w-4" /> Preview
             </Button>
-            <Button size="sm" onClick={saveDraft}><Save className="mr-1 h-4 w-4" /> Save Draft</Button>
+            <Button variant="outline" size="sm" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+              <Save className="mr-1 h-4 w-4" /> Save Draft
+            </Button>
+            <Button size="sm" onClick={() => publishMut.mutate()} disabled={publishMut.isPending}>
+              <UploadCloud className="mr-1 h-4 w-4" /> Publish Layout
+            </Button>
           </div>
         </div>
       </header>
@@ -394,7 +398,7 @@ function Designer() {
         <aside className="border-r bg-background overflow-y-auto">
           <div className="p-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Components</div>
           <div className="space-y-1 px-2 pb-2">
-            {(Object.keys(COMPONENT_META) as ComponentKind[]).map((kind) => {
+            {(Object.keys(COMPONENT_META) as DashboardComponentKind[]).map((kind) => {
               const Icon = COMPONENT_META[kind].icon;
               return (
                 <div
@@ -431,7 +435,7 @@ function Designer() {
                 {layout.items.map((it, idx) => {
                   const Icon = COMPONENT_META[it.kind].icon;
                   const isSel = selectedId === it.id;
-                  const hidden = it.props.visible === false;
+                  const hidden = it.visible === false;
                   return (
                     <li key={it.id}>
                       <div
@@ -449,7 +453,7 @@ function Designer() {
                         <GripVertical className="h-3 w-3 text-muted-foreground" />
                         <Icon className="h-3.5 w-3.5" />
                         <span className="flex-1 truncate">{COMPONENT_META[it.kind].label}</span>
-                        {it.props.locked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                        {it.locked && <Lock className="h-3 w-3 text-muted-foreground" />}
                         {hidden && <EyeOff className="h-3 w-3 text-muted-foreground" />}
                       </div>
                     </li>
@@ -478,17 +482,14 @@ function Designer() {
             )}
             <div className="grid grid-cols-12 gap-3">
               {layout.items.map((it, idx) => {
-                const span = device === "mobile" ? "col-span-12" : WIDTH_SPAN[it.props.width ?? "full"];
+                const span = device === "mobile" ? "col-span-12" : WIDTH_SPAN[it.width ?? "full"];
                 return (
-                  <div
-                    key={it.id}
-                    className={cn(span, "relative")}
-                  >
+                  <div key={it.id} className={cn(span, "relative")}>
                     {dragOverIndex === idx && (
                       <div className="pointer-events-none absolute -top-1.5 left-0 right-0 h-1 rounded" style={{ backgroundColor: primary }} />
                     )}
                     <div
-                      draggable={!it.props.locked}
+                      draggable={!it.locked}
                       onDragStart={(e) => onItemDragStart(e, it.id)}
                       onDragOver={(e) => onItemDragOver(e, idx)}
                       onDrop={(e) => onCanvasDrop(e, idx)}
@@ -496,7 +497,7 @@ function Designer() {
                       className={cn(
                         "group relative rounded-lg border bg-background p-1 transition",
                         selectedId === it.id ? "ring-2" : "hover:bg-muted/40",
-                        it.props.locked && "cursor-not-allowed",
+                        it.locked && "cursor-not-allowed",
                       )}
                       style={selectedId === it.id ? { boxShadow: `0 0 0 2px ${primary}`, borderColor: primary } : undefined}
                     >
@@ -504,16 +505,16 @@ function Designer() {
                         {COMPONENT_META[it.kind].label}
                       </div>
                       <div className="absolute right-1 top-1 z-10 hidden gap-0.5 rounded border bg-background p-0.5 shadow-sm group-hover:flex">
-                        <IconBtn title={it.props.visible === false ? "Show" : "Hide"} onClick={(e) => { e.stopPropagation(); toggleVisible(it.id); }}>
-                          {it.props.visible === false ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        <IconBtn title={it.visible === false ? "Show" : "Hide"} onClick={(e) => { e.stopPropagation(); toggleVisible(it.id); }}>
+                          {it.visible === false ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                         </IconBtn>
-                        <IconBtn title={it.props.locked ? "Unlock" : "Lock"} onClick={(e) => { e.stopPropagation(); toggleLock(it.id); }}>
-                          {it.props.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                        <IconBtn title={it.locked ? "Unlock" : "Lock"} onClick={(e) => { e.stopPropagation(); toggleLock(it.id); }}>
+                          {it.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
                         </IconBtn>
                         <IconBtn title="Duplicate" onClick={(e) => { e.stopPropagation(); duplicateItem(it.id); }}>
                           <Copy className="h-3.5 w-3.5" />
                         </IconBtn>
-                        <IconBtn title="Delete" onClick={(e) => { e.stopPropagation(); if (!it.props.locked) removeItem(it.id); else toast.error("Unlock to delete"); }}>
+                        <IconBtn title="Delete" onClick={(e) => { e.stopPropagation(); if (!it.locked) removeItem(it.id); else toast.error("Unlock to delete"); }}>
                           <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </IconBtn>
                       </div>
@@ -550,7 +551,7 @@ function Designer() {
               <PropertiesPanel
                 item={selected}
                 onChange={(patch) => updateItem(selected.id, patch)}
-                brandPrimary={primary}
+                onMetaChange={(patch) => updateItemMeta(selected.id, patch)}
               />
             )}
           </div>
@@ -584,9 +585,26 @@ function IconBtn({ children, onClick, title }: { children: React.ReactNode; onCl
 
 /* ------------------------------- Properties ------------------------------ */
 
+function readProp<T extends DashboardPropValue>(item: DashboardLayoutItem, key: string, fallback: T): T {
+  const v = item.props?.[key];
+  return (v === undefined || v === null ? fallback : (v as T));
+}
+function readStr(item: DashboardLayoutItem, key: string, fallback: string): string {
+  const v = item.props?.[key];
+  return typeof v === "string" ? v : fallback;
+}
+function readNum(item: DashboardLayoutItem, key: string, fallback: number): number {
+  const v = item.props?.[key];
+  return typeof v === "number" ? v : fallback;
+}
+
 function PropertiesPanel({
-  item, onChange, brandPrimary,
-}: { item: CanvasItem; onChange: (patch: Partial<CanvasItem["props"]>) => void; brandPrimary: string }) {
+  item, onChange, onMetaChange,
+}: {
+  item: DashboardLayoutItem;
+  onChange: (patch: Partial<Record<string, DashboardPropValue>>) => void;
+  onMetaChange: (patch: Partial<Pick<DashboardLayoutItem, "width" | "visible" | "locked">>) => void;
+}) {
   const meta = COMPONENT_META[item.kind];
   return (
     <div className="space-y-4">
@@ -596,24 +614,13 @@ function PropertiesPanel({
       </div>
 
       <Row label="Visible">
-        <Switch
-          checked={item.props.visible !== false}
-          onCheckedChange={(v) => onChange({ visible: v } as Partial<CanvasItem["props"]>)}
-        />
+        <Switch checked={item.visible !== false} onCheckedChange={(v) => onMetaChange({ visible: v })} />
       </Row>
-
       <Row label="Locked">
-        <Switch
-          checked={!!item.props.locked}
-          onCheckedChange={(v) => onChange({ locked: v } as Partial<CanvasItem["props"]>)}
-        />
+        <Switch checked={!!item.locked} onCheckedChange={(v) => onMetaChange({ locked: v })} />
       </Row>
-
       <Row label="Width">
-        <Select
-          value={item.props.width ?? "full"}
-          onValueChange={(v) => onChange({ width: v as WidthSize } as Partial<CanvasItem["props"]>)}
-        >
+        <Select value={item.width ?? "full"} onValueChange={(v) => onMetaChange({ width: v as WidthSize })}>
           <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="full">Full width</SelectItem>
@@ -624,23 +631,88 @@ function PropertiesPanel({
       </Row>
 
       {item.kind === "header" && (
-        <HeaderPropsPanel item={item as CanvasItem<"header">} onChange={onChange as (p: Partial<HeaderProps>) => void} />
+        <>
+          <Row label="Style">
+            <Select value={readStr(item, "style", "welcome")} onValueChange={(v) => onChange({ style: v })}>
+              <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="welcome">Welcome + name</SelectItem>
+                <SelectItem value="photo">Photo + badge</SelectItem>
+                <SelectItem value="minimal">Minimal (number)</SelectItem>
+              </SelectContent>
+            </Select>
+          </Row>
+          <Row label="Alignment">
+            <Select value={readStr(item, "alignment", "left")} onValueChange={(v) => onChange({ alignment: v })}>
+              <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="left">Left</SelectItem>
+                <SelectItem value="center">Center</SelectItem>
+                <SelectItem value="right">Right</SelectItem>
+              </SelectContent>
+            </Select>
+          </Row>
+        </>
       )}
+
       {item.kind === "account_summary" && (
-        <SummaryPropsPanel
-          item={item as CanvasItem<"account_summary">}
-          onChange={onChange as (p: Partial<SummaryProps>) => void}
-          brandPrimary={brandPrimary}
-        />
+        <>
+          <Row label="Style">
+            <Select value={readStr(item, "style", "minimal")} onValueChange={(v) => onChange({ style: v })}>
+              <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="minimal">Minimal</SelectItem>
+                <SelectItem value="modern">Modern</SelectItem>
+                <SelectItem value="executive">Executive</SelectItem>
+                <SelectItem value="compact">Compact</SelectItem>
+              </SelectContent>
+            </Select>
+          </Row>
+          <div>
+            <Label className="text-xs text-muted-foreground">Divider thickness ({readNum(item, "divider_thickness", 2)}px)</Label>
+            <Slider className="mt-2" min={1} max={8} step={1}
+              value={[readNum(item, "divider_thickness", 2)]}
+              onValueChange={([v]) => onChange({ divider_thickness: v })}
+            />
+          </div>
+        </>
       )}
+
       {item.kind === "quick_actions" && (
-        <QuickActionsProps item={item as CanvasItem<"quick_actions">} onChange={onChange as (p: Partial<QuickActionProps>) => void} />
+        <>
+          <Row label="Columns">
+            <Select value={String(readNum(item, "columns", 3))} onValueChange={(v) => onChange({ columns: Number(v) })}>
+              <SelectTrigger className="h-8 w-20 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2">2</SelectItem>
+                <SelectItem value="3">3</SelectItem>
+                <SelectItem value="4">4</SelectItem>
+              </SelectContent>
+            </Select>
+          </Row>
+          <Row label="Orientation">
+            <Select value={readStr(item, "orientation", "grid")} onValueChange={(v) => onChange({ orientation: v })}>
+              <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="grid">Grid</SelectItem>
+                <SelectItem value="horizontal">Horizontal</SelectItem>
+              </SelectContent>
+            </Select>
+          </Row>
+        </>
       )}
+
       {item.kind === "balance_trend" && (
-        <ChartPropsPanel item={item as CanvasItem<"balance_trend">} onChange={onChange as (p: Partial<ChartProps>) => void} />
-      )}
-      {["recent_transactions","exchange_rates","cards","beneficiaries","notifications","faq","support"].includes(item.kind) && (
-        <GenericPropsPanel item={item as CanvasItem<"recent_transactions">} onChange={onChange as (p: Partial<GenericProps>) => void} />
+        <Row label="Chart size">
+          <Select value={readStr(item, "chart_size", "medium")} onValueChange={(v) => onChange({ chart_size: v })}>
+            <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="small">Small</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="large">Large</SelectItem>
+            </SelectContent>
+          </Select>
+        </Row>
       )}
     </div>
   );
@@ -651,154 +723,6 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     <div className="flex items-center justify-between gap-2">
       <Label className="text-xs text-muted-foreground">{label}</Label>
       <div>{children}</div>
-    </div>
-  );
-}
-
-function HeaderPropsPanel({ item, onChange }: { item: CanvasItem<"header">; onChange: (p: Partial<HeaderProps>) => void }) {
-  return (
-    <>
-      <Row label="Alignment">
-        <Select value={item.props.alignment ?? "left"} onValueChange={(v) => onChange({ alignment: v as HeaderProps["alignment"] })}>
-          <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="left">Left</SelectItem>
-            <SelectItem value="center">Center</SelectItem>
-            <SelectItem value="right">Right</SelectItem>
-          </SelectContent>
-        </Select>
-      </Row>
-      <Row label="Typography">
-        <Select value={item.props.typography ?? "lg"} onValueChange={(v) => onChange({ typography: v as HeaderProps["typography"] })}>
-          <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="sm">Small</SelectItem>
-            <SelectItem value="md">Medium</SelectItem>
-            <SelectItem value="lg">Large</SelectItem>
-            <SelectItem value="xl">Extra large</SelectItem>
-          </SelectContent>
-        </Select>
-      </Row>
-    </>
-  );
-}
-
-function SummaryPropsPanel({
-  item, onChange, brandPrimary,
-}: { item: CanvasItem<"account_summary">; onChange: (p: Partial<SummaryProps>) => void; brandPrimary: string }) {
-  const p = item.props;
-  return (
-    <>
-      <Row label="Density">
-        <Select value={p.density ?? "standard"} onValueChange={(v) => onChange({ density: v as SummaryProps["density"] })}>
-          <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="compact">Compact</SelectItem>
-            <SelectItem value="standard">Standard</SelectItem>
-          </SelectContent>
-        </Select>
-      </Row>
-      <div>
-        <Label className="text-xs text-muted-foreground">Divider thickness ({p.divider_thickness ?? 2}px)</Label>
-        <Slider className="mt-2" min={1} max={8} step={1}
-          value={[p.divider_thickness ?? 2]}
-          onValueChange={([v]) => onChange({ divider_thickness: v })}
-        />
-      </div>
-      <Row label="Divider color">
-        <Input type="color" className="h-8 w-14 p-0"
-          value={p.divider_color || brandPrimary}
-          onChange={(e) => onChange({ divider_color: e.target.value })}
-        />
-      </Row>
-      <div>
-        <Label className="text-xs text-muted-foreground">Padding ({p.padding ?? 16}px)</Label>
-        <Slider className="mt-2" min={0} max={48} step={2}
-          value={[p.padding ?? 16]}
-          onValueChange={([v]) => onChange({ padding: v })}
-        />
-      </div>
-      <Row label="Copy button">
-        <Switch checked={p.copy_button !== false} onCheckedChange={(v) => onChange({ copy_button: v })} />
-      </Row>
-      <Row label="Hide-balance button">
-        <Switch checked={p.hide_balance_button !== false} onCheckedChange={(v) => onChange({ hide_balance_button: v })} />
-      </Row>
-    </>
-  );
-}
-
-function QuickActionsProps({ item, onChange }: { item: CanvasItem<"quick_actions">; onChange: (p: Partial<QuickActionProps>) => void }) {
-  const p = item.props;
-  return (
-    <>
-      <Row label="Columns">
-        <Select value={String(p.columns ?? 3)} onValueChange={(v) => onChange({ columns: Number(v) as QuickActionProps["columns"] })}>
-          <SelectTrigger className="h-8 w-20 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="2">2</SelectItem>
-            <SelectItem value="3">3</SelectItem>
-            <SelectItem value="4">4</SelectItem>
-          </SelectContent>
-        </Select>
-      </Row>
-      <Row label="Orientation">
-        <Select value={p.orientation ?? "grid"} onValueChange={(v) => onChange({ orientation: v as QuickActionProps["orientation"] })}>
-          <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="grid">Grid</SelectItem>
-            <SelectItem value="horizontal">Horizontal</SelectItem>
-          </SelectContent>
-        </Select>
-      </Row>
-      <div>
-        <Label className="text-xs text-muted-foreground">Icon size ({p.icon_size ?? 20}px)</Label>
-        <Slider className="mt-2" min={14} max={32} step={1}
-          value={[p.icon_size ?? 20]}
-          onValueChange={([v]) => onChange({ icon_size: v })}
-        />
-      </div>
-      <Row label="Show labels">
-        <Switch checked={p.show_labels !== false} onCheckedChange={(v) => onChange({ show_labels: v })} />
-      </Row>
-    </>
-  );
-}
-
-function ChartPropsPanel({ item, onChange }: { item: CanvasItem<"balance_trend">; onChange: (p: Partial<ChartProps>) => void }) {
-  const p = item.props;
-  return (
-    <>
-      <Row label="Chart size">
-        <Select value={p.chart_size ?? "medium"} onValueChange={(v) => onChange({ chart_size: v as ChartSize })}>
-          <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="small">Small</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="large">Large</SelectItem>
-          </SelectContent>
-        </Select>
-      </Row>
-      <div>
-        <Label className="text-xs text-muted-foreground">Padding ({p.padding ?? 16}px)</Label>
-        <Slider className="mt-2" min={0} max={48} step={2}
-          value={[p.padding ?? 16]}
-          onValueChange={([v]) => onChange({ padding: v })}
-        />
-      </div>
-    </>
-  );
-}
-
-function GenericPropsPanel({ item, onChange }: { item: CanvasItem<"recent_transactions">; onChange: (p: Partial<GenericProps>) => void }) {
-  const p = item.props;
-  return (
-    <div>
-      <Label className="text-xs text-muted-foreground">Padding ({p.padding ?? 16}px)</Label>
-      <Slider className="mt-2" min={0} max={48} step={2}
-        value={[p.padding ?? 16]}
-        onValueChange={([v]) => onChange({ padding: v })}
-      />
     </div>
   );
 }
@@ -826,79 +750,114 @@ const SAMPLE = {
 function RenderPreview({
   item, colors, fontHeading, bankName, currency,
 }: {
-  item: CanvasItem;
+  item: DashboardLayoutItem;
   colors: { primary: string; secondary: string; accent: string };
   fontHeading: string;
   bankName: string;
   currency: string;
 }) {
-  if (item.props.visible === false) {
+  if (item.visible === false) {
     return <div className="rounded border border-dashed p-3 text-center text-xs text-muted-foreground">{COMPONENT_META[item.kind].label} — hidden</div>;
   }
   switch (item.kind) {
     case "header": {
-      const p = item.props as HeaderProps;
-      const size = { sm: "text-base", md: "text-lg", lg: "text-2xl", xl: "text-3xl" }[p.typography ?? "lg"];
-      const align = { left: "text-left", center: "text-center", right: "text-right" }[p.alignment ?? "left"];
+      const style = readStr(item, "style", "welcome");
+      const align = { left: "text-left", center: "text-center", right: "text-right" }[readStr(item, "alignment", "left")];
+      if (style === "photo") {
+        return (
+          <div className={cn("py-3 flex items-center gap-3", align)} style={{ fontFamily: fontHeading, color: colors.primary }}>
+            <div className="h-10 w-10 rounded-full grid place-items-center text-white text-sm font-bold" style={{ backgroundColor: colors.secondary }}>
+              {SAMPLE.first_name[0]}
+            </div>
+            <div>
+              <div className="font-semibold">{SAMPLE.first_name} {SAMPLE.last_name}</div>
+              <span className="inline-block rounded-full px-2 py-0.5 text-[10px]" style={{ backgroundColor: `${colors.accent}22`, color: colors.accent }}>Verified</span>
+            </div>
+          </div>
+        );
+      }
+      if (style === "minimal") {
+        return (
+          <div className={cn("py-3", align)} style={{ fontFamily: fontHeading, color: colors.primary }}>
+            <div className="text-xs opacity-70">Customer</div>
+            <div className="font-mono">{SAMPLE.customer_number}</div>
+          </div>
+        );
+      }
       return (
         <div className={cn("py-3", align)} style={{ fontFamily: fontHeading, color: colors.primary }}>
-          <div className={cn("font-bold", size)}>{bankName}</div>
-          <div className="text-xs opacity-70">Online Banking</div>
+          <div className="text-xs opacity-70">Welcome Back</div>
+          <div className="text-xl font-bold">{SAMPLE.first_name} {SAMPLE.last_name}</div>
+          <div className="text-xs opacity-70">{SAMPLE.customer_number} · {bankName}</div>
         </div>
       );
     }
     case "account_summary": {
-      const p = item.props as SummaryProps;
-      const dividerColor = p.divider_color || colors.primary;
-      const thick = p.divider_thickness ?? 2;
+      const style = readStr(item, "style", "minimal");
+      const thick = readNum(item, "divider_thickness", 2);
+      if (style === "compact") {
+        return (
+          <div className="flex items-center justify-between p-3">
+            <div>
+              <div className="text-xs opacity-70">Balance</div>
+              <div className="text-xl font-bold" style={{ color: colors.primary }}>{currency} {SAMPLE.balance.toLocaleString()}</div>
+            </div>
+            <div className="font-mono text-xs">{SAMPLE.account_number}</div>
+          </div>
+        );
+      }
+      if (style === "modern") {
+        return (
+          <div className="rounded-xl p-4 text-white" style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}>
+            <div className="text-xs opacity-80">Available balance</div>
+            <div className="text-2xl font-bold">{currency} {SAMPLE.balance.toLocaleString()}</div>
+            <div className="mt-2 font-mono text-xs opacity-80">{SAMPLE.account_number}</div>
+          </div>
+        );
+      }
+      if (style === "executive") {
+        return (
+          <div className="p-4">
+            <div className="text-[10px] uppercase tracking-widest opacity-60">Executive Account</div>
+            <div className="mt-1 text-3xl font-bold" style={{ color: colors.primary, fontFamily: fontHeading }}>
+              {currency} {SAMPLE.balance.toLocaleString()}
+            </div>
+            <div className="mt-2 h-px" style={{ background: colors.accent }} />
+            <div className="mt-2 grid grid-cols-2 text-xs">
+              <div><div className="opacity-60">Account</div><div className="font-mono">{SAMPLE.account_number}</div></div>
+              <div><div className="opacity-60">Holder</div><div>{SAMPLE.first_name} {SAMPLE.last_name}</div></div>
+            </div>
+          </div>
+        );
+      }
+      // minimal (divider-based)
       return (
-        <div style={{ padding: p.padding ?? 16 }}>
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <div className="text-xs opacity-70">Good afternoon,</div>
-              <div className="truncate text-lg font-semibold" style={{ color: colors.primary, fontFamily: fontHeading }}>
-                {SAMPLE.first_name} {SAMPLE.last_name}
-              </div>
-              <div className="text-xs opacity-70">{SAMPLE.customer_number}</div>
-            </div>
-            <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ backgroundColor: `${colors.accent}22`, color: colors.accent }}>Active</span>
+        <div className="p-3">
+          <div className="my-2" style={{ borderTop: `${thick}px solid ${colors.primary}` }} />
+          <div className="text-xs opacity-70">Available balance</div>
+          <div className="text-2xl font-bold tabular-nums" style={{ color: colors.primary }}>
+            {currency} {SAMPLE.balance.toLocaleString()}
           </div>
-          <div className="my-3" style={{ borderTop: `${thick}px solid ${dividerColor}` }} />
-          <div className={cn("grid gap-3", p.density === "compact" ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-2")}>
-            <div>
-              <div className="text-xs opacity-70">Available balance</div>
-              <div className="text-2xl font-bold tabular-nums" style={{ color: colors.primary }}>
-                {currency} {SAMPLE.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </div>
-              {p.hide_balance_button && <button className="mt-1 text-xs underline opacity-70">Hide balance</button>}
-            </div>
-            <div>
-              <div className="text-xs opacity-70">Account number</div>
-              <div className="font-mono text-sm">{SAMPLE.account_number}</div>
-              {p.copy_button && <button className="mt-1 text-xs underline opacity-70">Copy</button>}
-            </div>
-          </div>
-          <div className="mt-3" style={{ borderTop: `${thick}px solid ${dividerColor}` }} />
+          <div className="my-2" style={{ borderTop: `${thick}px solid ${colors.primary}` }} />
+          <div className="font-mono text-sm">{SAMPLE.account_number}</div>
         </div>
       );
     }
     case "quick_actions": {
-      const p = item.props as QuickActionProps;
+      const columns = readNum(item, "columns", 3);
+      const orientation = readStr(item, "orientation", "grid");
       const actions = ["Transfer", "Pay", "Cards", "Statements", "Beneficiaries", "Support"];
-      const colClass = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" }[p.columns ?? 3];
-      const cols = p.orientation === "horizontal" ? "flex flex-wrap gap-2" : `grid gap-3 ${colClass}`;
+      const colClass = ({ 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" } as Record<number, string>)[columns] ?? "grid-cols-3";
+      const cls = orientation === "horizontal" ? "flex flex-wrap gap-2" : `grid gap-3 ${colClass}`;
       return (
         <div className="py-3">
-          <div className={cols}>
+          <div className={cls}>
             {actions.map((a) => (
               <div key={a} className="flex flex-col items-center gap-1 rounded-md border p-3 text-center">
-                <div className="grid place-items-center rounded-full" style={{
-                  width: (p.icon_size ?? 20) + 16, height: (p.icon_size ?? 20) + 16,
-                  backgroundColor: `${colors.primary}12`, color: colors.primary,
-                }}>
-                  <Zap style={{ width: p.icon_size ?? 20, height: p.icon_size ?? 20 }} />
+                <div className="grid h-9 w-9 place-items-center rounded-full" style={{ backgroundColor: `${colors.primary}12`, color: colors.primary }}>
+                  <Zap className="h-4 w-4" />
                 </div>
-                {(p.show_labels !== false) && <div className="text-xs">{a}</div>}
+                <div className="text-xs">{a}</div>
               </div>
             ))}
           </div>
@@ -907,7 +866,7 @@ function RenderPreview({
     }
     case "recent_transactions":
       return (
-        <div style={{ padding: (item.props as GenericProps).padding ?? 16 }}>
+        <div className="p-3">
           <div className="mb-2 text-sm font-semibold" style={{ color: colors.primary }}>Recent transactions</div>
           <ul className="divide-y">
             {SAMPLE.txns.map((t, i) => (
@@ -925,10 +884,9 @@ function RenderPreview({
         </div>
       );
     case "balance_trend": {
-      const p = item.props as ChartProps;
-      const h = { small: "h-12", medium: "h-20", large: "h-32" }[p.chart_size ?? "medium"];
+      const h = ({ small: "h-12", medium: "h-20", large: "h-32" } as Record<string, string>)[readStr(item, "chart_size", "medium")] ?? "h-20";
       return (
-        <div style={{ padding: p.padding ?? 16 }}>
+        <div className="p-3">
           <div className="mb-2 text-sm font-semibold" style={{ color: colors.primary }}>Balance trend</div>
           <svg viewBox="0 0 200 60" preserveAspectRatio="none" className={cn("w-full", h)}>
             <polyline fill="none" strokeWidth="2" stroke={colors.primary}
@@ -939,7 +897,7 @@ function RenderPreview({
     }
     case "exchange_rates":
       return (
-        <div style={{ padding: (item.props as GenericProps).padding ?? 16 }}>
+        <div className="p-3">
           <div className="mb-2 text-sm font-semibold" style={{ color: colors.primary }}>Exchange rates</div>
           <ul className="grid grid-cols-3 gap-2 text-center text-xs">
             {SAMPLE.rates.map((r) => (
@@ -953,7 +911,7 @@ function RenderPreview({
       );
     case "cards":
       return (
-        <div style={{ padding: (item.props as GenericProps).padding ?? 16 }}>
+        <div className="p-3">
           <div className="mb-2 text-sm font-semibold" style={{ color: colors.primary }}>Cards</div>
           <div className="flex h-24 items-end justify-between rounded-xl p-3 text-white"
             style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}>
@@ -964,7 +922,7 @@ function RenderPreview({
       );
     case "beneficiaries":
       return (
-        <div style={{ padding: (item.props as GenericProps).padding ?? 16 }}>
+        <div className="p-3">
           <div className="mb-2 text-sm font-semibold" style={{ color: colors.primary }}>Beneficiaries</div>
           <div className="flex gap-3 text-xs">
             {["JD","MP","AK"].map((i) => (
@@ -978,7 +936,7 @@ function RenderPreview({
       );
     case "notifications":
       return (
-        <div style={{ padding: (item.props as GenericProps).padding ?? 16 }}>
+        <div className="p-3">
           <div className="mb-2 text-sm font-semibold" style={{ color: colors.primary }}>Notifications</div>
           <ul className="space-y-1 text-sm">
             <li>New card shipped</li>
@@ -988,14 +946,14 @@ function RenderPreview({
       );
     case "faq":
       return (
-        <div style={{ padding: (item.props as GenericProps).padding ?? 16 }}>
+        <div className="p-3">
           <div className="mb-2 text-sm font-semibold" style={{ color: colors.primary }}>FAQ</div>
           <div className="text-xs opacity-80">Answers to common questions about your account.</div>
         </div>
       );
     case "support":
       return (
-        <div style={{ padding: (item.props as GenericProps).padding ?? 16 }}>
+        <div className="p-3">
           <div className="mb-2 text-sm font-semibold" style={{ color: colors.primary }}>Support</div>
           <div className="text-xs opacity-80">Chat with an agent or submit a ticket.</div>
         </div>

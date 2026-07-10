@@ -15,6 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import type { WebsiteManifest } from "@/lib/rendering/types";
+import { defaultDashboardLayout, type DashboardComponentKind, type DashboardLayout, type WidthSize } from "@/lib/dashboard-layout/types";
 import type { CustomerSession, CustomerAccount } from "@/lib/customer/types";
 import { isNavEnabled } from "@/lib/customer/product-gating";
 import {
@@ -305,8 +306,41 @@ function DashboardPage() {
   const softText = "text-slate-500";
   const labelText = "text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400";
 
+  // Layout-driven rendering (Phase 3): if the bank publishes a dashboard
+  // layout via the Designer, render sections in that order/width/visibility.
+  // Otherwise fall through to the existing default dashboard below.
+  const publishedLayout = (manifest as unknown as { dashboard_layout?: DashboardLayout })
+    .dashboard_layout;
+  if (publishedLayout && Array.isArray(publishedLayout.items) && publishedLayout.items.length) {
+    return (
+      <LayoutDrivenDashboard
+        layout={publishedLayout}
+        slug={slug}
+        currency={currency}
+        balance={balance}
+        balanceVisible={balanceVisible}
+        setBalanceVisible={setBalanceVisible}
+        session={session}
+        manifest={manifest}
+        acctNumber={acctNumber}
+        acctMasked={acctMasked}
+        transactions={transactions}
+        trend={trend}
+        fxRates={fxRates}
+        fxLoading={fxQ.isLoading}
+        fxError={fxQ.isError}
+        fxUpdatedAt={fxUpdatedAt}
+        cards={cards}
+        beneficiaries={beneficiaries}
+        restrictions={restrictions}
+        onCopy={copyText}
+      />
+    );
+  }
+
   return (
     <div className="space-y-10">
+
       {restrictions.length > 0 && (
         <div className="flex items-start gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           <ShieldAlert className="mt-0.5 h-4 w-4" />
