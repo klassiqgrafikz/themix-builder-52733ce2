@@ -173,17 +173,6 @@ function DashboardPage() {
     } catch { /* ignore */ }
   }, [balanceVisible, slug]);
 
-  const qc = useQueryClient();
-  const doVerify = useServerFn(simulateVerifyEmail);
-  const verifyMut = useMutation({
-    mutationFn: () => doVerify({ data: { slug } }),
-    onSuccess: () => {
-      toast.success("Email verified (simulation)");
-      qc.invalidateQueries();
-      window.location.reload();
-    },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Verification failed"),
-  });
 
   const txFn = useServerFn(customerListTransactions);
   const notifFn = useServerFn(customerListNotifications);
