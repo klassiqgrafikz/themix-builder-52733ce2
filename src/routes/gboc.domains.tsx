@@ -300,7 +300,11 @@ function Wizard({
   });
 
   const verifyMut = useMutation({
-    mutationFn: () => verifyFn({ data: { bank_id: bankId } }),
+    mutationFn: () =>
+      verifyFn({ data: { bank_id: bankId } }) as unknown as Promise<{
+        domain: BankDomain;
+        diagnostics: DomainDiagnostics;
+      }>,
     onSuccess: (res) => {
       setDiagnostics(res.diagnostics);
       setLastCheckedAt(Date.now());
@@ -324,7 +328,8 @@ function Wizard({
   });
 
   const diagnoseMut = useMutation({
-    mutationFn: () => diagnoseFn({ data: { bank_id: bankId } }),
+    mutationFn: () =>
+      diagnoseFn({ data: { bank_id: bankId } }) as unknown as Promise<DomainDiagnostics | null>,
     onSuccess: (res) => {
       if (res) {
         setDiagnostics(res);
