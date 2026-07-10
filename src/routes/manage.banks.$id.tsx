@@ -29,7 +29,7 @@ import type {
   RenderStatus,
   WebsiteManifest,
 } from "@/lib/bank-builder.types";
-import { RequireAuth } from "@/components/launch/require-auth";
+import { PlatformPinGate } from "@/components/platform/pin-gate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,9 +72,9 @@ export const Route = createFileRoute("/manage/banks/$id")({
 
 function BankOverviewPage() {
   return (
-    <RequireAuth>
+    <PlatformPinGate area="Bank Management">
       <BankOverview />
-    </RequireAuth>
+    </PlatformPinGate>
   );
 }
 

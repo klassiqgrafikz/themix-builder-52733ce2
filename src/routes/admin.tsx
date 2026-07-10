@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { gbocListBanks } from "@/lib/gboc/operations.functions";
 import { ADMIN_SECTIONS } from "@/lib/bank-builder.types";
-import { RequireAuth } from "@/components/launch/require-auth";
+
 import { PlatformPinGate } from "@/components/platform/pin-gate";
 import { useSelectedBankId } from "@/lib/admin/selected-bank";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,8 +26,7 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   const [open, setOpen] = useState(false);
   return (
-    <RequireAuth>
-      <PlatformPinGate area="Global Admin">
+    <PlatformPinGate area="Global Admin">
       <div className="min-h-screen bg-muted/30">
         <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
           <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3">
@@ -64,8 +63,7 @@ function AdminLayout() {
           </main>
         </div>
       </div>
-      </PlatformPinGate>
-    </RequireAuth>
+    </PlatformPinGate>
   );
 }
 

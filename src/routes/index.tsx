@@ -29,21 +29,18 @@ function Index() {
           Launch fully branded tenant banks from the Blueprint Library, then
           operate every bank from one centralized administration portal.
         </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          <Button asChild size="lg">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+          <Button asChild size="lg" className="w-full">
             <Link to="/launch">Launch New Bank</Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
+          <Button asChild variant="outline" size="lg" className="w-full">
             <Link to="/admin">Global Admin</Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
+          <Button asChild variant="outline" size="lg" className="w-full">
             <Link to="/gboc">Operations Center</Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
+          <Button asChild variant="outline" size="lg" className="w-full">
             <Link to="/products">Products Catalog</Link>
-          </Button>
-          <Button asChild variant="ghost" size="lg">
-            <Link to="/auth">Sign in</Link>
           </Button>
         </div>
       </div>
