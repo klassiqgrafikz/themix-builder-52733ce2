@@ -2,10 +2,11 @@ import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-r
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listDrafts } from "@/lib/bank-builder.functions";
-import { ADMIN_SECTIONS, type BankDraft } from "@/lib/bank-builder.types";
+import { gbocListBanks } from "@/lib/gboc/operations.functions";
+import { ADMIN_SECTIONS } from "@/lib/bank-builder.types";
 import { RequireAuth } from "@/components/launch/require-auth";
 import { PlatformPinGate } from "@/components/platform/pin-gate";
+import { useSelectedBankId } from "@/lib/admin/selected-bank";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
