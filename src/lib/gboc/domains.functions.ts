@@ -150,9 +150,16 @@ function subdomainLabel(domain: string): string {
 
 function buildDnsRecords(domain: string, token: string): DnsRecord[] {
   const kind = classifyDomain(domain);
+  // Most DNS UIs (Namecheap, GoDaddy, Cloudflare, Hostinger, Porkbun,
+  // DigitalOcean, Squarespace) expect the "short" host and append the zone
+  // automatically. Route53 / Google Cloud DNS / Azure DNS accept either.
+  // We display the short form and also expose the FQDN as an alternative.
   const txt: DnsRecord = {
     type: "TXT",
-    host: `_themix.${domain}`,
+    host: "_themix",
+    host_fqdn: `_themix.${domain}`,
+    host_note:
+      `Enter "_themix" in the Host/Name field. If your DNS provider requires the fully-qualified name, use "_themix.${domain}" instead. Never enter both.`,
     value: `themix-verify=${token}`,
     ttl: 3600,
     purpose: "Proves ownership of the domain during verification.",
@@ -162,6 +169,7 @@ function buildDnsRecords(domain: string, token: string): DnsRecord[] {
       ...PLATFORM_A_RECORDS.map<DnsRecord>((ip) => ({
         type: "A",
         host: "@",
+        host_fqdn: domain,
         value: ip,
         ttl: 3600,
         purpose: "Points the apex domain to TheMixWeb's edge.",
@@ -173,6 +181,7 @@ function buildDnsRecords(domain: string, token: string): DnsRecord[] {
     {
       type: "CNAME",
       host: subdomainLabel(domain),
+      host_fqdn: domain,
       value: DNS_TARGET,
       ttl: 3600,
       purpose: "Routes the subdomain to your bank on TheMixWeb.",
@@ -180,6 +189,7 @@ function buildDnsRecords(domain: string, token: string): DnsRecord[] {
     txt,
   ];
 }
+
 
 type DomainRow = {
   id: string;
