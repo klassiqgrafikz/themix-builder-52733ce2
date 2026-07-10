@@ -256,7 +256,7 @@ function DashboardPage() {
     }
   };
 
-  const dividerColor = { borderColor: "color-mix(in oklab, var(--tenant-primary) 22%, transparent)" };
+  const dividerColor = { borderColor: "color-mix(in oklab, var(--tenant-primary) 55%, transparent)" };
   const softText = "text-slate-500";
   const labelText = "text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400";
 
