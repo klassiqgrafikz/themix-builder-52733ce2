@@ -491,121 +491,188 @@ async function runDiagnostics(
   const kind = classifyDomain(domain);
   const checks: DiagnosticCheck[] = [];
   const expectedTxt = `themix-verify=${token}`;
+  const allLogs: DnsLogEntry[] = [];
+  const resolverResults: ResolverSummary[] = [];
+  const failureReasons: string[] = [];
 
-  // TXT
-  const txtRes = await dohLookup(`_themix.${domain}`, "TXT");
-  const txtValues = txtRes.answers.map((a) => a.data.replace(/^"|"$/g, ""));
-  const txtOk = txtValues.some((v) => v.split(/\s+/).includes(expectedTxt) || v === expectedTxt);
+  const summarizeResolvers = (m: MultiLookup): string => {
+    const bits = m.summary.per_resolver.map((r) =>
+      `${r.resolver}: ${r.status}${r.parsed.length ? ` [${r.parsed.join(", ")}]` : ""}`,
+    );
+    return bits.join(" · ");
+  };
+
+  // --- TXT verification (multi-resolver) ------------------------------------
+  const txtHost = `_themix.${domain}`;
+  const txt = await multiLookup(txtHost, "TXT");
+  allLogs.push(...txt.logs);
+  resolverResults.push(txt.summary);
+  const txtValues = txt.union;
+  const txtMatch = (v: string): boolean => {
+    const clean = v.replace(/"/g, "").replace(/\s+/g, "");
+    return clean === expectedTxt || clean.split(/[,;]/).includes(expectedTxt);
+  };
+  const resolversSawToken = txt.summary.per_resolver.filter((r) =>
+    r.parsed.some(txtMatch),
+  );
+  const txtOk = resolversSawToken.length === txt.successful && txt.successful > 0;
+  const txtPartial = resolversSawToken.length > 0 && !txtOk;
+  const anyNx = txt.logs.some((l) => l.status === "nxdomain");
+  const allNetErr = txt.successful === 0;
+  let txtStatus: DiagnosticStatus = "pass";
+  let txtMessage = `Verification token found at ${txtHost} on all ${txt.successful} resolvers.`;
+  if (!txtOk) {
+    if (txtPartial) {
+      txtStatus = "warn";
+      txtMessage = `Resolver disagreement: ${resolversSawToken.map((r) => r.resolver).join(", ")} see the token, others do not yet. DNS is still propagating — retrying automatically.`;
+      failureReasons.push("resolver_disagreement");
+    } else if (txtValues.length > 0) {
+      txtStatus = "fail";
+      txtMessage = `TXT record at ${txtHost} exists but the value does not match. Expected "${expectedTxt}", found "${txtValues.join('", "')}". Update the TXT record value and re-verify.`;
+      failureReasons.push("txt_value_mismatch");
+    } else if (allNetErr) {
+      txtStatus = "pending";
+      txtMessage = `Could not reach any DNS resolver for ${txtHost}. Retrying automatically.`;
+      failureReasons.push("resolvers_unreachable");
+    } else if (anyNx) {
+      txtStatus = "fail";
+      txtMessage = `No TXT record found at ${txtHost} (NXDOMAIN). Add the TXT record shown below and wait for propagation. Resolver detail: ${summarizeResolvers(txt)}.`;
+      failureReasons.push("txt_missing");
+    } else {
+      txtStatus = "pending";
+      txtMessage = `No TXT record found at ${txtHost} yet. DNS may still be propagating. Resolver detail: ${summarizeResolvers(txt)}.`;
+      failureReasons.push("txt_propagating");
+    }
+  }
   checks.push({
     key: "txt",
     label: "TXT verification",
-    status: txtOk ? "pass" : "fail",
-    message: txtOk
-      ? `Verification token found at _themix.${domain}.`
-      : txtValues.length
-        ? `TXT record at _themix.${domain} does not contain the expected token.`
-        : `No TXT record found at _themix.${domain}. DNS may still be propagating.`,
+    status: txtStatus,
+    message: txtMessage,
     expected: [expectedTxt],
     found: txtValues,
   });
 
-  // CNAME (subdomain) or A (apex)
+  // --- CNAME (subdomain) or A (apex) ----------------------------------------
   let resolvedA: string[] = [];
   let resolvedCname: string[] = [];
-  let ttl: number | null = txtRes.ttl;
+  let ttl: number | null = txt.ttl;
 
   if (kind === "subdomain") {
-    const cnameRes = await dohLookup(domain, "CNAME");
-    resolvedCname = cnameRes.answers.map((a) => a.data.replace(/\.$/, "").toLowerCase());
-    ttl = ttl ?? cnameRes.ttl;
-    const cnameOk = resolvedCname.some((v) => v === DNS_TARGET.toLowerCase());
+    const cname = await multiLookup(domain, "CNAME");
+    allLogs.push(...cname.logs);
+    resolverResults.push(cname.summary);
+    resolvedCname = cname.union;
+    ttl = ttl ?? cname.ttl;
+    const target = DNS_TARGET.toLowerCase();
+    const resolversOk = cname.summary.per_resolver.filter((r) =>
+      r.parsed.some((v) => v === target),
+    );
+    const cnameOk = resolversOk.length === cname.successful && cname.successful > 0;
+    const cnamePartial = resolversOk.length > 0 && !cnameOk;
+    let cnStatus: DiagnosticStatus = "pass";
+    let cnMsg = `CNAME correctly points to ${DNS_TARGET} on all ${cname.successful} resolvers.`;
+    if (!cnameOk) {
+      if (cnamePartial) {
+        cnStatus = "warn";
+        cnMsg = `CNAME is propagating: ${resolversOk.map((r) => r.resolver).join(", ")} return ${DNS_TARGET}; others still cache the old value (${summarizeResolvers(cname)}).`;
+        failureReasons.push("cname_propagating");
+      } else if (resolvedCname.length > 0) {
+        cnStatus = "fail";
+        cnMsg = `CNAME points to ${resolvedCname.join(", ")}. Expected ${DNS_TARGET}. Update the CNAME target at your DNS provider.`;
+        failureReasons.push("cname_wrong_target");
+      } else if (cname.successful === 0) {
+        cnStatus = "pending";
+        cnMsg = `Could not reach any DNS resolver for ${domain}. Retrying.`;
+        failureReasons.push("resolvers_unreachable");
+      } else {
+        cnStatus = "pending";
+        cnMsg = `No CNAME record found for ${domain} yet. DNS may still be propagating. Resolver detail: ${summarizeResolvers(cname)}.`;
+        failureReasons.push("cname_missing");
+      }
+    }
     checks.push({
-      key: "cname",
-      label: "CNAME target",
-      status: cnameOk ? "pass" : resolvedCname.length ? "fail" : "pending",
-      message: cnameOk
-        ? `CNAME correctly points to ${DNS_TARGET}.`
-        : resolvedCname.length
-          ? `CNAME points to ${resolvedCname.join(", ")}. Expected ${DNS_TARGET}.`
-          : `No CNAME record found for ${domain}. DNS may still be propagating.`,
-      expected: [DNS_TARGET],
-      found: resolvedCname,
+      key: "cname", label: "CNAME target",
+      status: cnStatus, message: cnMsg,
+      expected: [DNS_TARGET], found: resolvedCname,
     });
-    // Also resolve A (via CNAME chain) for reachability info.
-    const aRes = await dohLookup(domain, "A");
-    resolvedA = aRes.answers.map((a) => a.data);
+    // Chase A for reachability, but do not gate on it.
+    const aChase = await multiLookup(domain, "A");
+    allLogs.push(...aChase.logs);
+    resolvedA = aChase.union;
   } else {
-    const aRes = await dohLookup(domain, "A");
-    resolvedA = aRes.answers.map((a) => a.data);
-    ttl = ttl ?? aRes.ttl;
+    const a = await multiLookup(domain, "A");
+    allLogs.push(...a.logs);
+    resolverResults.push(a.summary);
+    resolvedA = a.union;
+    ttl = ttl ?? a.ttl;
     const expected = new Set(PLATFORM_A_RECORDS);
-    const matches = resolvedA.filter((ip) => expected.has(ip));
+    const resolversOk = a.summary.per_resolver.filter(
+      (r) => r.parsed.length > 0 && r.parsed.every((ip) => expected.has(ip)),
+    );
+    const aOk = resolversOk.length === a.successful && a.successful > 0 && resolvedA.length > 0;
+    const aPartial = resolversOk.length > 0 && !aOk;
     const wrong = resolvedA.filter((ip) => !expected.has(ip));
-    const aOk = resolvedA.length > 0 && wrong.length === 0;
+    let aStatus: DiagnosticStatus = "pass";
+    let aMsg = `A record correctly points to ${resolvedA.join(", ")} on all ${a.successful} resolvers.`;
+    if (!aOk) {
+      if (aPartial) {
+        aStatus = "warn";
+        aMsg = `A record is propagating: ${resolversOk.map((r) => r.resolver).join(", ")} are correct; others still return old values (${summarizeResolvers(a)}).`;
+        failureReasons.push("a_propagating");
+      } else if (wrong.length > 0) {
+        aStatus = "fail";
+        aMsg = `A record points to ${resolvedA.join(", ")}. Expected ${PLATFORM_A_RECORDS.join(", ")}. Remove old A records and add the ones shown below.`;
+        failureReasons.push("a_wrong_target");
+      } else if (a.successful === 0) {
+        aStatus = "pending";
+        aMsg = `Could not reach any DNS resolver for ${domain}. Retrying.`;
+        failureReasons.push("resolvers_unreachable");
+      } else {
+        aStatus = "pending";
+        aMsg = `No A record found for ${domain} yet. DNS may still be propagating. Resolver detail: ${summarizeResolvers(a)}.`;
+        failureReasons.push("a_missing");
+      }
+    }
     checks.push({
-      key: "a",
-      label: "A records",
-      status: aOk
-        ? "pass"
-        : resolvedA.length === 0
-          ? "pending"
-          : matches.length > 0
-            ? "warn"
-            : "fail",
-      message: aOk
-        ? `A record correctly points to ${resolvedA.join(", ")}.`
-        : resolvedA.length === 0
-          ? `No A record found for ${domain}. DNS may still be propagating.`
-          : `A record points to ${resolvedA.join(", ")}. Expected ${PLATFORM_A_RECORDS.join(", ")}.`,
-      expected: PLATFORM_A_RECORDS,
-      found: resolvedA,
+      key: "a", label: "A records",
+      status: aStatus, message: aMsg,
+      expected: PLATFORM_A_RECORDS, found: resolvedA,
     });
   }
 
-  // HTTP / HTTPS reachability
+  // --- HTTP / HTTPS reachability --------------------------------------------
   const [httpRes, httpsRes] = await Promise.all([
     httpProbe(`http://${domain}/`),
     httpProbe(`https://${domain}/`),
   ]);
   checks.push({
-    key: "https",
-    label: "HTTPS reachability",
+    key: "https", label: "HTTPS reachability",
     status:
-      httpsRes.status && httpsRes.status < 500
-        ? "pass"
-        : httpsRes.status === null
-          ? "pending"
-          : "fail",
-    message:
-      httpsRes.status === null
-        ? "HTTPS request did not complete. Certificate may still be issuing."
-        : `HTTPS responded with status ${httpsRes.status} in ${httpsRes.ms}ms.`,
+      httpsRes.status && httpsRes.status < 500 ? "pass" :
+      httpsRes.status === null ? "pending" : "fail",
+    message: httpsRes.status === null
+      ? "HTTPS request did not complete. Certificate may still be issuing."
+      : `HTTPS responded with status ${httpsRes.status} in ${httpsRes.ms}ms.`,
     found: httpsRes.status ? [String(httpsRes.status)] : [],
   });
   checks.push({
-    key: "http",
-    label: "HTTP reachability",
+    key: "http", label: "HTTP reachability",
     status:
-      httpRes.status && httpRes.status < 500
-        ? "pass"
-        : httpRes.status === null
-          ? "pending"
-          : "fail",
-    message:
-      httpRes.status === null
-        ? "HTTP request did not complete."
-        : `HTTP responded with status ${httpRes.status} in ${httpRes.ms}ms.`,
+      httpRes.status && httpRes.status < 500 ? "pass" :
+      httpRes.status === null ? "pending" : "fail",
+    message: httpRes.status === null
+      ? "HTTP request did not complete."
+      : `HTTP responded with status ${httpRes.status} in ${httpRes.ms}ms.`,
     found: httpRes.status ? [String(httpRes.status)] : [],
   });
 
-  // Routing: hit HTTPS and confirm the response body/headers correspond to
-  // this bank's tenant. We use a lightweight GET on the fallback slug marker.
+  // --- Routing check ---------------------------------------------------------
   let routingActive = false;
   if (httpsRes.status && httpsRes.status < 500) {
     try {
       const probe = await fetch(`https://${domain}/`, {
-        method: "GET",
-        redirect: "follow",
+        method: "GET", redirect: "follow",
         headers: { "user-agent": "themix-domain-verifier/1.0" },
       });
       const text = await probe.text();
@@ -617,8 +684,7 @@ async function runDiagnostics(
     }
   }
   checks.push({
-    key: "routing",
-    label: "Bank routing",
+    key: "routing", label: "Bank routing",
     status: routingActive ? "pass" : httpsRes.status ? "warn" : "pending",
     message: routingActive
       ? `Domain resolves to /banks/${expectedSlug ?? "…"}.`
@@ -627,7 +693,6 @@ async function runDiagnostics(
         : "Waiting for HTTPS to become reachable before checking routing.",
   });
 
-  // Propagation percentage — heuristic: pass=100 / (pass+fail+warn+pending).
   const total = checks.length;
   const passed = checks.filter((c) => c.status === "pass").length;
   const propagation = total ? Math.round((passed / total) * 100) : 0;
@@ -640,6 +705,8 @@ async function runDiagnostics(
     : anyFail
       ? "failed"
       : "propagating";
+
+  const nextRetryMs = overall === "propagating" ? 60_000 : overall === "failed" ? 300_000 : null;
 
   return {
     domain,
@@ -657,9 +724,14 @@ async function runDiagnostics(
       response_time_ms: httpsRes.ms ?? httpRes.ms,
       routing_active: routingActive,
       propagation_percent: propagation,
+      resolver_results: resolverResults,
+      dns_logs: allLogs,
+      next_retry_at: nextRetryMs ? new Date(Date.now() + nextRetryMs).toISOString() : null,
+      failure_reason: failureReasons[0] ?? null,
     },
   };
 }
+
 
 // --- Diagnose (read-only, does not update DB) -------------------------------
 export const diagnoseBankDomain = createServerFn({ method: "POST" })
