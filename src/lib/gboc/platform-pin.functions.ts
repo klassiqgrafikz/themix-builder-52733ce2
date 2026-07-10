@@ -15,10 +15,19 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createHash } from "node:crypto";
 
 const DEFAULT_PIN = "0499";
-// Namespaced under a versioned local-part so bootstrap doesn't collide with
-// any pre-existing test user under the same base name. Auto-confirm is on for
-// the project, so `signUp` immediately returns a usable account.
-const ADMIN_EMAIL = "themix-platform-admin-v1@themixweb.internal";
+// Platform admin credentials come from environment variables so the project
+// stays portable across Supabase instances (Lovable Cloud, self-hosted, etc.).
+// Configure these in your deployment environment (e.g. Vercel Project Settings
+// → Environment Variables):
+//   PLATFORM_ADMIN_EMAIL    — email of the shared platform-admin auth user
+//   PLATFORM_ADMIN_PASSWORD — password for that user
+// A sensible fallback email is used only when PLATFORM_ADMIN_EMAIL is unset,
+// to keep local dev frictionless. Production MUST set both variables.
+const FALLBACK_ADMIN_EMAIL = "themix-platform-admin-v1@themixweb.internal";
+
+function getAdminEmail(): string {
+  return process.env.PLATFORM_ADMIN_EMAIL?.trim() || FALLBACK_ADMIN_EMAIL;
+}
 
 function hash(pin: string): string {
   return createHash("sha256").update(pin, "utf8").digest("hex");
