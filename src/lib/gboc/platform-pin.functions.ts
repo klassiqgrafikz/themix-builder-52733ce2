@@ -73,7 +73,7 @@ async function ensurePlatformAdmin(password: string): Promise<void> {
 }
 
 async function mintAdminSession(password: string): Promise<AdminSession> {
-  const sb = createPublishableClient();
+  const sb = await createPublishableClient();
   const { data, error } = await sb.auth.signInWithPassword({
     email: ADMIN_EMAIL,
     password,
