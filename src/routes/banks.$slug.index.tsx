@@ -1,11 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { TenantGateway } from "@/lib/website/tenant-gateway";
+import type { WebsiteManifest } from "@/lib/rendering/types";
 
 export const Route = createFileRoute("/banks/$slug/")({
   component: TenantHomeRoute,
 });
 
 function TenantHomeRoute() {
-  const { bank } = Route.useLoaderData();
+  const { bank } = useLoaderData({ from: "/banks/$slug" }) as {
+    bank: { manifest: WebsiteManifest };
+  };
   return <TenantGateway manifest={bank.manifest} />;
 }
