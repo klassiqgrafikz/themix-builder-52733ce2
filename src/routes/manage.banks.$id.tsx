@@ -590,11 +590,8 @@ function BankProductsPanel({
     queryKey: ["bp-bank-products", draftId],
     queryFn: () => bankFn({ data: { draftId } }),
   });
-  const draftQ = useQuery<BankDraft | undefined>({
-    queryKey: ["bb-draft", draftId],
-    enabled: false,
-  });
-  const blueprintId = draftQ.data?.template_id ?? null;
+  const cachedDraft = qc.getQueryData<BankDraft>(["bb-draft", draftId]);
+  const blueprintId = cachedDraft?.template_id ?? null;
   const bpQ = useQuery({
     queryKey: ["bp-blueprint-products", blueprintId],
     queryFn: () => (blueprintId ? bpFn({ data: { blueprintId } }) : Promise.resolve([])),
