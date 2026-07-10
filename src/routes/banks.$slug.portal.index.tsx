@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useMatch } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -17,7 +17,6 @@ import {
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerSession, CustomerAccount } from "@/lib/customer/types";
 import { isNavEnabled } from "@/lib/customer/product-gating";
-import { simulateVerifyEmail } from "@/lib/customer/customer.functions";
 import {
   customerListNotifications,
   customerListRestrictions,
@@ -25,7 +24,6 @@ import {
 } from "@/lib/customer/activity.functions";
 import { listBeneficiaries } from "@/lib/customer/beneficiaries.functions";
 import { listCards } from "@/lib/customer/cards.functions";
-import { Button } from "@/components/ui/button";
 import {
   Accordion,
   AccordionContent,
@@ -45,7 +43,6 @@ import {
   ListOrdered,
   Send,
   ShieldAlert,
-  ShieldCheck,
   TrendingUp,
   Users,
   Wallet,
