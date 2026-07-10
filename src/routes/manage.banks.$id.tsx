@@ -46,6 +46,7 @@ import {
   PauseCircle,
   Trash2,
   History,
+  LayoutDashboard,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -444,6 +445,14 @@ function BankOverview() {
               onClick={() => navigate({ to: "/bank-builder", search: { draftId: id } })}
             >
               <Pencil className="mr-2 h-4 w-4" /> Edit configuration
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start"
+              onClick={() => navigate({ to: "/manage/banks/$id/dashboard-designer", params: { id } })}
+            >
+              <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard Layout Designer
+              <span className="ml-1">⭐</span>
             </Button>
             <Button
               variant="outline"

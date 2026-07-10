@@ -43,6 +43,7 @@ import { Route as BanksSlugLoginRouteImport } from './routes/banks.$slug.login'
 import { Route as BanksSlugForgotRouteImport } from './routes/banks.$slug.forgot'
 import { Route as BanksSlugPageRouteImport } from './routes/banks.$slug.$page'
 import { Route as BanksSlugPortalIndexRouteImport } from './routes/banks.$slug.portal.index'
+import { Route as ManageBanksIdDashboardDesignerRouteImport } from './routes/manage.banks.$id.dashboard-designer'
 import { Route as BanksSlugPortalTransferRouteImport } from './routes/banks.$slug.portal.transfer'
 import { Route as BanksSlugPortalTransactionsRouteImport } from './routes/banks.$slug.portal.transactions'
 import { Route as BanksSlugPortalSupportRouteImport } from './routes/banks.$slug.portal.support'
@@ -227,6 +228,12 @@ const BanksSlugPortalIndexRoute = BanksSlugPortalIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BanksSlugPortalRoute,
 } as any)
+const ManageBanksIdDashboardDesignerRoute =
+  ManageBanksIdDashboardDesignerRouteImport.update({
+    id: '/dashboard-designer',
+    path: '/dashboard-designer',
+    getParentRoute: () => ManageBanksIdRoute,
+  } as any)
 const BanksSlugPortalTransferRoute = BanksSlugPortalTransferRouteImport.update({
   id: '/transfer',
   path: '/transfer',
@@ -330,7 +337,7 @@ export interface FileRoutesByFullPath {
   '/banks/$slug/register': typeof BanksSlugRegisterRoute
   '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
-  '/manage/banks/$id': typeof ManageBanksIdRoute
+  '/manage/banks/$id': typeof ManageBanksIdRouteWithChildren
   '/banks/$slug/': typeof BanksSlugIndexRoute
   '/gboc/customers/': typeof GbocCustomersIndexRoute
   '/launch/$category/': typeof LaunchCategoryIndexRoute
@@ -345,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/banks/$slug/portal/support': typeof BanksSlugPortalSupportRoute
   '/banks/$slug/portal/transactions': typeof BanksSlugPortalTransactionsRouteWithChildren
   '/banks/$slug/portal/transfer': typeof BanksSlugPortalTransferRoute
+  '/manage/banks/$id/dashboard-designer': typeof ManageBanksIdDashboardDesignerRoute
   '/banks/$slug/portal/': typeof BanksSlugPortalIndexRoute
   '/api/public/branding/$draftId/$kind': typeof ApiPublicBrandingDraftIdKindRoute
   '/banks/$slug/portal/transactions/$id': typeof BanksSlugPortalTransactionsIdRoute
@@ -372,7 +380,7 @@ export interface FileRoutesByTo {
   '/banks/$slug/register': typeof BanksSlugRegisterRoute
   '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
-  '/manage/banks/$id': typeof ManageBanksIdRoute
+  '/manage/banks/$id': typeof ManageBanksIdRouteWithChildren
   '/banks/$slug': typeof BanksSlugIndexRoute
   '/gboc/customers': typeof GbocCustomersIndexRoute
   '/launch/$category': typeof LaunchCategoryIndexRoute
@@ -387,6 +395,7 @@ export interface FileRoutesByTo {
   '/banks/$slug/portal/support': typeof BanksSlugPortalSupportRoute
   '/banks/$slug/portal/transactions': typeof BanksSlugPortalTransactionsRouteWithChildren
   '/banks/$slug/portal/transfer': typeof BanksSlugPortalTransferRoute
+  '/manage/banks/$id/dashboard-designer': typeof ManageBanksIdDashboardDesignerRoute
   '/banks/$slug/portal': typeof BanksSlugPortalIndexRoute
   '/api/public/branding/$draftId/$kind': typeof ApiPublicBrandingDraftIdKindRoute
   '/banks/$slug/portal/transactions/$id': typeof BanksSlugPortalTransactionsIdRoute
@@ -422,7 +431,7 @@ export interface FileRoutesById {
   '/banks/$slug/register': typeof BanksSlugRegisterRoute
   '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
-  '/manage/banks/$id': typeof ManageBanksIdRoute
+  '/manage/banks/$id': typeof ManageBanksIdRouteWithChildren
   '/banks/$slug/': typeof BanksSlugIndexRoute
   '/gboc/customers/': typeof GbocCustomersIndexRoute
   '/launch/$category/': typeof LaunchCategoryIndexRoute
@@ -437,6 +446,7 @@ export interface FileRoutesById {
   '/banks/$slug/portal/support': typeof BanksSlugPortalSupportRoute
   '/banks/$slug/portal/transactions': typeof BanksSlugPortalTransactionsRouteWithChildren
   '/banks/$slug/portal/transfer': typeof BanksSlugPortalTransferRoute
+  '/manage/banks/$id/dashboard-designer': typeof ManageBanksIdDashboardDesignerRoute
   '/banks/$slug/portal/': typeof BanksSlugPortalIndexRoute
   '/api/public/branding/$draftId/$kind': typeof ApiPublicBrandingDraftIdKindRoute
   '/banks/$slug/portal/transactions/$id': typeof BanksSlugPortalTransactionsIdRoute
@@ -488,6 +498,7 @@ export interface FileRouteTypes {
     | '/banks/$slug/portal/support'
     | '/banks/$slug/portal/transactions'
     | '/banks/$slug/portal/transfer'
+    | '/manage/banks/$id/dashboard-designer'
     | '/banks/$slug/portal/'
     | '/api/public/branding/$draftId/$kind'
     | '/banks/$slug/portal/transactions/$id'
@@ -530,6 +541,7 @@ export interface FileRouteTypes {
     | '/banks/$slug/portal/support'
     | '/banks/$slug/portal/transactions'
     | '/banks/$slug/portal/transfer'
+    | '/manage/banks/$id/dashboard-designer'
     | '/banks/$slug/portal'
     | '/api/public/branding/$draftId/$kind'
     | '/banks/$slug/portal/transactions/$id'
@@ -579,6 +591,7 @@ export interface FileRouteTypes {
     | '/banks/$slug/portal/support'
     | '/banks/$slug/portal/transactions'
     | '/banks/$slug/portal/transfer'
+    | '/manage/banks/$id/dashboard-designer'
     | '/banks/$slug/portal/'
     | '/api/public/branding/$draftId/$kind'
     | '/banks/$slug/portal/transactions/$id'
@@ -593,7 +606,7 @@ export interface RootRouteChildren {
   LaunchRoute: typeof LaunchRouteWithChildren
   ProductsRoute: typeof ProductsRoute
   BanksSlugRoute: typeof BanksSlugRouteWithChildren
-  ManageBanksIdRoute: typeof ManageBanksIdRoute
+  ManageBanksIdRoute: typeof ManageBanksIdRouteWithChildren
   ApiPublicCustomerAvatarCustomerIdRoute: typeof ApiPublicCustomerAvatarCustomerIdRoute
   ApiPublicBrandingDraftIdKindRoute: typeof ApiPublicBrandingDraftIdKindRoute
 }
@@ -837,6 +850,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/banks/$slug/portal/'
       preLoaderRoute: typeof BanksSlugPortalIndexRouteImport
       parentRoute: typeof BanksSlugPortalRoute
+    }
+    '/manage/banks/$id/dashboard-designer': {
+      id: '/manage/banks/$id/dashboard-designer'
+      path: '/dashboard-designer'
+      fullPath: '/manage/banks/$id/dashboard-designer'
+      preLoaderRoute: typeof ManageBanksIdDashboardDesignerRouteImport
+      parentRoute: typeof ManageBanksIdRoute
     }
     '/banks/$slug/portal/transfer': {
       id: '/banks/$slug/portal/transfer'
@@ -1082,6 +1102,18 @@ const BanksSlugRouteWithChildren = BanksSlugRoute._addFileChildren(
   BanksSlugRouteChildren,
 )
 
+interface ManageBanksIdRouteChildren {
+  ManageBanksIdDashboardDesignerRoute: typeof ManageBanksIdDashboardDesignerRoute
+}
+
+const ManageBanksIdRouteChildren: ManageBanksIdRouteChildren = {
+  ManageBanksIdDashboardDesignerRoute: ManageBanksIdDashboardDesignerRoute,
+}
+
+const ManageBanksIdRouteWithChildren = ManageBanksIdRoute._addFileChildren(
+  ManageBanksIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -1091,7 +1123,7 @@ const rootRouteChildren: RootRouteChildren = {
   LaunchRoute: LaunchRouteWithChildren,
   ProductsRoute: ProductsRoute,
   BanksSlugRoute: BanksSlugRouteWithChildren,
-  ManageBanksIdRoute: ManageBanksIdRoute,
+  ManageBanksIdRoute: ManageBanksIdRouteWithChildren,
   ApiPublicCustomerAvatarCustomerIdRoute:
     ApiPublicCustomerAvatarCustomerIdRoute,
   ApiPublicBrandingDraftIdKindRoute: ApiPublicBrandingDraftIdKindRoute,
