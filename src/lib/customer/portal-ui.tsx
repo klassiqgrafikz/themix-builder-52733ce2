@@ -522,8 +522,12 @@ export function PortalShell({
         >
           {activeLabel}
         </div>
-        <div className="w-9" />
+        <NotificationBell slug={slug} tone="light" />
       </header>
+
+      <div className="fixed right-6 top-5 z-30 hidden md:block">
+        <NotificationBell slug={slug} tone="light" />
+      </div>
 
       {drawerOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
