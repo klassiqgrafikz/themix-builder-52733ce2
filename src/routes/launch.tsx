@@ -35,6 +35,6 @@ function LaunchLayout() {
           <Outlet />
         </main>
       </div>
-    </RequireAuth>
+    </PlatformPinGate>
   );
 }
