@@ -565,6 +565,20 @@ function Wizard({
 
           <DnsInstructionsCard row={row} provider={provider} />
 
+          <LifecycleTimeline
+            stage={stage}
+            timedOut={timedOut}
+            propagationStart={propagationStartRef.current}
+            onRetry={() => {
+              setTimedOut(false);
+              const startedAt = Date.now();
+              propagationStartRef.current = startedAt;
+              if (row?.domain) persistStart(bankId, row.domain, startedAt);
+              verifyMut.mutate();
+            }}
+          />
+
+
           <ChecklistCard
             row={row}
             diagnostics={diagnostics}
