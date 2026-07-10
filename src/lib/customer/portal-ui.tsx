@@ -290,14 +290,17 @@ export function PortalShell({
                 </div>
               </div>
             </Link>
-            <button
-              type="button"
-              className="ml-auto rounded p-2 md:hidden"
-              onClick={() => setDrawerOpen((v) => !v)}
-              aria-label="Toggle menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              <NotificationBell slug={slug} tone="light" />
+              <button
+                type="button"
+                className="rounded p-2 md:hidden"
+                onClick={() => setDrawerOpen((v) => !v)}
+                aria-label="Toggle menu"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </div>
           </div>
           <nav className="hidden overflow-x-auto border-t md:block">
             <div className="mx-auto flex max-w-[1280px] items-center gap-1 px-4">
