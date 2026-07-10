@@ -344,28 +344,133 @@ export const saveBankDomain = createServerFn({ method: "POST" })
   });
 
 // --- DNS lookups over DoH ---------------------------------------------------
+// --- Multi-resolver DNS-over-HTTPS ------------------------------------------
+// Query multiple public DoH resolvers in parallel so a stale cache or single
+// resolver outage cannot break verification. Every query is logged with the
+// raw response so operators can diagnose provider/DNSSEC/propagation issues.
 type DohAnswer = { name: string; type: number; TTL: number; data: string };
-type DohResponse = { Status: number; Answer?: DohAnswer[] };
+type DohResponse = { Status: number; Answer?: DohAnswer[]; Comment?: string };
 
-async function dohLookup(
-  name: string,
-  type: "A" | "TXT" | "CNAME",
-): Promise<{ answers: DohAnswer[]; ttl: number | null }> {
+const RESOLVERS: Array<{ id: string; name: string; url: string }> = [
+  { id: "cloudflare", name: "Cloudflare (1.1.1.1)", url: "https://cloudflare-dns.com/dns-query" },
+  { id: "google", name: "Google (8.8.8.8)", url: "https://dns.google/resolve" },
+  { id: "quad9", name: "Quad9 (9.9.9.9)", url: "https://dns.quad9.net:5053/dns-query" },
+];
+
+const TYPE_CODE = { A: 1, CNAME: 5, TXT: 16, NS: 2 } as const;
+
+function normalizeTxt(raw: string): string {
+  // Cloudflare returns TXT strings quoted, sometimes as multiple quoted parts
+  // ("part1" "part2") that per RFC 6763 concatenate without a separator.
+  // Google returns them unquoted. Some resolvers escape backslashes. Normalize
+  // to a single flat string so equality checks are provider-agnostic.
+  let s = raw.trim();
+  // If the whole string is a quoted list, concatenate quoted parts.
+  if (s.startsWith('"')) {
+    const parts = [...s.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((m) =>
+      m[1].replace(/\\(.)/g, "$1"),
+    );
+    if (parts.length) s = parts.join("");
+  }
+  return s;
+}
+
+async function queryResolver(
+  resolver: (typeof RESOLVERS)[number],
+  hostname: string,
+  type: keyof typeof TYPE_CODE,
+): Promise<DnsLogEntry> {
+  const started = Date.now();
+  const url = `${resolver.url}?name=${encodeURIComponent(hostname)}&type=${type}&_=${started}`;
   try {
-    // Add cache-buster so successive Force Recheck calls hit fresh resolvers.
-    const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}&_=${Date.now()}`;
     const res = await fetch(url, { headers: { Accept: "application/dns-json" } });
-    if (!res.ok) return { answers: [], ttl: null };
-    const body = (await res.json()) as DohResponse;
-    if (body.Status !== 0 || !body.Answer) return { answers: [], ttl: null };
-    const typeCode = type === "A" ? 1 : type === "CNAME" ? 5 : 16;
-    const answers = body.Answer.filter((a) => a.type === typeCode);
+    const text = await res.text();
+    const latency_ms = Date.now() - started;
+    if (!res.ok) {
+      return {
+        resolver: resolver.name, resolver_url: resolver.url, hostname, type,
+        status: "http_error", status_code: null, http_status: res.status,
+        ttl: null, raw: text.slice(0, 2000), parsed: [], latency_ms,
+        error: `HTTP ${res.status}`,
+      };
+    }
+    let body: DohResponse;
+    try { body = JSON.parse(text) as DohResponse; }
+    catch (e) {
+      return {
+        resolver: resolver.name, resolver_url: resolver.url, hostname, type,
+        status: "network_error", status_code: null, http_status: res.status,
+        ttl: null, raw: text.slice(0, 2000), parsed: [], latency_ms,
+        error: (e as Error).message,
+      };
+    }
+    const code = TYPE_CODE[type];
+    const answers = (body.Answer ?? []).filter((a) => a.type === code);
+    const parsed = answers.map((a) =>
+      type === "TXT" ? normalizeTxt(a.data) :
+      type === "CNAME" || type === "NS" ? a.data.replace(/\.$/, "").toLowerCase() :
+      a.data,
+    );
     const ttl = answers.length ? Math.min(...answers.map((a) => a.TTL)) : null;
-    return { answers, ttl };
-  } catch {
-    return { answers: [], ttl: null };
+    const status: DnsLogEntry["status"] =
+      body.Status === 0 ? "ok" :
+      body.Status === 3 ? "nxdomain" :
+      body.Status === 2 ? "servfail" : "network_error";
+    return {
+      resolver: resolver.name, resolver_url: resolver.url, hostname, type,
+      status, status_code: body.Status, http_status: res.status, ttl,
+      raw: JSON.stringify(body).slice(0, 4000), parsed, latency_ms,
+      error: body.Comment,
+    };
+  } catch (e) {
+    return {
+      resolver: resolver.name, resolver_url: resolver.url, hostname, type,
+      status: "network_error", status_code: null, http_status: null, ttl: null,
+      raw: "", parsed: [], latency_ms: Date.now() - started,
+      error: (e as Error).message,
+    };
   }
 }
+
+type MultiLookup = {
+  logs: DnsLogEntry[];
+  summary: ResolverSummary;
+  union: string[]; // any resolver saw this value
+  intersection: string[]; // all successful resolvers agree
+  successful: number;
+  ttl: number | null;
+};
+
+async function multiLookup(
+  hostname: string,
+  type: "A" | "TXT" | "CNAME",
+): Promise<MultiLookup> {
+  const logs = await Promise.all(RESOLVERS.map((r) => queryResolver(r, hostname, type)));
+  const successful = logs.filter((l) => l.status === "ok");
+  const per_resolver = logs.map((l) => ({
+    resolver: l.resolver, parsed: l.parsed, status: l.status, ttl: l.ttl,
+  }));
+  const setsOk = successful.map((l) => new Set(l.parsed));
+  const union = Array.from(new Set(successful.flatMap((l) => l.parsed)));
+  const intersection = setsOk.length
+    ? Array.from(setsOk.reduce((acc, s) => new Set([...acc].filter((v) => s.has(v)))))
+    : [];
+  const withData = successful.filter((l) => l.parsed.length > 0).length;
+  const agreement: ResolverSummary["agreement"] =
+    successful.length === 0 ? "none" :
+    withData === 0 ? "none" :
+    intersection.length > 0 && withData === successful.length ? "unanimous" :
+    intersection.length > 0 ? "partial" : "disagreement";
+  const ttl = successful.map((l) => l.ttl).filter((t): t is number => t != null);
+  return {
+    logs,
+    summary: { hostname, type, per_resolver, agreement },
+    union, intersection,
+    successful: successful.length,
+    ttl: ttl.length ? Math.min(...ttl) : null,
+  };
+}
+
 
 async function httpProbe(url: string): Promise<{ status: number | null; ms: number | null }> {
   const started = Date.now();
