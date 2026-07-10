@@ -99,6 +99,66 @@ export const customerListNotifications = createServerFn({ method: "GET" })
     }));
   });
 
+export const customerMarkNotificationRead = createServerFn({ method: "POST" })
+  .inputValidator((d: { slug: string; id: string }) =>
+    z.object({ slug: z.string().min(1), id: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const s = await resolveSession(data.slug);
+    if (!s) throw new Error("Not authenticated");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("bank_notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .eq("customer_id", s.customer_id);
+    return { ok: true };
+  });
+
+export const customerMarkAllNotificationsRead = createServerFn({ method: "POST" })
+  .inputValidator((d: { slug: string }) => z.object({ slug: z.string().min(1) }).parse(d))
+  .handler(async ({ data }) => {
+    const s = await resolveSession(data.slug);
+    if (!s) throw new Error("Not authenticated");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("bank_notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("customer_id", s.customer_id)
+      .is("read_at", null);
+    return { ok: true };
+  });
+
+export const customerDeleteNotification = createServerFn({ method: "POST" })
+  .inputValidator((d: { slug: string; id: string }) =>
+    z.object({ slug: z.string().min(1), id: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const s = await resolveSession(data.slug);
+    if (!s) throw new Error("Not authenticated");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("bank_notifications")
+      .delete()
+      .eq("id", data.id)
+      .eq("customer_id", s.customer_id);
+    return { ok: true };
+  });
+
+export const customerClearAllNotifications = createServerFn({ method: "POST" })
+  .inputValidator((d: { slug: string }) => z.object({ slug: z.string().min(1) }).parse(d))
+  .handler(async ({ data }) => {
+    const s = await resolveSession(data.slug);
+    if (!s) throw new Error("Not authenticated");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("bank_notifications")
+      .delete()
+      .eq("customer_id", s.customer_id);
+    return { ok: true };
+  });
+
+
 export const customerListRestrictions = createServerFn({ method: "GET" })
   .inputValidator((d: { slug: string }) => z.object({ slug: z.string().min(1) }).parse(d))
   .handler(async ({ data }): Promise<CustomerRestriction[]> => {
