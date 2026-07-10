@@ -18,7 +18,6 @@ import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerSession, CustomerAccount } from "@/lib/customer/types";
 import { isNavEnabled } from "@/lib/customer/product-gating";
 import {
-  customerListNotifications,
   customerListRestrictions,
   customerListTransactions,
 } from "@/lib/customer/activity.functions";
@@ -34,7 +33,6 @@ import {
   ArrowDownToLine,
   ArrowUpRight,
   Banknote,
-  Bell,
   CreditCard,
   Copy,
   Eye,
