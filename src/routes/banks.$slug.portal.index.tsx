@@ -374,45 +374,29 @@ function DashboardPage() {
       {/* Quick Actions */}
       <section>
         <SectionHeading title="Quick actions" subtitle="Move money and manage your banking essentials" />
-        <div className="mt-5">
-          {Array.from({ length: Math.ceil(quickActions.length / 3) }).map((_, rowIdx) => {
-            const row = quickActions.slice(rowIdx * 3, rowIdx * 3 + 3);
-            const isLastRow = rowIdx === Math.ceil(quickActions.length / 3) - 1;
-            return (
-              <div
-                key={rowIdx}
-                className={`grid gap-0 sm:grid-cols-2 lg:grid-cols-3 ${isLastRow ? "" : "border-b"}`}
-                style={isLastRow ? undefined : dividerColor}
+        <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+          {quickActions.map((a) => (
+            <Link
+              key={a.title}
+              to={a.to}
+              params={{ slug }}
+              className="group flex items-start gap-4 transition hover:opacity-90"
+            >
+              <span
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white"
+                style={{ background: "var(--tenant-primary)" }}
               >
-                {row.map((a) => (
-                  <Link
-                    key={a.title}
-                    to={a.to}
-                    params={{ slug }}
-                    className="group flex items-center gap-4 py-5 transition hover:bg-slate-50/50 sm:px-4"
-                  >
-                    <span
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
-                      style={{ background: "var(--tenant-primary)" }}
-                    >
-                      <a.icon className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1 text-sm font-semibold text-slate-900">
-                        {a.title}
-                        <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 transition group-hover:text-slate-500" />
-                      </div>
-                      <div className="text-[11px] text-slate-500">{a.subtitle}</div>
-                    </div>
-                  </Link>
-                ))}
-                {row.length < 3 &&
-                  Array.from({ length: 3 - row.length }).map((_, i) => (
-                    <div key={`empty-${i}`} className="hidden py-5 lg:block" />
-                  ))}
+                <a.icon className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1 text-sm font-semibold text-slate-900">
+                  {a.title}
+                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 transition group-hover:text-slate-500" />
+                </div>
+                <div className="mt-0.5 text-xs leading-snug text-slate-500">{a.subtitle}</div>
               </div>
-            );
-          })}
+            </Link>
+          ))}
         </div>
       </section>
 
