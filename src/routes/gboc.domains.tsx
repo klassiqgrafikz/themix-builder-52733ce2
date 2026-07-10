@@ -1727,3 +1727,107 @@ function formatAgo(ts: number): string {
   const h = Math.floor(m / 60);
   return `${h}h ago`;
 }
+
+// -----------------------------------------------------------------------------
+// Resolver panel — shows every DNS lookup we performed across public resolvers
+// (Google, Cloudflare, Quad9) with the raw + parsed response, TTL, latency and
+// agreement summary. Lets operators diagnose propagation, DNSSEC and provider
+// caching without leaving the app.
+function ResolverPanel({ diagnostics }: { diagnostics: DomainDiagnostics | null }) {
+  const [open, setOpen] = useState<Record<number, boolean>>({});
+  if (!diagnostics) return null;
+  const { resolver_results, dns_logs, next_retry_at, failure_reason } =
+    diagnostics.meta;
+  if (!dns_logs?.length) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Resolver diagnostics</CardTitle>
+        <CardDescription>
+          Every DNS lookup performed across public resolvers. Use this to spot
+          propagation lag, DNSSEC issues, or provider caching.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {failure_reason ? (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+            <div className="font-medium">Current blocker: {failure_reason.replace(/_/g, " ")}</div>
+            {next_retry_at ? (
+              <div className="text-xs text-muted-foreground mt-1">
+                Next automatic retry: {new Date(next_retry_at).toLocaleTimeString()}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {resolver_results.map((r) => (
+          <div key={`${r.type}-${r.hostname}`} className="rounded-md border p-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Badge variant="outline">{r.type}</Badge>
+              <span className="font-mono">{r.hostname}</span>
+              <Badge
+                variant="outline"
+                className="ml-auto capitalize"
+              >
+                {r.agreement}
+              </Badge>
+            </div>
+            <div className="mt-2 grid gap-1 text-xs">
+              {r.per_resolver.map((p) => (
+                <div key={p.resolver} className="flex items-start gap-2">
+                  <span className="w-40 shrink-0 text-muted-foreground">{p.resolver}</span>
+                  <span className="font-mono break-all">
+                    {p.status === "ok"
+                      ? p.parsed.length
+                        ? p.parsed.join(", ")
+                        : "(no records)"
+                      : p.status}
+                    {p.ttl != null ? ` · TTL ${p.ttl}s` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        <div>
+          <div className="text-sm font-medium mb-2">Raw DNS responses</div>
+          <div className="space-y-1.5">
+            {dns_logs.map((log, i) => (
+              <div key={i} className="rounded border">
+                <button
+                  type="button"
+                  onClick={() => setOpen((s) => ({ ...s, [i]: !s[i] }))}
+                  className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-muted/40"
+                >
+                  <Badge variant="outline">{log.type}</Badge>
+                  <span className="font-mono">{log.hostname}</span>
+                  <span className="text-muted-foreground">via {log.resolver}</span>
+                  <span className="ml-auto text-muted-foreground">
+                    {log.status} · {log.latency_ms}ms
+                    {log.ttl != null ? ` · TTL ${log.ttl}s` : ""}
+                  </span>
+                </button>
+                {open[i] ? (
+                  <div className="border-t bg-muted/30 p-3 text-xs font-mono whitespace-pre-wrap break-all">
+                    {log.parsed.length ? (
+                      <div className="mb-2">
+                        <span className="text-muted-foreground">Parsed: </span>
+                        {log.parsed.join(", ")}
+                      </div>
+                    ) : null}
+                    {log.error ? (
+                      <div className="mb-2 text-destructive">Error: {log.error}</div>
+                    ) : null}
+                    <div className="text-muted-foreground mb-1">Raw response:</div>
+                    <div>{log.raw || "(empty)"}</div>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
