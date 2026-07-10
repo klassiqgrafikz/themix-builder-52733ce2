@@ -32,6 +32,19 @@ import {
   type DnsProvider,
   type DomainActivityEntry,
 } from "@/lib/gboc/domain-activity.functions";
+import {
+  deriveStage,
+  stageIsTerminal,
+  nextRetryDelayMs,
+  getPersistedStart,
+  persistStart,
+  clearPersistedStart,
+  HEALTH_CHECK_INTERVAL_MS,
+  LIFECYCLE_LABEL,
+  LIFECYCLE_ORDER,
+  TIMELINE_ITEMS,
+  type LifecycleStage,
+} from "@/lib/gboc/domain-lifecycle";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -239,7 +252,12 @@ function Wizard({
   const [autoPaused, setAutoPaused] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [, forceTick] = useState(0);
+  const [timedOut, setTimedOut] = useState(false);
   const propagationStartRef = useRef<number | null>(null);
+  const lastStageRef = useRef<LifecycleStage | null>(null);
+  const inFlightRef = useRef(false); // prevents overlapping polling
+  const pollTimerRef = useRef<number | null>(null);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
     setDomain(row?.domain ?? "");
@@ -249,6 +267,11 @@ function Wizard({
     setProvider(null);
     setShowSuccess(false);
     setAutoPaused(false);
+    setTimedOut(false);
+    lastStageRef.current = null;
+    // Resume from a previously persisted start time so background polling
+    // survives a page refresh. If the domain changed, start fresh.
+    propagationStartRef.current = getPersistedStart(bankId, row?.domain ?? null);
   }, [bankId, row?.domain, row?.is_primary]);
 
   const invalidate = useCallback(() => {
@@ -291,10 +314,20 @@ function Wizard({
     mutationFn: () =>
       saveFn({ data: { bank_id: bankId, domain: domain.trim(), is_primary: isPrimary } }),
     onSuccess: async (saved) => {
-      toast.success("Domain saved. Publish the DNS records below, then Verify.");
+      toast.success("Domain saved. Auto-verification starting…");
+      // Reset lifecycle clock for the new/updated domain.
+      const startedAt = Date.now();
+      propagationStartRef.current = startedAt;
+      if (saved?.domain) persistStart(bankId, saved.domain, startedAt);
+      setTimedOut(false);
+      cancelledRef.current = false;
+      lastStageRef.current = null;
       invalidate();
       invalidateActivity();
       if (saved?.domain) runProviderDetection(saved.domain);
+      // Kick off the first verification immediately in the background —
+      // no user click required.
+      window.setTimeout(() => verifyMut.mutate(), 500);
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to save"),
   });
@@ -308,20 +341,17 @@ function Wizard({
     onSuccess: (res) => {
       setDiagnostics(res.diagnostics);
       setLastCheckedAt(Date.now());
-      if (res.diagnostics.overall === "verified") {
-        toast.success("Domain verified. Custom domain is live.");
-        setShowSuccess(true);
-      } else if (res.diagnostics.overall === "propagating") {
-        toast.info("DNS is still propagating. We'll auto-recheck every 60s.");
-        if (!propagationStartRef.current) propagationStartRef.current = Date.now();
-      } else {
-        toast.error("Verification failed. See the checklist below.");
+      if (res.diagnostics.overall === "propagating" && !propagationStartRef.current) {
+        propagationStartRef.current = Date.now();
+        if (res.domain.domain) persistStart(bankId, res.domain.domain, propagationStartRef.current);
       }
+      if (res.diagnostics.overall === "verified") setShowSuccess(true);
       invalidate();
       invalidateActivity();
     },
     onError: (e: unknown) => {
-      toast.error(e instanceof Error ? e.message : "Verification failed");
+      // Do not spam toast on background polls; only log activity refresh.
+      console.error("[domain-verify]", e);
       invalidate();
       invalidateActivity();
     },
@@ -346,10 +376,19 @@ function Wizard({
     mutationFn: () => removeFn({ data: { bank_id: bankId } }),
     onSuccess: () => {
       toast.success("Custom domain removed. The fallback URL still works.");
+      cancelledRef.current = true;
+      if (pollTimerRef.current != null) {
+        window.clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+      clearPersistedStart(bankId);
+      propagationStartRef.current = null;
+      lastStageRef.current = null;
       setDomain("");
       setDiagnostics(null);
       setProvider(null);
       setShowSuccess(false);
+      setTimedOut(false);
       invalidate();
       invalidateActivity();
     },
@@ -357,16 +396,93 @@ function Wizard({
   });
 
   const domainSaved = Boolean(row?.domain);
-  const propagating =
-    !autoPaused &&
-    (diagnostics?.overall === "propagating" || row?.dns_status === "propagating");
+  const stage: LifecycleStage = deriveStage(row, diagnostics, timedOut);
 
-  // Auto-recheck every 60s while propagating.
+  // Milestone toasts: fire once per transition into a new stage.
   useEffect(() => {
-    if (!domainSaved || !propagating) return;
-    const id = window.setInterval(() => diagnoseMut.mutate(), 60_000);
+    if (!domainSaved) return;
+    const prev = lastStageRef.current;
+    if (prev === stage) return;
+    lastStageRef.current = stage;
+    if (!prev) return; // don't announce initial derivation
+    const messages: Partial<Record<LifecycleStage, string>> = {
+      dns_detected: "DNS records detected — verifying token…",
+      txt_verified: "TXT record verified — checking routing…",
+      routing_ready: "Routing enabled — provisioning SSL…",
+      ssl_requested: "SSL certificate requested.",
+      ssl_provisioning: "SSL is provisioning…",
+      ssl_active: "HTTPS is active.",
+      connected: "🎉 Domain connected. Your bank is now live.",
+      failed: "Verification failed. See the checklist below.",
+      timed_out: "Verification timed out after 48h. Click Retry to resume.",
+    };
+    const msg = messages[stage];
+    if (!msg) return;
+    if (stage === "failed" || stage === "timed_out") toast.error(msg);
+    else if (stage === "connected") toast.success(msg);
+    else toast.info(msg);
+  }, [stage, domainSaved]);
+
+  // Automatic background verification with smart-retry cadence.
+  // - Never blocks UI (uses setTimeout, not sync work)
+  // - Prevents overlapping polls via inFlightRef
+  // - Resumes after page refresh via persisted start time
+  // - Stops on Connected / Failed / Timed Out / Paused / Removed
+  useEffect(() => {
+    if (!domainSaved || autoPaused || cancelledRef.current) return;
+    if (stageIsTerminal(stage)) return;
+
+    // Ensure we have a start reference so cadence can compute elapsed time.
+    if (propagationStartRef.current == null && row?.domain) {
+      const startedAt = Date.now();
+      propagationStartRef.current = startedAt;
+      persistStart(bankId, row.domain, startedAt);
+    }
+    const startedAt = propagationStartRef.current ?? Date.now();
+    const delay = nextRetryDelayMs(startedAt);
+    if (delay == null) {
+      setTimedOut(true);
+      return;
+    }
+
+    // If we've never verified yet, run immediately in the background.
+    const immediate = !row?.last_verified_at && !inFlightRef.current;
+    const runOnce = () => {
+      if (cancelledRef.current || autoPaused || inFlightRef.current) return;
+      inFlightRef.current = true;
+      verifyMut.mutate(undefined, {
+        onSettled: () => {
+          inFlightRef.current = false;
+        },
+      });
+    };
+
+    if (immediate) {
+      pollTimerRef.current = window.setTimeout(runOnce, 800);
+    } else {
+      pollTimerRef.current = window.setTimeout(runOnce, delay);
+    }
+    return () => {
+      if (pollTimerRef.current != null) {
+        window.clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, [
+    domainSaved, autoPaused, stage, row?.domain, row?.last_verified_at,
+    bankId, verifyMut, lastCheckedAt,
+  ]);
+
+  // Background health monitoring once Connected: lightweight passive check
+  // every hour so we can surface warnings (expired SSL, DNS gone, routing
+  // lost) without disconnecting immediately.
+  useEffect(() => {
+    if (stage !== "connected" || autoPaused) return;
+    const id = window.setInterval(() => {
+      diagnoseMut.mutate();
+    }, HEALTH_CHECK_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [domainSaved, propagating, diagnoseMut]);
+  }, [stage, autoPaused, diagnoseMut]);
 
   // Ticking clock for "Last checked: Xs ago" + propagation remaining.
   useEffect(() => {
@@ -378,6 +494,11 @@ function Wizard({
   useEffect(() => {
     if (row?.domain && !provider) runProviderDetection(row.domain);
   }, [row?.domain, provider, runProviderDetection]);
+
+  // Once connected we can safely clear the persisted lifecycle-start marker.
+  useEffect(() => {
+    if (stage === "connected") clearPersistedStart(bankId);
+  }, [stage, bankId]);
 
   const overallVerified =
     row?.status === "connected" && row?.dns_status === "verified";
@@ -443,6 +564,20 @@ function Wizard({
           />
 
           <DnsInstructionsCard row={row} provider={provider} />
+
+          <LifecycleTimeline
+            stage={stage}
+            timedOut={timedOut}
+            propagationStart={propagationStartRef.current}
+            onRetry={() => {
+              setTimedOut(false);
+              const startedAt = Date.now();
+              propagationStartRef.current = startedAt;
+              if (row?.domain) persistStart(bankId, row.domain, startedAt);
+              verifyMut.mutate();
+            }}
+          />
+
 
           <ChecklistCard
             row={row}
@@ -779,6 +914,115 @@ function ProviderCard({
 }
 
 // -----------------------------------------------------------------------------
+// Live lifecycle timeline — Vercel/Netlify-style animated progress showing
+// every stage from "Domain Added" through "Domain Connected". Uses the
+// deterministic stage derived by deriveStage(). No manual clicks required.
+function LifecycleTimeline({
+  stage,
+  timedOut,
+  propagationStart,
+  onRetry,
+}: {
+  stage: LifecycleStage;
+  timedOut: boolean;
+  propagationStart: number | null;
+  onRetry: () => void;
+}) {
+  const currentIndex = LIFECYCLE_ORDER.indexOf(stage);
+  const failed = stage === "failed" || timedOut || stage === "timed_out";
+
+  const elapsed = propagationStart ? Date.now() - propagationStart : 0;
+  const elapsedText =
+    elapsed < 60_000
+      ? `${Math.max(1, Math.round(elapsed / 1000))}s`
+      : elapsed < 60 * 60_000
+        ? `${Math.round(elapsed / 60_000)}m`
+        : `${Math.round(elapsed / 3_600_000)}h`;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Activity className="h-4 w-4" /> Automatic activation timeline
+          </CardTitle>
+          <CardDescription>
+            {stage === "connected"
+              ? "Your bank is live. Background health checks continue hourly."
+              : failed
+                ? timedOut
+                  ? "Verification did not complete within 48 hours."
+                  : "A step failed. We keep retrying automatically."
+                : "The platform is progressing your domain through each stage — no manual clicks required."}
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={failed ? "destructive" : stage === "connected" ? "default" : "secondary"}>
+            {LIFECYCLE_LABEL[stage]}
+          </Badge>
+          {propagationStart ? (
+            <span className="text-[11px] text-muted-foreground">for {elapsedText}</span>
+          ) : null}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <ol className="space-y-1">
+          {TIMELINE_ITEMS.map((item, i) => {
+            const stageIdx = LIFECYCLE_ORDER.indexOf(item.stage);
+            const done = !failed && stageIdx <= currentIndex && currentIndex >= 0;
+            const active = !failed && stageIdx === currentIndex + 1;
+            const failedHere = failed && i === Math.max(0, currentIndex + 1);
+            return (
+              <li
+                key={item.key}
+                className={`flex items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors ${
+                  done
+                    ? "border-emerald-500/30 bg-emerald-500/5"
+                    : active
+                      ? "border-primary/40 bg-primary/5"
+                      : failedHere
+                        ? "border-destructive/40 bg-destructive/5"
+                        : "border-border"
+                }`}
+              >
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                  {done ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 animate-in fade-in zoom-in duration-300" />
+                  ) : failedHere ? (
+                    <XCircle className="h-4 w-4 text-destructive" />
+                  ) : active ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <Timer className="h-3.5 w-3.5 text-muted-foreground/50" />
+                  )}
+                </span>
+                <span
+                  className={`flex-1 ${
+                    done ? "font-medium" : active ? "font-medium text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {done ? "✓ " : active ? "⏳ " : ""}
+                  {item.label}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+        {failed ? (
+          <Button size="sm" variant="outline" onClick={onRetry} className="mt-2">
+            <RefreshCw className="mr-1 h-3.5 w-3.5" /> Retry Verification
+          </Button>
+        ) : stage !== "connected" ? (
+          <p className="text-[11px] text-muted-foreground">
+            Retries: every 60s (first hour) · every 5m (next 6h) · every 30m thereafter · stops after 48h.
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+
 function ChecklistCard({
   row,
   diagnostics,
