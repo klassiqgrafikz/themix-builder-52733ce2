@@ -95,21 +95,26 @@ const FAQS = [
 ];
 
 function buildTrend(
-  transactions: { created_at: string; amount: number; direction: string }[],
-  balance: number,
-) {
-  const points: { label: string; balance: number }[] = [];
-  let running = balance;
-  const now = new Date();
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i * 2);
-    const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    const drift = Math.sin(i * 1.1) * (balance * 0.04 + 120) + (i % 2 === 0 ? 40 : -30);
-    running = Math.max(0, running - drift);
-    points.push({ label, balance: Math.round(running) });
-  }
-  return points.reverse();
+  transactions: { created_at: string; balance_after: number }[],
+  currentBalance: number,
+): { label: string; balance: number }[] {
+  // Real history: transactions come sorted desc; walk oldest → newest.
+  const asc = [...transactions].reverse();
+  const points = asc
+    .filter((t) => Number.isFinite(t.balance_after))
+    .map((t) => ({
+      label: new Date(t.created_at).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      }),
+      balance: Math.round(Number(t.balance_after)),
+    }));
+  // Add a "today" point so the trend line always reaches the current balance.
+  points.push({
+    label: new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    balance: Math.round(currentBalance),
+  });
+  return points;
 }
 
 function buildFlow(
@@ -135,30 +140,33 @@ function buildFlow(
     if (t.direction === "credit") months[idx].inflow += t.amount;
     else if (t.direction === "debit") months[idx].outflow += t.amount;
   }
-  const empty = months.every((m) => m.inflow === 0 && m.outflow === 0);
-  if (empty) {
-    const seeds = [
-      [2400, 1800],
-      [3100, 2200],
-      [2800, 2600],
-      [3600, 2400],
-      [4200, 3100],
-      [3900, 2900],
-    ];
-    months.forEach((m, i) => {
-      m.inflow = seeds[i][0];
-      m.outflow = seeds[i][1];
-    });
-  }
   return months;
 }
 
-const FX_RATES = [
-  { pair: "USD → EUR", rate: 0.923, change: -0.12 },
-  { pair: "USD → GBP", rate: 0.789, change: 0.08 },
-  { pair: "USD → JPY", rate: 151.42, change: 0.34 },
-  { pair: "USD → CAD", rate: 1.362, change: -0.05 },
-];
+type FxRow = { pair: string; rate: number; change: number };
+
+async function fetchFxRates(): Promise<{ rows: FxRow[]; updatedAt: string }> {
+  const symbols = "EUR,GBP,JPY,CAD";
+  const [latestRes, histRes] = await Promise.all([
+    fetch(`https://api.frankfurter.app/latest?from=USD&to=${symbols}`),
+    fetch(
+      `https://api.frankfurter.app/${new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10)}?from=USD&to=${symbols}`,
+    ),
+  ]);
+  if (!latestRes.ok) throw new Error("Failed to fetch rates");
+  const latest = (await latestRes.json()) as { rates: Record<string, number>; date: string };
+  const hist = histRes.ok
+    ? ((await histRes.json()) as { rates: Record<string, number> })
+    : { rates: {} };
+  const rows: FxRow[] = (["EUR", "GBP", "JPY", "CAD"] as const).map((sym) => {
+    const rate = latest.rates?.[sym] ?? 0;
+    const prev = hist.rates?.[sym] ?? rate;
+    const change = prev ? ((rate - prev) / prev) * 100 : 0;
+    return { pair: `USD → ${sym}`, rate, change };
+  });
+  return { rows, updatedAt: new Date().toISOString() };
+}
+
 
 function DashboardPage() {
   const { bank, session } = useParentData();
