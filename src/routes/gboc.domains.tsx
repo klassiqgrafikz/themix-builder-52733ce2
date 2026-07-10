@@ -459,6 +459,9 @@ function Wizard({
 
           <DiagnosticsBreakdown diagnostics={diagnostics} />
 
+          <ResolverPanel diagnostics={diagnostics} />
+
+
           <ActivityCard
             entries={activityQ.data ?? []}
             loading={activityQ.isLoading}
