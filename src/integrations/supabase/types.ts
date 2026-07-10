@@ -279,6 +279,7 @@ export type Database = {
           bank_id: string
           connected_since: string | null
           created_at: string
+          dns_status: string
           domain: string | null
           id: string
           is_primary: boolean
@@ -286,11 +287,13 @@ export type Database = {
           ssl_status: string
           status: string
           updated_at: string
+          verification_token: string | null
         }
         Insert: {
           bank_id: string
           connected_since?: string | null
           created_at?: string
+          dns_status?: string
           domain?: string | null
           id?: string
           is_primary?: boolean
@@ -298,11 +301,13 @@ export type Database = {
           ssl_status?: string
           status?: string
           updated_at?: string
+          verification_token?: string | null
         }
         Update: {
           bank_id?: string
           connected_since?: string | null
           created_at?: string
+          dns_status?: string
           domain?: string | null
           id?: string
           is_primary?: boolean
@@ -310,6 +315,7 @@ export type Database = {
           ssl_status?: string
           status?: string
           updated_at?: string
+          verification_token?: string | null
         }
         Relationships: [
           {
