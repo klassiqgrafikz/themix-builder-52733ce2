@@ -18,7 +18,6 @@ import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerSession, CustomerAccount } from "@/lib/customer/types";
 import { isNavEnabled } from "@/lib/customer/product-gating";
 import {
-  customerListNotifications,
   customerListRestrictions,
   customerListTransactions,
 } from "@/lib/customer/activity.functions";
@@ -34,7 +33,6 @@ import {
   ArrowDownToLine,
   ArrowUpRight,
   Banknote,
-  Bell,
   CreditCard,
   Copy,
   Eye,
@@ -95,21 +93,26 @@ const FAQS = [
 ];
 
 function buildTrend(
-  transactions: { created_at: string; amount: number; direction: string }[],
-  balance: number,
-) {
-  const points: { label: string; balance: number }[] = [];
-  let running = balance;
-  const now = new Date();
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i * 2);
-    const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    const drift = Math.sin(i * 1.1) * (balance * 0.04 + 120) + (i % 2 === 0 ? 40 : -30);
-    running = Math.max(0, running - drift);
-    points.push({ label, balance: Math.round(running) });
-  }
-  return points.reverse();
+  transactions: { created_at: string; balance_after: number }[],
+  currentBalance: number,
+): { label: string; balance: number }[] {
+  // Real history: transactions come sorted desc; walk oldest → newest.
+  const asc = [...transactions].reverse();
+  const points = asc
+    .filter((t) => Number.isFinite(t.balance_after))
+    .map((t) => ({
+      label: new Date(t.created_at).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      }),
+      balance: Math.round(Number(t.balance_after)),
+    }));
+  // Add a "today" point so the trend line always reaches the current balance.
+  points.push({
+    label: new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    balance: Math.round(currentBalance),
+  });
+  return points;
 }
 
 function buildFlow(
@@ -135,30 +138,33 @@ function buildFlow(
     if (t.direction === "credit") months[idx].inflow += t.amount;
     else if (t.direction === "debit") months[idx].outflow += t.amount;
   }
-  const empty = months.every((m) => m.inflow === 0 && m.outflow === 0);
-  if (empty) {
-    const seeds = [
-      [2400, 1800],
-      [3100, 2200],
-      [2800, 2600],
-      [3600, 2400],
-      [4200, 3100],
-      [3900, 2900],
-    ];
-    months.forEach((m, i) => {
-      m.inflow = seeds[i][0];
-      m.outflow = seeds[i][1];
-    });
-  }
   return months;
 }
 
-const FX_RATES = [
-  { pair: "USD → EUR", rate: 0.923, change: -0.12 },
-  { pair: "USD → GBP", rate: 0.789, change: 0.08 },
-  { pair: "USD → JPY", rate: 151.42, change: 0.34 },
-  { pair: "USD → CAD", rate: 1.362, change: -0.05 },
-];
+type FxRow = { pair: string; rate: number; change: number };
+
+async function fetchFxRates(): Promise<{ rows: FxRow[]; updatedAt: string }> {
+  const symbols = "EUR,GBP,JPY,CAD";
+  const [latestRes, histRes] = await Promise.all([
+    fetch(`https://api.frankfurter.app/latest?from=USD&to=${symbols}`),
+    fetch(
+      `https://api.frankfurter.app/${new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10)}?from=USD&to=${symbols}`,
+    ),
+  ]);
+  if (!latestRes.ok) throw new Error("Failed to fetch rates");
+  const latest = (await latestRes.json()) as { rates: Record<string, number>; date: string };
+  const hist = histRes.ok
+    ? ((await histRes.json()) as { rates: Record<string, number> })
+    : { rates: {} };
+  const rows: FxRow[] = (["EUR", "GBP", "JPY", "CAD"] as const).map((sym) => {
+    const rate = latest.rates?.[sym] ?? 0;
+    const prev = hist.rates?.[sym] ?? rate;
+    const change = prev ? ((rate - prev) / prev) * 100 : 0;
+    return { pair: `USD → ${sym}`, rate, change };
+  });
+  return { rows, updatedAt: new Date().toISOString() };
+}
+
 
 function DashboardPage() {
   const { bank, session } = useParentData();
@@ -181,7 +187,6 @@ function DashboardPage() {
   }, [balanceVisible, slug]);
 
   const txFn = useServerFn(customerListTransactions);
-  const notifFn = useServerFn(customerListNotifications);
   const restrFn = useServerFn(customerListRestrictions);
   const benFn = useServerFn(listBeneficiaries);
   const cardsFn = useServerFn(listCards);
@@ -189,11 +194,6 @@ function DashboardPage() {
   const txQ = useQuery({
     queryKey: ["portal-tx", slug],
     queryFn: () => txFn({ data: { slug } }),
-    refetchInterval: 15000,
-  });
-  const notifQ = useQuery({
-    queryKey: ["portal-notif", slug],
-    queryFn: () => notifFn({ data: { slug } }),
     refetchInterval: 15000,
   });
   const restrQ = useQuery({
@@ -209,12 +209,19 @@ function DashboardPage() {
     queryKey: ["portal-cards", slug],
     queryFn: () => cardsFn({ data: { slug } }),
   });
+  const fxQ = useQuery({
+    queryKey: ["portal-fx"],
+    queryFn: fetchFxRates,
+    refetchInterval: 5 * 60_000,
+    staleTime: 60_000,
+  });
 
   const transactions = txQ.data ?? [];
-  const notifications = notifQ.data ?? [];
   const restrictions = restrQ.data ?? [];
   const beneficiaries = benQ.data ?? [];
   const cards = cardsQ.data ?? [];
+  const fxRates = fxQ.data?.rows ?? [];
+  const fxUpdatedAt = fxQ.data?.updatedAt;
 
   const balance = primaryAccount?.available_balance ?? 0;
   const trend = useMemo(() => buildTrend(transactions, balance), [transactions, balance]);
@@ -466,7 +473,11 @@ function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-semibold text-slate-900 md:text-lg">Balance trend</h2>
-              <p className="text-xs text-slate-500">Last 24 days · simulated</p>
+              <p className="text-xs text-slate-500">
+                {trend.length <= 1
+                  ? "Not enough transaction history yet"
+                  : `Based on ${trend.length - 1} recent transaction${trend.length - 1 === 1 ? "" : "s"}`}
+              </p>
             </div>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
               <TrendingUp className="h-3 w-3" /> Trending
@@ -632,16 +643,25 @@ function DashboardPage() {
           )}
         </div>
 
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Exchange rates</h2>
-              <span className="text-[10px] uppercase tracking-wider text-slate-500">
-                Indicative
-              </span>
-            </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-slate-900 md:text-lg">Exchange rates</h2>
+            <span className="text-[10px] uppercase tracking-wider text-slate-500">
+              {fxQ.isLoading
+                ? "Updating…"
+                : fxUpdatedAt
+                  ? `Updated ${new Date(fxUpdatedAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}`
+                  : "Live"}
+            </span>
+          </div>
+          {fxQ.isError ? (
+            <p className="py-2 text-xs text-slate-500">Rates temporarily unavailable.</p>
+          ) : (
             <ul className="space-y-3">
-              {FX_RATES.map((r) => {
+              {(fxRates.length ? fxRates : [{ pair: "USD → EUR", rate: 0, change: 0 }, { pair: "USD → GBP", rate: 0, change: 0 }, { pair: "USD → JPY", rate: 0, change: 0 }, { pair: "USD → CAD", rate: 0, change: 0 }]).map((r) => {
                 const up = r.change >= 0;
                 return (
                   <li
@@ -651,52 +671,25 @@ function DashboardPage() {
                   >
                     <span className="font-medium text-slate-700">{r.pair}</span>
                     <span className="flex items-center gap-2">
-                      <span className="font-mono text-slate-900">{r.rate.toFixed(3)}</span>
-                      <span
-                        className={`text-[11px] font-semibold ${up ? "text-emerald-600" : "text-rose-600"}`}
-                      >
-                        {up ? "▲" : "▼"} {Math.abs(r.change).toFixed(2)}%
+                      <span className="font-mono text-slate-900">
+                        {r.rate ? (r.rate < 10 ? r.rate.toFixed(4) : r.rate.toFixed(2)) : "—"}
                       </span>
+                      {r.rate > 0 && (
+                        <span
+                          className={`text-[11px] font-semibold ${up ? "text-emerald-600" : "text-rose-600"}`}
+                        >
+                          {up ? "▲" : "▼"} {Math.abs(r.change).toFixed(2)}%
+                        </span>
+                      )}
                     </span>
                   </li>
                 );
               })}
             </ul>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Notifications</h2>
-              <Link
-                to="/banks/$slug/portal/notifications"
-                params={{ slug }}
-                className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900"
-              >
-                <Bell className="h-3.5 w-3.5" /> View all
-              </Link>
-            </div>
-            {notifications.length === 0 ? (
-              <p className="py-4 text-center text-xs text-slate-500">You have no notifications.</p>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {notifications.slice(0, 3).map((n) => (
-                  <li key={n.id} className="py-2.5 text-sm">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="truncate font-medium text-slate-800">{n.title}</div>
-                      <span className="whitespace-nowrap text-[11px] text-slate-500">
-                        {new Date(n.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    {n.body && (
-                      <div className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.body}</div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          )}
         </div>
       </section>
+
 
       <div className="border-t" style={dividerColor} />
 

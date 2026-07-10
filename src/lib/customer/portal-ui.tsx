@@ -16,7 +16,6 @@ import {
   ListOrdered,
   CreditCard,
   FileText,
-  Bell,
   LifeBuoy,
   ShieldCheck,
   User,
@@ -25,6 +24,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { NotificationBell } from "./notification-bell";
 
 type NavEntry = {
   key: string;
@@ -41,7 +41,6 @@ const NAV: NavEntry[] = [
   { key: "transactions", label: "Transactions", path: "/transactions", icon: ListOrdered },
   { key: "cards", label: "Cards", path: "/cards", icon: CreditCard },
   { key: "statements", label: "Statements", path: "/statements", icon: FileText },
-  { key: "notifications", label: "Notifications", path: "/notifications", icon: Bell },
   { key: "support", label: "Support", path: "/support", icon: LifeBuoy },
   { key: "security", label: "Security", path: "/security", icon: ShieldCheck },
   { key: "profile", label: "Profile", path: "/profile", icon: User },
@@ -291,14 +290,17 @@ export function PortalShell({
                 </div>
               </div>
             </Link>
-            <button
-              type="button"
-              className="ml-auto rounded p-2 md:hidden"
-              onClick={() => setDrawerOpen((v) => !v)}
-              aria-label="Toggle menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              <NotificationBell slug={slug} tone="light" />
+              <button
+                type="button"
+                className="rounded p-2 md:hidden"
+                onClick={() => setDrawerOpen((v) => !v)}
+                aria-label="Toggle menu"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </div>
           </div>
           <nav className="hidden overflow-x-auto border-t md:block">
             <div className="mx-auto flex max-w-[1280px] items-center gap-1 px-4">
@@ -430,7 +432,7 @@ export function PortalShell({
           <div className="flex-1 text-center text-sm uppercase tracking-[0.25em]" style={{ color: "#c9a84c" }}>
             {activeLabel}
           </div>
-          <div className="w-9" />
+          <NotificationBell slug={slug} tone="gold" />
         </header>
 
         {drawerOpen && (
@@ -467,6 +469,10 @@ export function PortalShell({
             </div>
           </div>
         )}
+
+        <div className="fixed right-4 top-4 z-30 hidden md:block">
+          <NotificationBell slug={slug} tone="gold" />
+        </div>
 
         <main className="min-w-0 flex-1 pt-16 md:ml-64 md:pt-0">
           <div className="mx-auto max-w-[1200px] px-6 py-8 md:px-10 md:py-10">{content}</div>
@@ -516,8 +522,12 @@ export function PortalShell({
         >
           {activeLabel}
         </div>
-        <div className="w-9" />
+        <NotificationBell slug={slug} tone="light" />
       </header>
+
+      <div className="fixed right-6 top-5 z-30 hidden md:block">
+        <NotificationBell slug={slug} tone="light" />
+      </div>
 
       {drawerOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
