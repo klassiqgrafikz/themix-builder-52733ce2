@@ -67,6 +67,33 @@ export type DiagnosticCheck = {
   found?: string[];
 };
 
+export type DnsLogEntry = {
+  resolver: string;
+  resolver_url: string;
+  hostname: string;
+  type: "A" | "TXT" | "CNAME" | "NS";
+  status: "ok" | "nxdomain" | "servfail" | "network_error" | "http_error";
+  status_code: number | null;
+  http_status: number | null;
+  ttl: number | null;
+  raw: unknown;
+  parsed: string[];
+  latency_ms: number;
+  error?: string;
+};
+
+export type ResolverSummary = {
+  hostname: string;
+  type: "A" | "TXT" | "CNAME";
+  per_resolver: Array<{
+    resolver: string;
+    parsed: string[];
+    status: DnsLogEntry["status"];
+    ttl: number | null;
+  }>;
+  agreement: "unanimous" | "partial" | "disagreement" | "none";
+};
+
 export type DomainDiagnostics = {
   domain: string;
   domain_kind: DomainKind;
@@ -83,6 +110,10 @@ export type DomainDiagnostics = {
     response_time_ms: number | null;
     routing_active: boolean;
     propagation_percent: number;
+    resolver_results: ResolverSummary[];
+    dns_logs: DnsLogEntry[];
+    next_retry_at: string | null;
+    failure_reason: string | null;
   };
 };
 
