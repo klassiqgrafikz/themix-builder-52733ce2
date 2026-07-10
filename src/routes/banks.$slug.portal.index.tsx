@@ -187,7 +187,6 @@ function DashboardPage() {
   }, [balanceVisible, slug]);
 
   const txFn = useServerFn(customerListTransactions);
-  const notifFn = useServerFn(customerListNotifications);
   const restrFn = useServerFn(customerListRestrictions);
   const benFn = useServerFn(listBeneficiaries);
   const cardsFn = useServerFn(listCards);
@@ -195,11 +194,6 @@ function DashboardPage() {
   const txQ = useQuery({
     queryKey: ["portal-tx", slug],
     queryFn: () => txFn({ data: { slug } }),
-    refetchInterval: 15000,
-  });
-  const notifQ = useQuery({
-    queryKey: ["portal-notif", slug],
-    queryFn: () => notifFn({ data: { slug } }),
     refetchInterval: 15000,
   });
   const restrQ = useQuery({
@@ -215,12 +209,19 @@ function DashboardPage() {
     queryKey: ["portal-cards", slug],
     queryFn: () => cardsFn({ data: { slug } }),
   });
+  const fxQ = useQuery({
+    queryKey: ["portal-fx"],
+    queryFn: fetchFxRates,
+    refetchInterval: 5 * 60_000,
+    staleTime: 60_000,
+  });
 
   const transactions = txQ.data ?? [];
-  const notifications = notifQ.data ?? [];
   const restrictions = restrQ.data ?? [];
   const beneficiaries = benQ.data ?? [];
   const cards = cardsQ.data ?? [];
+  const fxRates = fxQ.data?.rows ?? [];
+  const fxUpdatedAt = fxQ.data?.updatedAt;
 
   const balance = primaryAccount?.available_balance ?? 0;
   const trend = useMemo(() => buildTrend(transactions, balance), [transactions, balance]);
