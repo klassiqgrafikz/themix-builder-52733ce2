@@ -88,6 +88,32 @@ async function mintAdminSession(password: string): Promise<AdminSession> {
 }
 
 /**
+ * Ensure the shared platform-admin auth user has the `platform_admin` role in
+ * `public.user_roles`. Idempotent via the (user_id, role) unique constraint.
+ */
+async function ensurePlatformAdminRole(userId: string): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabaseAdmin as any)
+    .from("user_roles")
+    .upsert({ user_id: userId, role: "platform_admin" }, { onConflict: "user_id,role" });
+}
+
+async function mintAdminSessionWithRole(password: string): Promise<AdminSession> {
+  const session = await mintAdminSession(password);
+  // Decode `sub` from JWT payload without a library.
+  try {
+    const payload = JSON.parse(
+      Buffer.from(session.access_token.split(".")[1], "base64").toString("utf8"),
+    ) as { sub?: string };
+    if (payload.sub) await ensurePlatformAdminRole(payload.sub);
+  } catch {
+    // Non-fatal: role assignment can be retried on next unlock.
+  }
+  return session;
+}
+
+/**
  * Public — anyone with the correct PIN unlocks the admin shell. When the PIN
  * matches, mint a real Supabase session for the shared platform-admin
  * account and return it so the client can install it.
@@ -109,14 +135,15 @@ export const verifyPlatformPin = createServerFn({ method: "POST" })
     // Try minting a session first; only pay the sign-up cost on the very
     // first unlock (or if the account was manually removed).
     try {
-      const session = await mintAdminSession(password);
+      const session = await mintAdminSessionWithRole(password);
       return { ok: true, session };
     } catch {
       await ensurePlatformAdmin(password);
-      const session = await mintAdminSession(password);
+      const session = await mintAdminSessionWithRole(password);
       return { ok: true, session };
     }
   });
+
 
 /** Authenticated admin — reveal the current plaintext PIN. */
 export const getPlatformPin = createServerFn({ method: "GET" })
