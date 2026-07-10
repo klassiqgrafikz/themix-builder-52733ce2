@@ -473,7 +473,11 @@ function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-semibold text-slate-900 md:text-lg">Balance trend</h2>
-              <p className="text-xs text-slate-500">Last 24 days · simulated</p>
+              <p className="text-xs text-slate-500">
+                {trend.length <= 1
+                  ? "Not enough transaction history yet"
+                  : `Based on ${trend.length - 1} recent transaction${trend.length - 1 === 1 ? "" : "s"}`}
+              </p>
             </div>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
               <TrendingUp className="h-3 w-3" /> Trending
