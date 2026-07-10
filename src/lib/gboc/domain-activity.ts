@@ -18,11 +18,8 @@ export type DomainActivityAction =
 
 export type DomainActivityResult = "info" | "success" | "warning" | "error";
 
-type MinimalSupabase = {
-  from: (t: string) => {
-    insert: (row: Record<string, unknown>) => Promise<{ error: unknown }>;
-  };
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MinimalSupabase = any;
 
 export async function logActivity(
   supabase: MinimalSupabase,
