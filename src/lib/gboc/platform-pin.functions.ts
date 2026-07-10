@@ -39,14 +39,23 @@ type VerifyResult = { ok: false } | { ok: true; session: AdminSession };
  * Ensure a shared platform-admin auth user exists with the configured
  * password. Idempotent: creates the user on first call, resets the password
  * on subsequent calls so it always matches the server env var.
+ *
+ * Uses a dedicated `@supabase/supabase-js` client for the Auth Admin API so
+ * the service-role bearer is preserved end-to-end (the generated
+ * `supabaseAdmin` wrapper strips the Authorization header when the key is a
+ * new `sb_secret_*` value, which the Auth Admin API rejects).
  */
 async function ensurePlatformAdmin(password: string): Promise<void> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const admin = (supabaseAdmin as any).auth.admin;
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!SUPABASE_URL || !SERVICE_ROLE) {
+    throw new Error("Supabase service-role env not configured");
+  }
+  const { createClient } = await import("@supabase/supabase-js");
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+  }).auth.admin;
 
-  // Try to create; if the user already exists, look them up and reset the
-  // password so signInWithPassword below always matches.
   const created = await admin.createUser({
     email: ADMIN_EMAIL,
     password,
@@ -55,11 +64,9 @@ async function ensurePlatformAdmin(password: string): Promise<void> {
   });
   if (!created.error) return;
 
-  // Find existing user by paging through auth users.
   let page = 1;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let match: any = null;
-  // Cap at 20 pages (~4000 users) as a safety.
   for (let i = 0; i < 20 && !match; i += 1) {
     const list = await admin.listUsers({ page, perPage: 200 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
