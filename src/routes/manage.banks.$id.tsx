@@ -46,7 +46,7 @@ import {
   PauseCircle,
   Trash2,
   History,
-} from "lucide-react";
+  LayoutDashboard,
 import {
   AlertDialog,
   AlertDialogAction,
