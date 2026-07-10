@@ -25,6 +25,7 @@ import { Route as GbocSettingsRouteImport } from './routes/gboc.settings'
 import { Route as GbocReportsRouteImport } from './routes/gboc.reports'
 import { Route as GbocOperationsRouteImport } from './routes/gboc.operations'
 import { Route as GbocNotificationsRouteImport } from './routes/gboc.notifications'
+import { Route as GbocDomainsRouteImport } from './routes/gboc.domains'
 import { Route as GbocCustomersRouteImport } from './routes/gboc.customers'
 import { Route as GbocCommunicationsRouteImport } from './routes/gboc.communications'
 import { Route as GbocBanksRouteImport } from './routes/gboc.banks'
@@ -136,6 +137,11 @@ const GbocOperationsRoute = GbocOperationsRouteImport.update({
 const GbocNotificationsRoute = GbocNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => GbocRoute,
+} as any)
+const GbocDomainsRoute = GbocDomainsRouteImport.update({
+  id: '/domains',
+  path: '/domains',
   getParentRoute: () => GbocRoute,
 } as any)
 const GbocCustomersRoute = GbocCustomersRouteImport.update({
@@ -321,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/gboc/banks': typeof GbocBanksRoute
   '/gboc/communications': typeof GbocCommunicationsRoute
   '/gboc/customers': typeof GbocCustomersRouteWithChildren
+  '/gboc/domains': typeof GbocDomainsRoute
   '/gboc/notifications': typeof GbocNotificationsRoute
   '/gboc/operations': typeof GbocOperationsRoute
   '/gboc/reports': typeof GbocReportsRoute
@@ -366,6 +373,7 @@ export interface FileRoutesByTo {
   '/gboc/audit': typeof GbocAuditRoute
   '/gboc/banks': typeof GbocBanksRoute
   '/gboc/communications': typeof GbocCommunicationsRoute
+  '/gboc/domains': typeof GbocDomainsRoute
   '/gboc/notifications': typeof GbocNotificationsRoute
   '/gboc/operations': typeof GbocOperationsRoute
   '/gboc/reports': typeof GbocReportsRoute
@@ -415,6 +423,7 @@ export interface FileRoutesById {
   '/gboc/banks': typeof GbocBanksRoute
   '/gboc/communications': typeof GbocCommunicationsRoute
   '/gboc/customers': typeof GbocCustomersRouteWithChildren
+  '/gboc/domains': typeof GbocDomainsRoute
   '/gboc/notifications': typeof GbocNotificationsRoute
   '/gboc/operations': typeof GbocOperationsRoute
   '/gboc/reports': typeof GbocReportsRoute
@@ -467,6 +476,7 @@ export interface FileRouteTypes {
     | '/gboc/banks'
     | '/gboc/communications'
     | '/gboc/customers'
+    | '/gboc/domains'
     | '/gboc/notifications'
     | '/gboc/operations'
     | '/gboc/reports'
@@ -512,6 +522,7 @@ export interface FileRouteTypes {
     | '/gboc/audit'
     | '/gboc/banks'
     | '/gboc/communications'
+    | '/gboc/domains'
     | '/gboc/notifications'
     | '/gboc/operations'
     | '/gboc/reports'
@@ -560,6 +571,7 @@ export interface FileRouteTypes {
     | '/gboc/banks'
     | '/gboc/communications'
     | '/gboc/customers'
+    | '/gboc/domains'
     | '/gboc/notifications'
     | '/gboc/operations'
     | '/gboc/reports'
@@ -723,6 +735,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/gboc/notifications'
       preLoaderRoute: typeof GbocNotificationsRouteImport
+      parentRoute: typeof GbocRoute
+    }
+    '/gboc/domains': {
+      id: '/gboc/domains'
+      path: '/domains'
+      fullPath: '/gboc/domains'
+      preLoaderRoute: typeof GbocDomainsRouteImport
       parentRoute: typeof GbocRoute
     }
     '/gboc/customers': {
@@ -983,6 +1002,7 @@ interface GbocRouteChildren {
   GbocBanksRoute: typeof GbocBanksRoute
   GbocCommunicationsRoute: typeof GbocCommunicationsRoute
   GbocCustomersRoute: typeof GbocCustomersRouteWithChildren
+  GbocDomainsRoute: typeof GbocDomainsRoute
   GbocNotificationsRoute: typeof GbocNotificationsRoute
   GbocOperationsRoute: typeof GbocOperationsRoute
   GbocReportsRoute: typeof GbocReportsRoute
@@ -996,6 +1016,7 @@ const GbocRouteChildren: GbocRouteChildren = {
   GbocBanksRoute: GbocBanksRoute,
   GbocCommunicationsRoute: GbocCommunicationsRoute,
   GbocCustomersRoute: GbocCustomersRouteWithChildren,
+  GbocDomainsRoute: GbocDomainsRoute,
   GbocNotificationsRoute: GbocNotificationsRoute,
   GbocOperationsRoute: GbocOperationsRoute,
   GbocReportsRoute: GbocReportsRoute,

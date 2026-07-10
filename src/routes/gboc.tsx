@@ -19,10 +19,12 @@ import {
   FileCheck2,
   FileBarChart2,
   Settings2,
+  Globe,
   Menu,
   Search,
   type LucideIcon,
 } from "lucide-react";
+
 
 type NavItem = { to: string; label: string; icon: LucideIcon; exact?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
