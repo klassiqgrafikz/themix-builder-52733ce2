@@ -25,55 +25,56 @@ import type {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyClient = (c: any) => c as any;
 
-export const listCountries = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<BankCountry[]> => {
-    const { data, error } = await anyClient(context.supabase)
+export const listCountries = createServerFn({ method: "GET" }).handler(
+  async (): Promise<BankCountry[]> => {
+    const { data, error } = await anyClient(createPublicServerClient())
       .from("bb_countries")
       .select("*")
       .order("name");
     if (error) throw new Error(error.message);
     return (data ?? []) as BankCountry[];
-  });
+  },
+);
 
 export const listTemplates = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: { country_code?: string | null }) => d)
-  .handler(async ({ context, data }): Promise<BankTemplate[]> => {
-    let query = anyClient(context.supabase).from("bb_templates").select("*").order("name");
+  .handler(async ({ data }): Promise<BankTemplate[]> => {
+    let query = anyClient(createPublicServerClient())
+      .from("bb_templates")
+      .select("*")
+      .order("name");
     if (data.country_code) query = query.eq("country_code", data.country_code);
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
     return (rows ?? []) as BankTemplate[];
   });
 
-export const listBlueprintCategories = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<BlueprintCategory[]> => {
-    const { data, error } = await anyClient(context.supabase)
+export const listBlueprintCategories = createServerFn({ method: "GET" }).handler(
+  async (): Promise<BlueprintCategory[]> => {
+    const { data, error } = await anyClient(createPublicServerClient())
       .from("bb_blueprint_categories")
       .select("*")
       .order("sort_order");
     if (error) throw new Error(error.message);
     return (data ?? []) as BlueprintCategory[];
-  });
+  },
+);
 
-export const listModules = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<BankModule[]> => {
-    const { data, error } = await anyClient(context.supabase)
+export const listModules = createServerFn({ method: "GET" }).handler(
+  async (): Promise<BankModule[]> => {
+    const { data, error } = await anyClient(createPublicServerClient())
       .from("bb_modules")
       .select("*")
       .order("sort_order");
     if (error) throw new Error(error.message);
     return (data ?? []) as BankModule[];
-  });
+  },
+);
 
 export const listBlueprints = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: { category?: string | null; country?: string | null }) => d)
-  .handler(async ({ context, data }): Promise<BankTemplate[]> => {
-    let q = anyClient(context.supabase)
+  .handler(async ({ data }): Promise<BankTemplate[]> => {
+    let q = anyClient(createPublicServerClient())
       .from("bb_templates")
       .select("*")
       .order("popularity", { ascending: false });
