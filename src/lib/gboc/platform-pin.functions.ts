@@ -3,12 +3,22 @@
 // Default PIN 0499 (seeded by migration). Stored as a hex sha256 hash plus
 // the plaintext (so an admin can reveal the current PIN). No CBE / auth /
 // tenant logic is touched.
+//
+// After a successful PIN check, the server mints a real Supabase session for
+// a shared platform-admin account and returns the tokens. The client installs
+// them with `supabase.auth.setSession(...)` so subsequent server-fn RPCs carry
+// a valid bearer token and `requireSupabaseAuth` succeeds. There is no
+// separate email/password login for operators.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createHash } from "node:crypto";
 
 const DEFAULT_PIN = "0499";
+// Namespaced under a versioned local-part so bootstrap doesn't collide with
+// any pre-existing test user under the same base name. Auto-confirm is on for
+// the project, so `signUp` immediately returns a usable account.
+const ADMIN_EMAIL = "themix-platform-admin-v1@themixweb.internal";
 
 function hash(pin: string): string {
   return createHash("sha256").update(pin, "utf8").digest("hex");
@@ -25,15 +35,87 @@ async function loadRow() {
   return data as { platform_pin_hash: string | null; platform_pin_plain: string | null } | null;
 }
 
-/** Public — anyone with the PIN can unlock the admin shell. */
+type AdminSession = { access_token: string; refresh_token: string };
+type VerifyResult = { ok: false } | { ok: true; session: AdminSession };
+
+async function createPublishableClient() {
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+    throw new Error("Supabase env not configured");
+  }
+  const { createClient } = await import("@supabase/supabase-js");
+  return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+  });
+}
+
+/**
+ * Ensure the shared platform-admin auth user exists with the configured
+ * password. Uses the public sign-up endpoint (auto_confirm_email must be
+ * enabled on the project). Idempotent: on a subsequent call sign-up returns
+ * "User already registered" and we fall through to signInWithPassword.
+ */
+async function ensurePlatformAdmin(password: string): Promise<void> {
+  const sb = await createPublishableClient();
+  const { error } = await sb.auth.signUp({
+    email: ADMIN_EMAIL,
+    password,
+    options: { data: { role: "platform_admin" } },
+  });
+  if (!error) return;
+  // Already-registered is fine; anything else is a real failure.
+  const msg = error.message.toLowerCase();
+  if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+    return;
+  }
+  throw new Error(`Unable to provision platform admin: ${error.message}`);
+}
+
+async function mintAdminSession(password: string): Promise<AdminSession> {
+  const sb = await createPublishableClient();
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: ADMIN_EMAIL,
+    password,
+  });
+  if (error || !data.session) {
+    throw new Error(error?.message ?? "Platform admin sign-in failed");
+  }
+  return {
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+  };
+}
+
+/**
+ * Public — anyone with the correct PIN unlocks the admin shell. When the PIN
+ * matches, mint a real Supabase session for the shared platform-admin
+ * account and return it so the client can install it.
+ */
 export const verifyPlatformPin = createServerFn({ method: "POST" })
   .inputValidator((d: { pin: string }) =>
     z.object({ pin: z.string().trim().min(4).max(12).regex(/^\d+$/) }).parse(d),
   )
-  .handler(async ({ data }): Promise<{ ok: boolean }> => {
+  .handler(async ({ data }): Promise<VerifyResult> => {
     const row = await loadRow();
     const expected = row?.platform_pin_hash ?? hash(DEFAULT_PIN);
-    return { ok: hash(data.pin) === expected };
+    if (hash(data.pin) !== expected) return { ok: false };
+
+    const password = process.env.PLATFORM_ADMIN_PASSWORD;
+    if (!password) {
+      throw new Error("PLATFORM_ADMIN_PASSWORD is not configured");
+    }
+
+    // Try minting a session first; only pay the sign-up cost on the very
+    // first unlock (or if the account was manually removed).
+    try {
+      const session = await mintAdminSession(password);
+      return { ok: true, session };
+    } catch {
+      await ensurePlatformAdmin(password);
+      const session = await mintAdminSession(password);
+      return { ok: true, session };
+    }
   });
 
 /** Authenticated admin — reveal the current plaintext PIN. */

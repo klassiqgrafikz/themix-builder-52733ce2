@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { verifyPlatformPin } from "@/lib/gboc/platform-pin.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export function PlatformPinGate({ children, area }: { children: React.ReactNode;
   });
   const [pin, setPin] = useState("");
   const verifyFn = useServerFn(verifyPlatformPin);
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -30,14 +32,30 @@ export function PlatformPinGate({ children, area }: { children: React.ReactNode;
 
   const mut = useMutation({
     mutationFn: () => verifyFn({ data: { pin } }),
-    onSuccess: (r) => {
-      if (r.ok) {
-        window.sessionStorage.setItem(KEY, "1");
-        setOk(true);
-        toast.success("Access granted");
-      } else {
+    onSuccess: async (r) => {
+      if (!r.ok) {
         toast.error("Incorrect PIN");
+        return;
       }
+      // Install the shared platform-admin Supabase session so that
+      // `attachSupabaseAuth` has a valid bearer for every subsequent RPC.
+      try {
+        const { error } = await supabase.auth.setSession(r.session);
+        if (error) throw error;
+      } catch (e) {
+        toast.error(
+          e instanceof Error
+            ? `Session install failed: ${e.message}`
+            : "Session install failed",
+        );
+        return;
+      }
+      window.sessionStorage.setItem(KEY, "1");
+      setOk(true);
+      // Any queries that failed with 401 while locked should refetch now
+      // that we have a bearer token.
+      qc.invalidateQueries();
+      toast.success("Access granted");
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Verification failed"),
   });
