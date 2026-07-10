@@ -94,7 +94,10 @@ const FAQS = [
   },
 ];
 
-function buildTrend(transactions: { created_at: string; amount: number; direction: string }[], balance: number) {
+function buildTrend(
+  transactions: { created_at: string; amount: number; direction: string }[],
+  balance: number,
+) {
   const points: { label: string; balance: number }[] = [];
   let running = balance;
   const now = new Date();
@@ -109,7 +112,9 @@ function buildTrend(transactions: { created_at: string; amount: number; directio
   return points.reverse();
 }
 
-function buildFlow(transactions: { created_at: string; amount: number; direction: string; currency: string }[]) {
+function buildFlow(
+  transactions: { created_at: string; amount: number; direction: string; currency: string }[],
+) {
   const months: { label: string; inflow: number; outflow: number }[] = [];
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
@@ -170,9 +175,10 @@ function DashboardPage() {
   useEffect(() => {
     try {
       sessionStorage.setItem(`portal:balance-visible:${slug}`, balanceVisible ? "1" : "0");
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [balanceVisible, slug]);
-
 
   const txFn = useServerFn(customerListTransactions);
   const notifFn = useServerFn(customerListNotifications);
@@ -229,20 +235,50 @@ function DashboardPage() {
 
   const quickActions = [
     transferEnabled
-      ? { icon: Send, title: "Send", subtitle: "Transfer funds", to: "/banks/$slug/portal/transfer" as const }
+      ? {
+          icon: Send,
+          title: "Send",
+          subtitle: "Transfer funds",
+          to: "/banks/$slug/portal/transfer" as const,
+        }
       : null,
-    { icon: ArrowDownToLine, title: "Receive", subtitle: "Incoming funds", to: "/banks/$slug/portal/accounts" as const },
+    {
+      icon: ArrowDownToLine,
+      title: "Receive",
+      subtitle: "Incoming funds",
+      to: "/banks/$slug/portal/accounts" as const,
+    },
     beneficiariesEnabled
-      ? { icon: Banknote, title: "Withdraw", subtitle: "Cash or transfer", to: "/banks/$slug/portal/beneficiaries" as const }
+      ? {
+          icon: Banknote,
+          title: "Withdraw",
+          subtitle: "Cash or transfer",
+          to: "/banks/$slug/portal/beneficiaries" as const,
+        }
       : null,
     statementsEnabled
-      ? { icon: FileText, title: "Statements", subtitle: "Download PDF", to: "/banks/$slug/portal/statements" as const }
+      ? {
+          icon: FileText,
+          title: "Statements",
+          subtitle: "Download PDF",
+          to: "/banks/$slug/portal/statements" as const,
+        }
       : null,
     cardsEnabled
-      ? { icon: CreditCard, title: "Cards", subtitle: "Manage cards", to: "/banks/$slug/portal/cards" as const }
+      ? {
+          icon: CreditCard,
+          title: "Cards",
+          subtitle: "Manage cards",
+          to: "/banks/$slug/portal/cards" as const,
+        }
       : null,
     beneficiariesEnabled
-      ? { icon: Users, title: "Beneficiaries", subtitle: "Saved recipients", to: "/banks/$slug/portal/beneficiaries" as const }
+      ? {
+          icon: Users,
+          title: "Beneficiaries",
+          subtitle: "Saved recipients",
+          to: "/banks/$slug/portal/beneficiaries" as const,
+        }
       : null,
   ].filter((a): a is NonNullable<typeof a> => a !== null);
 
@@ -256,7 +292,9 @@ function DashboardPage() {
     }
   };
 
-  const dividerColor = { borderColor: "color-mix(in oklab, var(--tenant-primary) 55%, transparent)" };
+  const dividerColor = {
+    borderColor: "color-mix(in oklab, var(--tenant-primary) 55%, transparent)",
+  };
   const softText = "text-slate-500";
   const labelText = "text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400";
 
@@ -285,7 +323,11 @@ function DashboardPage() {
         >
           <div className="flex min-w-0 items-center gap-4">
             {manifest.brand.dashboard_logo_url ? (
-              <img src={manifest.brand.dashboard_logo_url} alt="" className="h-12 w-12 shrink-0 rounded-xl bg-slate-100 object-contain p-2" />
+              <img
+                src={manifest.brand.dashboard_logo_url}
+                alt=""
+                className="h-12 w-12 shrink-0 rounded-xl bg-slate-100 object-contain p-2"
+              />
             ) : (
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100">
                 <Wallet className="h-5 w-5 text-slate-600" />
@@ -300,7 +342,8 @@ function DashboardPage() {
                 {session.customer.first_name} {session.customer.last_name}
               </h1>
               <p className={`mt-1 text-xs ${softText}`}>
-                Customer № <span className="font-mono text-slate-700">{session.customer.customer_number}</span>
+                Customer №{" "}
+                <span className="font-mono text-slate-700">{session.customer.customer_number}</span>
               </p>
             </div>
           </div>
@@ -317,7 +360,10 @@ function DashboardPage() {
 
         <div className="space-y-0">
           {/* Account Number */}
-          <div className="flex items-center justify-between gap-4 border-b-2 py-7" style={dividerColor}>
+          <div
+            className="flex items-center justify-between gap-4 border-b-2 py-7"
+            style={dividerColor}
+          >
             <div className="min-w-0">
               <p className={labelText}>Account Number</p>
               <p
@@ -327,7 +373,9 @@ function DashboardPage() {
                 {acctMasked}
               </p>
               {primaryAccount?.iban && (
-                <p className="mt-1 truncate font-mono text-xs text-slate-400">{primaryAccount.iban}</p>
+                <p className="mt-1 truncate font-mono text-xs text-slate-400">
+                  {primaryAccount.iban}
+                </p>
               )}
             </div>
             <button
@@ -340,7 +388,10 @@ function DashboardPage() {
           </div>
 
           {/* Available Balance */}
-          <div className="flex items-center justify-between gap-4 border-b-2 py-7" style={dividerColor}>
+          <div
+            className="flex items-center justify-between gap-4 border-b-2 py-7"
+            style={dividerColor}
+          >
             <div className="min-w-0">
               <p className={labelText}>Available Balance · {currency}</p>
               <p
@@ -356,7 +407,11 @@ function DashboardPage() {
               aria-label={balanceVisible ? "Hide balance" : "Show balance"}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
             >
-              {balanceVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              {balanceVisible ? (
+                <Eye className="h-3.5 w-3.5" />
+              ) : (
+                <EyeOff className="h-3.5 w-3.5" />
+              )}
               {balanceVisible ? "Hide" : "Show"}
             </button>
           </div>
@@ -365,7 +420,9 @@ function DashboardPage() {
           <div className="py-7">
             <p className={labelText}>Current Balance</p>
             <p className="mt-1 text-xl font-semibold text-slate-700 md:text-2xl">
-              {balanceVisible && primaryAccount ? fmt(primaryAccount.current_balance, currency) : "••••"}
+              {balanceVisible && primaryAccount
+                ? fmt(primaryAccount.current_balance, currency)
+                : "••••"}
             </p>
           </div>
         </div>
@@ -373,7 +430,10 @@ function DashboardPage() {
 
       {/* Quick Actions */}
       <section>
-        <SectionHeading title="Quick actions" subtitle="Move money and manage your banking essentials" />
+        <SectionHeading
+          title="Quick actions"
+          subtitle="Move money and manage your banking essentials"
+        />
         <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {quickActions.map((a) => (
             <Link
@@ -422,13 +482,29 @@ function DashboardPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#eef2f7" vertical={false} />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} width={48} />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  width={48}
+                />
                 <Tooltip
                   contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
                   formatter={(v: number) => [fmt(v, currency), "Balance"]}
                 />
-                <Area type="monotone" dataKey="balance" stroke="var(--tenant-primary)" strokeWidth={2.5} fill="url(#balArea)" />
+                <Area
+                  type="monotone"
+                  dataKey="balance"
+                  stroke="var(--tenant-primary)"
+                  strokeWidth={2.5}
+                  fill="url(#balArea)"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -437,12 +513,16 @@ function DashboardPage() {
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Inflow vs outflow</h2>
+              <h2 className="text-base font-semibold text-slate-900 md:text-lg">
+                Inflow vs outflow
+              </h2>
               <p className="text-xs text-slate-500">Last 6 months</p>
             </div>
             <div className="text-right">
               <div className="text-[10px] uppercase tracking-wider text-slate-500">Net</div>
-              <div className={`text-sm font-semibold ${flowTotals.net >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+              <div
+                className={`text-sm font-semibold ${flowTotals.net >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+              >
                 {flowTotals.net >= 0 ? "+" : ""}
                 {fmt(flowTotals.net, currency)}
               </div>
@@ -450,13 +530,30 @@ function DashboardPage() {
           </div>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={flow} margin={{ top: 5, right: 8, left: 0, bottom: 0 }} barCategoryGap="30%">
+              <BarChart
+                data={flow}
+                margin={{ top: 5, right: 8, left: 0, bottom: 0 }}
+                barCategoryGap="30%"
+              >
                 <CartesianGrid stroke="#eef2f7" vertical={false} />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} width={40} />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  width={40}
+                />
                 <Tooltip
                   contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
-                  formatter={(v: number, name: string) => [fmt(v, currency), name === "inflow" ? "Inflow" : "Outflow"]}
+                  formatter={(v: number, name: string) => [
+                    fmt(v, currency),
+                    name === "inflow" ? "Inflow" : "Outflow",
+                  ]}
                 />
                 <Bar dataKey="inflow" fill="#10b981" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="outflow" fill="#f43f5e" radius={[6, 6, 0, 0]} />
@@ -473,10 +570,16 @@ function DashboardPage() {
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Recent transactions</h2>
+              <h2 className="text-base font-semibold text-slate-900 md:text-lg">
+                Recent transactions
+              </h2>
               <p className="text-xs text-slate-500">Latest activity across your accounts</p>
             </div>
-            <Link to="/banks/$slug/portal/transactions" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
+            <Link
+              to="/banks/$slug/portal/transactions"
+              params={{ slug }}
+              className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900"
+            >
               <ListOrdered className="h-3.5 w-3.5" /> View all
             </Link>
           </div>
@@ -492,15 +595,26 @@ function DashboardPage() {
                     <div className="flex min-w-0 items-center gap-3">
                       <span
                         className={`flex h-9 w-9 flex-none items-center justify-center rounded-xl ${
-                          isCredit ? "bg-emerald-50 text-emerald-600" : isDebit ? "bg-rose-50 text-rose-600" : "bg-slate-100 text-slate-600"
+                          isCredit
+                            ? "bg-emerald-50 text-emerald-600"
+                            : isDebit
+                              ? "bg-rose-50 text-rose-600"
+                              : "bg-slate-100 text-slate-600"
                         }`}
                       >
-                        {isCredit ? <ArrowDownToLine className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                        {isCredit ? (
+                          <ArrowDownToLine className="h-4 w-4" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
                       </span>
                       <div className="min-w-0">
-                        <div className="truncate font-medium text-slate-800">{t.description || t.kind}</div>
+                        <div className="truncate font-medium text-slate-800">
+                          {t.description || t.kind}
+                        </div>
                         <div className="text-xs text-slate-500">
-                          {new Date(t.created_at).toLocaleString()} · <span className="capitalize">{t.kind}</span>
+                          {new Date(t.created_at).toLocaleString()} ·{" "}
+                          <span className="capitalize">{t.kind}</span>
                         </div>
                       </div>
                     </div>
@@ -522,17 +636,25 @@ function DashboardPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-slate-900 md:text-lg">Exchange rates</h2>
-              <span className="text-[10px] uppercase tracking-wider text-slate-500">Indicative</span>
+              <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                Indicative
+              </span>
             </div>
             <ul className="space-y-3">
               {FX_RATES.map((r) => {
                 const up = r.change >= 0;
                 return (
-                  <li key={r.pair} className="flex items-center justify-between text-sm py-1 border-b" style={dividerColor}>
+                  <li
+                    key={r.pair}
+                    className="flex items-center justify-between text-sm py-1 border-b"
+                    style={dividerColor}
+                  >
                     <span className="font-medium text-slate-700">{r.pair}</span>
                     <span className="flex items-center gap-2">
                       <span className="font-mono text-slate-900">{r.rate.toFixed(3)}</span>
-                      <span className={`text-[11px] font-semibold ${up ? "text-emerald-600" : "text-rose-600"}`}>
+                      <span
+                        className={`text-[11px] font-semibold ${up ? "text-emerald-600" : "text-rose-600"}`}
+                      >
                         {up ? "▲" : "▼"} {Math.abs(r.change).toFixed(2)}%
                       </span>
                     </span>
@@ -545,7 +667,11 @@ function DashboardPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-slate-900 md:text-lg">Notifications</h2>
-              <Link to="/banks/$slug/portal/notifications" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
+              <Link
+                to="/banks/$slug/portal/notifications"
+                params={{ slug }}
+                className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900"
+              >
                 <Bell className="h-3.5 w-3.5" /> View all
               </Link>
             </div>
@@ -557,9 +683,13 @@ function DashboardPage() {
                   <li key={n.id} className="py-2.5 text-sm">
                     <div className="flex items-center justify-between gap-2">
                       <div className="truncate font-medium text-slate-800">{n.title}</div>
-                      <span className="whitespace-nowrap text-[11px] text-slate-500">{new Date(n.created_at).toLocaleDateString()}</span>
+                      <span className="whitespace-nowrap text-[11px] text-slate-500">
+                        {new Date(n.created_at).toLocaleDateString()}
+                      </span>
                     </div>
-                    {n.body && <div className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.body}</div>}
+                    {n.body && (
+                      <div className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.body}</div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -576,7 +706,11 @@ function DashboardPage() {
           title="Your accounts"
           subtitle="All accounts linked to your customer profile"
           right={
-            <Link to="/banks/$slug/portal/accounts" params={{ slug }} className="text-xs font-medium text-slate-600 hover:text-slate-900">
+            <Link
+              to="/banks/$slug/portal/accounts"
+              params={{ slug }}
+              className="text-xs font-medium text-slate-600 hover:text-slate-900"
+            >
               Manage accounts →
             </Link>
           }
@@ -600,7 +734,10 @@ function DashboardPage() {
               <div className="flex items-center gap-6 sm:gap-10">
                 <div className="text-right">
                   <p className={labelText}>Available</p>
-                  <p className="mt-0.5 text-lg font-semibold text-slate-900" style={{ fontFamily: theme.typography.heading }}>
+                  <p
+                    className="mt-0.5 text-lg font-semibold text-slate-900"
+                    style={{ fontFamily: theme.typography.heading }}
+                  >
                     {balanceVisible ? fmt(a.available_balance, a.currency) : "••••"}
                   </p>
                 </div>
@@ -621,7 +758,10 @@ function DashboardPage() {
 
       {/* FAQ */}
       <section>
-        <SectionHeading title="Frequently asked questions" subtitle="Answers to common banking questions" />
+        <SectionHeading
+          title="Frequently asked questions"
+          subtitle="Answers to common banking questions"
+        />
         <div className="mt-5">
           <Accordion type="single" collapsible className="w-full">
             {FAQS.map((f, i) => (
