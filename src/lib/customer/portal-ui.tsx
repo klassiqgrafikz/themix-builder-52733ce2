@@ -432,7 +432,7 @@ export function PortalShell({
           <div className="flex-1 text-center text-sm uppercase tracking-[0.25em]" style={{ color: "#c9a84c" }}>
             {activeLabel}
           </div>
-          <div className="w-9" />
+          <NotificationBell slug={slug} tone="gold" />
         </header>
 
         {drawerOpen && (
