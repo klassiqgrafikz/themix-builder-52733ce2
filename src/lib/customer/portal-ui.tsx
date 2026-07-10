@@ -16,7 +16,6 @@ import {
   ListOrdered,
   CreditCard,
   FileText,
-  Bell,
   LifeBuoy,
   ShieldCheck,
   User,
@@ -25,6 +24,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { NotificationBell } from "./notification-bell";
 
 type NavEntry = {
   key: string;
