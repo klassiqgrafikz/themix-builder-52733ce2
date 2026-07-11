@@ -43,7 +43,7 @@ function AdminOverview() {
             <div className="divide-y">
               {drafts.map((d) => {
                 const identity = (d.identity ?? {}) as Partial<BankIdentity>;
-                const publicRoute = d.slug && d.render_status === "published" ? `/banks/${d.slug}` : null;
+                const publicRoute = (d.short_slug ?? d.slug) && d.render_status === "published" ? `/${d.short_slug ?? d.slug}` : null;
                 const url = publicRoute ?? (d.slug ? `slug: ${d.slug}` : "—");
                 return (
                   <Link

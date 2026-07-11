@@ -37,7 +37,7 @@ export const Route = createFileRoute("/$slug/portal")({
 function PortalLayout() {
   const { bank, session, restrictions } = Route.useLoaderData();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const base = `/banks/${bank.slug}/portal`;
+  const base = `/${bank.slug}/portal`;
   const activePath = pathname === base ? "" : pathname.slice(base.length);
   return (
     <PortalShell

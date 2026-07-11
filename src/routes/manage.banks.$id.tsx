@@ -303,7 +303,7 @@ function BankOverview() {
                     "Bank is still a draft. Finish the wizard and click Generate Bank."}
                   {renderStatus === "rendering" && "Rendering in progress…"}
                   {renderStatus === "ready" &&
-                    "Website is generated and ready. Click Publish to make it public at /banks/" +
+                    "Website is generated and ready. Click Publish to make it public at /" +
                       (draft.slug ?? "…") +
                       "."}
                   {renderStatus === "archived" && "This bank has been archived."}

@@ -169,7 +169,7 @@ function TransferPage() {
     onSuccess: (r) => {
       toast.success(`Transfer completed. New balance: ${fmt(r.new_balance, r.currency)}`);
       qc.invalidateQueries();
-      window.location.href = `/banks/${bank.slug}/portal/transactions/${r.transaction_id}`;
+      window.location.href = `/${bank.slug}/portal/transactions/${r.transaction_id}`;
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Transfer failed"),
   });
