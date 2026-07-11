@@ -20,13 +20,12 @@ export const adminListCustomers = createServerFn({ method: "GET" })
       .parse(d),
   )
   .handler(async ({ context, data }): Promise<AdminCustomerRow[]> => {
-    // Only allow the caller to see customers belonging to banks they own.
+    // Single-owner platform: list customers across every bank.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
     const { data: ownedBanks, error: ownedErr } = await sb
       .from("bb_bank_drafts")
-      .select("id, identity, slug")
-      .eq("owner_id", context.userId);
+      .select("id, identity, slug");
     if (ownedErr) throw new Error(ownedErr.message);
     const ownedIds = new Set<string>((ownedBanks ?? []).map((b: { id: string }) => b.id));
     if (ownedIds.size === 0) return [];
