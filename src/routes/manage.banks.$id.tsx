@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   finalizeDraft,
@@ -8,8 +9,11 @@ import {
   listCountries,
   listModules,
   listTemplates,
+  updateShortSlug,
 } from "@/lib/bank-builder.functions";
 import { publishDraft, unpublishDraft, deleteBank, clearRenderingHistory } from "@/lib/website/registry.functions";
+import { Input } from "@/components/ui/input";
+import { sanitizeShortSlug, validateShortSlug } from "@/lib/website/reserved-slugs";
 import {
   deleteBankProduct,
   listBankProducts,
@@ -159,7 +163,8 @@ function BankOverview() {
   const manifest = isManifest(draft.manifest) ? draft.manifest : null;
   const navigation = draft.navigation ?? [];
   const logs = Array.isArray(draft.render_logs) ? draft.render_logs : [];
-  const publicRoute = draft.slug ? `/banks/${draft.slug}` : null;
+  const publicSlug = draft.short_slug ?? draft.slug ?? null;
+  const publicRoute = publicSlug ? `/${publicSlug}` : null;
   const isPublished = renderStatus === "published" && !!publicRoute;
   const isReady = renderStatus === "ready";
   const busy = rerenderMut.isPending || publishMut.isPending || unpublishMut.isPending;
@@ -195,6 +200,7 @@ function BankOverview() {
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 {country && <span>{country.flag_emoji} {country.name}</span>}
                 {draft.slug && <span className="font-mono">· slug: {draft.slug}</span>}
+                {draft.short_slug && <span className="font-mono">· url: /{draft.short_slug}</span>}
               </div>
             </div>
           </div>
