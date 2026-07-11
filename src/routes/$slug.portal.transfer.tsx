@@ -170,8 +170,13 @@ function TransferPage() {
     },
     onSuccess: (r) => {
       qc.invalidateQueries();
-      window.location.href = `/${bank.slug}/portal/transactions/${r.transaction_id}?success=1`;
+      navigate({
+        to: "/$slug/portal/transactions/$id",
+        params: { slug: bank.slug, id: r.transaction_id },
+        search: { success: true },
+      });
     },
+
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Transfer failed"),
   });
 
