@@ -25,7 +25,6 @@ export const Route = createFileRoute("/$slug/portal/support")({
 
 const FAQ = [
   { q: "How do I reset my password?", a: "Use the Security section to change your password, or the Forgot Password link on the sign-in page." },
-  { q: "Are transfers real money?", a: "This is a simulated banking environment. Every operation runs through the same Core Banking Engine used in production." },
   { q: "Why is my account restricted?", a: "Restrictions are set by your bank's operations team. Contact support for details on your specific case." },
 ];
 
