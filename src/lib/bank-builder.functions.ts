@@ -20,10 +20,35 @@ import type {
   BlueprintProductLink,
   CatalogProduct,
 } from "./products/types";
+import {
+  sanitizeShortSlug,
+  suggestShortSlug,
+  validateShortSlug,
+} from "./website/reserved-slugs";
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyClient = (c: any) => c as any;
+
+/** Find an unused short_slug by appending -2, -3, ... on collision. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function findFreeShortSlug(sb: any, base: string, excludeId: string): Promise<string> {
+  let candidate = base;
+  let n = 1;
+  // Hard cap on attempts to avoid runaway.
+  while (n < 500) {
+    const { data } = await sb
+      .from("bb_bank_drafts")
+      .select("id")
+      .eq("short_slug", candidate)
+      .neq("id", excludeId)
+      .maybeSingle();
+    if (!data) return candidate;
+    n += 1;
+    candidate = `${base}-${n}`;
+  }
+  throw new Error("Could not allocate a unique short slug.");
+}
 
 export const listCountries = createServerFn({ method: "GET" }).handler(
   async (): Promise<BankCountry[]> => {
@@ -266,12 +291,22 @@ export const finalizeDraft = createServerFn({ method: "POST" })
     });
 
     // 5. Persist the generated Bank Instance artifacts.
+    // Auto-generate a short_slug if this draft doesn't have one yet.
+    let shortSlug = (draftRow.short_slug ?? null) as string | null;
+    if (!shortSlug) {
+      const base = suggestShortSlug(
+        (draftRow.identity as { bank_name?: string } | null)?.bank_name ?? instance.slug,
+      );
+      shortSlug = await findFreeShortSlug(sb, base, data.id);
+    }
+
     const { data: row, error } = await sb
       .from("bb_bank_drafts")
       .update({
         status: "saved",
         current_step: 10,
         slug: instance.slug,
+        short_slug: shortSlug,
         manifest: instance.manifest,
         navigation: instance.navigation,
         render_logs: instance.logs,
@@ -283,5 +318,26 @@ export const finalizeDraft = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     return row as BankDraft;
+  });
+
+/** Update the short_slug (public URL) for a bank draft. Validates format,
+ *  reserved words, and uniqueness; auto-suffixes on collision. */
+export const updateShortSlug = createServerFn({ method: "POST" })
+  .middleware([withPlatformServiceRole])
+  .inputValidator((d: { id: string; short_slug: string }) =>
+    z.object({ id: z.string().uuid(), short_slug: z.string().min(1).max(40) }).parse(d),
+  )
+  .handler(async ({ context, data }): Promise<{ short_slug: string }> => {
+    const sb = anyClient(context.supabase);
+    const sanitized = sanitizeShortSlug(data.short_slug);
+    const err = validateShortSlug(sanitized);
+    if (err) throw new Error(err);
+    const finalSlug = await findFreeShortSlug(sb, sanitized, data.id);
+    const { error } = await sb
+      .from("bb_bank_drafts")
+      .update({ short_slug: finalSlug })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { short_slug: finalSlug };
   });
 
