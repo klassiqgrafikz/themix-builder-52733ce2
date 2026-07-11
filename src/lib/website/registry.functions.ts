@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
-import { requirePlatformAuth } from "@/integrations/supabase/platform-auth-middleware";
+import { withPlatformServiceRole } from "@/integrations/supabase/platform-service-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import type { BankDraft } from "@/lib/bank-builder.types";
 import type { WebsiteManifest, RenderLogEntry } from "@/lib/rendering/types";
@@ -46,7 +46,7 @@ export type WebsiteRegistryEntry = Omit<PublishedBankRecord, "manifest">;
 
 /** Owner-scoped: publish a bank whose render_status is "ready". */
 export const publishDraft = createServerFn({ method: "POST" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }): Promise<BankDraft> => {
     const sb = anyClient(context.supabase);
@@ -114,7 +114,7 @@ export const publishDraft = createServerFn({ method: "POST" })
 
 /** Owner-scoped: return a bank to Ready (removes it from the public registry). */
 export const unpublishDraft = createServerFn({ method: "POST" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }): Promise<BankDraft> => {
     const sb = anyClient(context.supabase);
@@ -132,7 +132,7 @@ export const unpublishDraft = createServerFn({ method: "POST" })
  * this user). Only removes render_logs — banks, customers, audit logs, ledger
  * and website manifests are preserved. */
 export const clearRenderingHistory = createServerFn({ method: "POST" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { id?: string }) => z.object({ id: z.string().uuid().optional() }).parse(d))
   .handler(async ({ context, data }): Promise<{ cleared: number }> => {
     const sb = anyClient(context.supabase);
@@ -151,7 +151,7 @@ export const clearRenderingHistory = createServerFn({ method: "POST" })
  *     transactions, customers, sessions
  * Preserves audit logs unless purge_audit=true. */
 export const deleteBank = createServerFn({ method: "POST" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { id: string; purge_audit?: boolean }) =>
     z.object({ id: z.string().uuid(), purge_audit: z.boolean().optional().default(false) }).parse(d),
   )
