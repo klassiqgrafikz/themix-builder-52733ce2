@@ -20,14 +20,12 @@ export const gbocListBanks = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<GbocBankSummary[]> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
-    // GBOC operates only on PUBLISHED tenants — the Website Manifest / Bank
-    // Instance is the source of truth. Unpublished drafts are excluded.
+    // Single-owner platform: return every bank in bb_bank_drafts regardless
+    // of render_status or historical ownership.
     const { data: banks, error } = await sb
       .from("bb_bank_drafts")
       .select("id, slug, identity, branding, template_id, country_code, status, render_status, published_at")
-      // Single-owner platform: no owner_id filter.
-      .eq("render_status", "published")
-      .order("published_at", { ascending: false });
+      .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     if (!banks || banks.length === 0) return [];
 

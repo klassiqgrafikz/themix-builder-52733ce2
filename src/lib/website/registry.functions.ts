@@ -157,18 +157,19 @@ export const deleteBank = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string; purge_audit?: boolean }) =>
     z.object({ id: z.string().uuid(), purge_audit: z.boolean().optional().default(false) }).parse(d),
   )
-  .handler(async ({ context, data }): Promise<{ ok: true }> => {
-    const sb = anyClient(context.supabase);
-    // Single-owner platform: no owner authorization check. Service-role
-    // middleware is the sole authority for platform-management deletes.
-    const { data: draft } = await sb
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    // Single-owner platform: delete by bank ID only. Service-role client
+    // bypasses RLS; no owner_id / auth.uid() / role checks are consulted.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: draft, error: findErr } = await supabaseAdmin
       .from("bb_bank_drafts")
       .select("id")
       .eq("id", data.id)
       .maybeSingle();
+    if (findErr) throw new Error(findErr.message);
     if (!draft) throw new Error("Bank not found");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Remove branding assets for this draft.
     const { data: brandingFiles } = await supabaseAdmin.storage
       .from("bank-branding")
@@ -179,8 +180,7 @@ export const deleteBank = createServerFn({ method: "POST" })
         .remove(brandingFiles.map((f) => `${data.id}/${f.name}`));
     }
 
-    // Cascade delete tenant-scoped rows. Errors on any table abort with a
-    // useful message so the UI can surface the exact reason.
+    // Cascade delete tenant-scoped rows.
     const tenantTables = [
       "bank_account_restrictions",
       "bank_customer_login_history",
@@ -202,7 +202,6 @@ export const deleteBank = createServerFn({ method: "POST" })
       const { error: tErr } = await (supabaseAdmin as any).from(table).delete().eq("bank_id", data.id);
       if (tErr) throw new Error(`Failed clearing ${table}: ${tErr.message}`);
     }
-    // bp_bank_products uses draft_id (not bank_id).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: pErr } = await (supabaseAdmin as any)
       .from("bp_bank_products")
@@ -214,54 +213,13 @@ export const deleteBank = createServerFn({ method: "POST" })
       const { error: aErr } = await (supabaseAdmin as any).from("bank_audit_logs").delete().eq("bank_id", data.id);
       if (aErr) throw new Error(`Failed clearing bank_audit_logs: ${aErr.message}`);
     }
-    // Finally remove the draft. Use the user's RLS-scoped client — the
-    // `owners manage own drafts` policy authorises the owner, and every child
-    // table has ON DELETE CASCADE against bb_bank_drafts(id), so children
-    // (including bank_customers, accounts, transactions, cards, notifications,
-    // support, ledger, restrictions, sessions, audit logs, bp_bank_products)
-    // are removed atomically at the DB layer. Avoids depending on
-    // service-role privileges, which can be absent in some Cloud environments.
-    // Fall back to supabaseAdmin only if the RLS delete somehow removes 0 rows
-    // (e.g. admin acting on behalf of a non-owner).
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const primary = await (sb as any)
+    const { error: delErr } = await (supabaseAdmin as any)
       .from("bb_bank_drafts")
       .delete()
-      .eq("id", data.id)
-      .select("id");
-    let deletedCount = Array.isArray(primary.data) ? primary.data.length : 0;
-    let delErr = primary.error;
-
-    if (!delErr && deletedCount === 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fallback = await (supabaseAdmin as any)
-        .from("bb_bank_drafts")
-        .delete()
-        .eq("id", data.id)
-        .select("id");
-      deletedCount = Array.isArray(fallback.data) ? fallback.data.length : 0;
-      delErr = fallback.error;
-    }
+      .eq("id", data.id);
     if (delErr) throw new Error(`Failed deleting bank: ${delErr.message}`);
-    if (deletedCount !== 1) {
-      throw new Error(
-        `Delete removed ${deletedCount} rows (expected 1). The row may have already been deleted or you may lack permission.`,
-      );
-    }
-    // Post-delete verification via the admin client (bypasses public-read policy
-    // filters and confirms the row is truly gone regardless of render_status).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: stillThere, error: verifyErr } = await (supabaseAdmin as any)
-      .from("bb_bank_drafts")
-      .select("id")
-      .eq("id", data.id)
-      .maybeSingle();
-    if (verifyErr) throw new Error(`Delete verification failed: ${verifyErr.message}`);
-    if (stillThere) {
-      throw new Error(
-        "Delete reported success but the bank row is still present after verification.",
-      );
-    }
     return { ok: true };
   });
 
