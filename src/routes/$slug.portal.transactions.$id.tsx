@@ -7,7 +7,7 @@ import { getTransactionDetail } from "@/lib/customer/transactions.functions";
 import { Button } from "@/components/ui/button";
 import { Download, Printer } from "lucide-react";
 
-export const Route = createFileRoute("/banks/$slug/portal/transactions/$id")({
+export const Route = createFileRoute("/$slug/portal/transactions/$id")({
   component: ReceiptPage,
 });
 
@@ -18,7 +18,7 @@ function fmt(v: number, c: string) {
 
 function ReceiptPage() {
   const { slug, id } = Route.useParams();
-  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
   };
   const primary = parent.bank.manifest.theme.colors.primary;
@@ -61,7 +61,7 @@ function ReceiptPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Link to="/banks/$slug/portal/transactions" params={{ slug }} className="text-sm underline" style={{ color: primary }}>
+        <Link to="/$slug/portal/transactions" params={{ slug }} className="text-sm underline" style={{ color: primary }}>
           ← Back to transactions
         </Link>
         <div className="flex gap-2 print:hidden">

@@ -3,7 +3,7 @@ import { getPublishedBank } from "@/lib/website/registry.functions";
 import { TenantSite } from "@/lib/website/tenant-site";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 
-export const Route = createFileRoute("/banks/$slug/$page")({
+export const Route = createFileRoute("/$slug/$page")({
   loader: async ({ params }) => {
     const bank = await getPublishedBank({ data: { slug: params.slug } });
     if (!bank) throw notFound();

@@ -27,7 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-export const Route = createFileRoute("/banks/$slug/portal/profile")({
+export const Route = createFileRoute("/$slug/portal/profile")({
   component: ProfilePage,
 });
 
@@ -114,7 +114,7 @@ async function processAvatar(
 // ---------- component ----------
 
 function ProfilePage() {
-  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
   };
@@ -402,17 +402,17 @@ function ProfilePage() {
           </div>
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <Button asChild variant="outline" size="sm">
-              <Link to="/banks/$slug/portal/security" params={{ slug: bank.slug }}>
+              <Link to="/$slug/portal/security" params={{ slug: bank.slug }}>
                 <Lock className="mr-2 h-3.5 w-3.5" /> Change password
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link to="/banks/$slug/portal/security" params={{ slug: bank.slug }}>
+              <Link to="/$slug/portal/security" params={{ slug: bank.slug }}>
                 <KeyRound className="mr-2 h-3.5 w-3.5" /> Change PIN
               </Link>
             </Button>
             <Button asChild size="sm" style={{ backgroundColor: accent, color: "#fff" }}>
-              <Link to="/banks/$slug/portal/security" params={{ slug: bank.slug }}>
+              <Link to="/$slug/portal/security" params={{ slug: bank.slug }}>
                 <Settings2 className="mr-2 h-3.5 w-3.5" /> Security settings
               </Link>
             </Button>

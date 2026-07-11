@@ -47,12 +47,12 @@ import {
   Wallet,
 } from "lucide-react";
 
-export const Route = createFileRoute("/banks/$slug/portal/")({
+export const Route = createFileRoute("/$slug/portal/")({
   component: DashboardPage,
 });
 
 function useParentData() {
-  return useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  return useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
   };
@@ -247,21 +247,21 @@ function DashboardPage() {
           icon: Send,
           title: "Send",
           subtitle: "Transfer funds",
-          to: "/banks/$slug/portal/transfer" as const,
+          to: "/$slug/portal/transfer" as const,
         }
       : null,
     {
       icon: ArrowDownToLine,
       title: "Receive",
       subtitle: "Incoming funds",
-      to: "/banks/$slug/portal/accounts" as const,
+      to: "/$slug/portal/accounts" as const,
     },
     beneficiariesEnabled
       ? {
           icon: Banknote,
           title: "Withdraw",
           subtitle: "Cash or transfer",
-          to: "/banks/$slug/portal/beneficiaries" as const,
+          to: "/$slug/portal/beneficiaries" as const,
         }
       : null,
     statementsEnabled
@@ -269,7 +269,7 @@ function DashboardPage() {
           icon: FileText,
           title: "Statements",
           subtitle: "Download PDF",
-          to: "/banks/$slug/portal/statements" as const,
+          to: "/$slug/portal/statements" as const,
         }
       : null,
     cardsEnabled
@@ -277,7 +277,7 @@ function DashboardPage() {
           icon: CreditCard,
           title: "Cards",
           subtitle: "Manage cards",
-          to: "/banks/$slug/portal/cards" as const,
+          to: "/$slug/portal/cards" as const,
         }
       : null,
     beneficiariesEnabled
@@ -285,7 +285,7 @@ function DashboardPage() {
           icon: Users,
           title: "Beneficiaries",
           subtitle: "Saved recipients",
-          to: "/banks/$slug/portal/beneficiaries" as const,
+          to: "/$slug/portal/beneficiaries" as const,
         }
       : null,
   ].filter((a): a is NonNullable<typeof a> => a !== null);
@@ -621,7 +621,7 @@ function DashboardPage() {
               <p className="text-xs text-slate-500">Latest activity across your accounts</p>
             </div>
             <Link
-              to="/banks/$slug/portal/transactions"
+              to="/$slug/portal/transactions"
               params={{ slug }}
               className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900"
             >
@@ -734,7 +734,7 @@ function DashboardPage() {
           subtitle="All accounts linked to your customer profile"
           right={
             <Link
-              to="/banks/$slug/portal/accounts"
+              to="/$slug/portal/accounts"
               params={{ slug }}
               className="text-xs font-medium text-slate-600 hover:text-slate-900"
             >
@@ -992,14 +992,14 @@ function LayoutDrivenDashboard(props: {
         const columns = readNum(p, "columns", 3);
         const orientation = readStr(p, "orientation", "grid");
         const enabled = manifest;
-        type QA = { icon: typeof Send; title: string; to: "/banks/$slug/portal/transfer" | "/banks/$slug/portal/accounts" | "/banks/$slug/portal/beneficiaries" | "/banks/$slug/portal/statements" | "/banks/$slug/portal/cards" };
+        type QA = { icon: typeof Send; title: string; to: "/$slug/portal/transfer" | "/$slug/portal/accounts" | "/$slug/portal/beneficiaries" | "/$slug/portal/statements" | "/$slug/portal/cards" };
         const raw: (QA | null)[] = [
-          isNavEnabled(enabled, "transfer") ? { icon: Send, title: "Send", to: "/banks/$slug/portal/transfer" } : null,
-          { icon: ArrowDownToLine, title: "Receive", to: "/banks/$slug/portal/accounts" },
-          isNavEnabled(enabled, "beneficiaries") ? { icon: Banknote, title: "Withdraw", to: "/banks/$slug/portal/beneficiaries" } : null,
-          isNavEnabled(enabled, "statements") ? { icon: FileText, title: "Statements", to: "/banks/$slug/portal/statements" } : null,
-          isNavEnabled(enabled, "cards") ? { icon: CreditCard, title: "Cards", to: "/banks/$slug/portal/cards" } : null,
-          isNavEnabled(enabled, "beneficiaries") ? { icon: Users, title: "Beneficiaries", to: "/banks/$slug/portal/beneficiaries" } : null,
+          isNavEnabled(enabled, "transfer") ? { icon: Send, title: "Send", to: "/$slug/portal/transfer" } : null,
+          { icon: ArrowDownToLine, title: "Receive", to: "/$slug/portal/accounts" },
+          isNavEnabled(enabled, "beneficiaries") ? { icon: Banknote, title: "Withdraw", to: "/$slug/portal/beneficiaries" } : null,
+          isNavEnabled(enabled, "statements") ? { icon: FileText, title: "Statements", to: "/$slug/portal/statements" } : null,
+          isNavEnabled(enabled, "cards") ? { icon: CreditCard, title: "Cards", to: "/$slug/portal/cards" } : null,
+          isNavEnabled(enabled, "beneficiaries") ? { icon: Users, title: "Beneficiaries", to: "/$slug/portal/beneficiaries" } : null,
         ];
         const items: QA[] = raw.filter((x): x is QA => x !== null);
         const colClass = ({ 2: "grid-cols-2", 3: "grid-cols-2 sm:grid-cols-3", 4: "grid-cols-2 sm:grid-cols-4" } as Record<number, string>)[columns] ?? "grid-cols-2 sm:grid-cols-3";
@@ -1080,7 +1080,7 @@ function LayoutDrivenDashboard(props: {
           <section>
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-slate-900 md:text-lg">Recent transactions</h2>
-              <Link to="/banks/$slug/portal/transactions" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
+              <Link to="/$slug/portal/transactions" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
                 <ListOrdered className="h-3.5 w-3.5" /> View all
               </Link>
             </div>
@@ -1166,7 +1166,7 @@ function LayoutDrivenDashboard(props: {
         return (
           <section>
             <h2 className="text-base font-semibold text-slate-900 md:text-lg">Support</h2>
-            <Link to="/banks/$slug/portal/support" params={{ slug }} className="mt-2 inline-block text-xs font-medium text-slate-600 hover:text-slate-900">
+            <Link to="/$slug/portal/support" params={{ slug }} className="mt-2 inline-block text-xs font-medium text-slate-600 hover:text-slate-900">
               Contact support →
             </Link>
           </section>

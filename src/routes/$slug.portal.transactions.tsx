@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/banks/$slug/portal/transactions")({
+export const Route = createFileRoute("/$slug/portal/transactions")({
   component: TransactionsPage,
 });
 
@@ -21,7 +21,7 @@ function fmt(v: number, c: string) {
 }
 
 function TransactionsPage() {
-  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
   };
@@ -132,7 +132,7 @@ function TransactionsPage() {
                     </td>
                     <td className="text-right font-mono text-xs">{fmt(r.balance_after, r.currency)}</td>
                     <td>
-                      <Link to="/banks/$slug/portal/transactions/$id" params={{ slug: bank.slug, id: r.id }} className="text-xs underline" style={{ color: primary }}>
+                      <Link to="/$slug/portal/transactions/$id" params={{ slug: bank.slug, id: r.id }} className="text-xs underline" style={{ color: primary }}>
                         Receipt
                       </Link>
                     </td>

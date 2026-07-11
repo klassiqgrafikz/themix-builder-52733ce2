@@ -88,7 +88,7 @@ function SidebarBody({
     >
       <div className="px-6 pb-6 pt-7">
         <Link
-          to="/banks/$slug/portal"
+          to="/$slug/portal"
           params={{ slug }}
           onClick={onNavigate}
           className="flex items-center gap-3"
@@ -132,7 +132,7 @@ function SidebarBody({
           return (
             <Link
               key={n.key}
-              to={n.path === "" ? "/banks/$slug/portal" : `/banks/$slug/portal${n.path}`}
+              to={n.path === "" ? "/$slug/portal" : `/$slug/portal${n.path}`}
               params={{ slug }}
               onClick={onNavigate}
               className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-colors"
@@ -211,7 +211,7 @@ export function PortalShell({
     mutationFn: () => doLogout({ data: { slug } }),
     onSuccess: () => {
       toast.success("Signed out");
-      navigate({ to: "/banks/$slug/login", params: { slug } });
+      navigate({ to: "/$slug/login", params: { slug } });
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Logout failed"),
   });
@@ -264,7 +264,7 @@ export function PortalShell({
         <header className="border-b bg-white">
           <div className="mx-auto flex max-w-[1280px] items-center gap-4 px-6 py-4">
             <Link
-              to="/banks/$slug/portal"
+              to="/$slug/portal"
               params={{ slug }}
               className="flex items-center gap-3"
             >
@@ -310,7 +310,7 @@ export function PortalShell({
                 return (
                   <Link
                     key={n.key}
-                    to={n.path === "" ? "/banks/$slug/portal" : `/banks/$slug/portal${n.path}`}
+                    to={n.path === "" ? "/$slug/portal" : `/$slug/portal${n.path}`}
                     params={{ slug }}
                     className="inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm"
                     style={{
@@ -333,7 +333,7 @@ export function PortalShell({
                 return (
                   <Link
                     key={n.key}
-                    to={n.path === "" ? "/banks/$slug/portal" : `/banks/$slug/portal${n.path}`}
+                    to={n.path === "" ? "/$slug/portal" : `/$slug/portal${n.path}`}
                     params={{ slug }}
                     onClick={() => setDrawerOpen(false)}
                     className="flex items-center gap-3 border-b px-6 py-3 text-sm"
@@ -390,7 +390,7 @@ export function PortalShell({
               return (
                 <Link
                   key={n.key}
-                  to={n.path === "" ? "/banks/$slug/portal" : `/banks/$slug/portal${n.path}`}
+                  to={n.path === "" ? "/$slug/portal" : `/$slug/portal${n.path}`}
                   params={{ slug }}
                   className="flex items-center gap-3 px-3 py-2.5 text-[13px] uppercase tracking-[0.15em]"
                   style={{
@@ -454,7 +454,7 @@ export function PortalShell({
                 return (
                   <Link
                     key={n.key}
-                    to={n.path === "" ? "/banks/$slug/portal" : `/banks/$slug/portal${n.path}`}
+                    to={n.path === "" ? "/$slug/portal" : `/$slug/portal${n.path}`}
                     params={{ slug }}
                     onClick={() => setDrawerOpen(false)}
                     className="flex items-center gap-3 px-2 py-2.5 text-[13px] uppercase tracking-[0.15em]"

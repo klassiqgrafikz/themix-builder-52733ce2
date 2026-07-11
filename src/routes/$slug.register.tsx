@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/banks/$slug/register")({
+export const Route = createFileRoute("/$slug/register")({
   loader: async ({ params }) => {
     const bank = await getPublishedBank({ data: { slug: params.slug } });
     if (!bank) throw notFound();
@@ -230,7 +230,7 @@ function RegisterWizard() {
       // Automatically redirect to the customer login page after a brief pause
       // so the user can see the confirmation before signing in.
       setTimeout(() => {
-        navigate({ to: "/banks/$slug/login", params: { slug: bank.slug } });
+        navigate({ to: "/$slug/login", params: { slug: bank.slug } });
       }, 1500);
     },
     onError: (e: unknown) => {
@@ -266,7 +266,7 @@ function RegisterWizard() {
         muted={muted}
         border={border}
         onGoToLogin={() =>
-          navigate({ to: "/banks/$slug/login", params: { slug: bank.slug } })
+          navigate({ to: "/$slug/login", params: { slug: bank.slug } })
         }
       />
     );
@@ -282,7 +282,7 @@ function RegisterWizard() {
       <div className="mx-auto max-w-5xl py-8">
         <div className="mb-6 flex items-center justify-between">
           <Link
-            to="/banks/$slug"
+            to="/$slug"
             params={{ slug: bank.slug }}
             className="flex items-center gap-2 text-sm font-medium"
             style={{ color: theme.colors.primary }}
@@ -290,7 +290,7 @@ function RegisterWizard() {
             ← Back to {m.bank.name}
           </Link>
           <Link
-            to="/banks/$slug/login"
+            to="/$slug/login"
             params={{ slug: bank.slug }}
             className="text-sm underline"
             style={{ color: muted }}
@@ -1056,7 +1056,7 @@ function SuccessScreen({
           Continue to sign in
         </Button>
         <Link
-          to="/banks/$slug"
+          to="/$slug"
           params={{ slug: bank.slug }}
           className="mt-3 inline-block text-sm underline"
           style={{ color: muted }}

@@ -236,7 +236,7 @@ export function NotificationBell({
 
         <div className="border-t px-4 py-2 text-center">
           <Link
-            to="/banks/$slug/portal/notifications"
+            to="/$slug/portal/notifications"
             params={{ slug }}
             onClick={() => setOpen(false)}
             className="text-xs font-medium text-slate-600 hover:text-slate-900"

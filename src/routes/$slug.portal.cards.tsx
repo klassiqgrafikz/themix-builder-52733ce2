@@ -14,12 +14,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreditCard, Snowflake, RefreshCcw, Play } from "lucide-react";
 
-export const Route = createFileRoute("/banks/$slug/portal/cards")({
+export const Route = createFileRoute("/$slug/portal/cards")({
   component: CardsGate,
 });
 
 function CardsGate() {
-  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
   };
@@ -30,7 +30,7 @@ function CardsGate() {
 }
 
 function CardsPage() {
-  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
   };

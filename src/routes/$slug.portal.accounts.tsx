@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export const Route = createFileRoute("/banks/$slug/portal/accounts")({
+export const Route = createFileRoute("/$slug/portal/accounts")({
   component: AccountsPage,
 });
 
@@ -40,7 +40,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 function AccountsPage() {
-  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
   };
@@ -90,8 +90,8 @@ function AccountsPage() {
                 <div className="text-xl font-bold" style={{ color: primary }}>{fmt(a.available_balance, a.currency)}</div>
                 <div className="text-xs opacity-70">Current {fmt(a.current_balance, a.currency)}</div>
                 <div className="mt-2 flex gap-2">
-                  <Link to="/banks/$slug/portal/statements" params={{ slug: bank.slug }} className="text-xs underline" style={{ color: primary }}>Statement</Link>
-                  <Link to="/banks/$slug/portal/transactions" params={{ slug: bank.slug }} search={{}} className="text-xs underline" style={{ color: primary }}>History</Link>
+                  <Link to="/$slug/portal/statements" params={{ slug: bank.slug }} className="text-xs underline" style={{ color: primary }}>Statement</Link>
+                  <Link to="/$slug/portal/transactions" params={{ slug: bank.slug }} search={{}} className="text-xs underline" style={{ color: primary }}>History</Link>
                 </div>
               </div>
             </div>

@@ -16,12 +16,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, XCircle, Loader2, Ban } from "lucide-react";
 
-export const Route = createFileRoute("/banks/$slug/portal/transfer")({
+export const Route = createFileRoute("/$slug/portal/transfer")({
   component: TransferGate,
 });
 
 function TransferGate() {
-  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
   };
@@ -41,7 +41,7 @@ type ApiKind = "own" | "internal" | "external";
 const API_KIND: Record<Kind, ApiKind> = { own: "own", domestic: "internal", international: "external" };
 
 function TransferPage() {
-  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
   };
@@ -169,7 +169,7 @@ function TransferPage() {
     onSuccess: (r) => {
       toast.success(`Transfer completed. New balance: ${fmt(r.new_balance, r.currency)}`);
       qc.invalidateQueries();
-      window.location.href = `/banks/${bank.slug}/portal/transactions/${r.transaction_id}`;
+      window.location.href = `/${bank.slug}/portal/transactions/${r.transaction_id}`;
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Transfer failed"),
   });
@@ -400,7 +400,7 @@ function TransferPage() {
           </div>
         </div>
         <div className="mt-6 flex items-center justify-between">
-          <Link to="/banks/$slug/portal" params={{ slug: bank.slug }} className="text-sm underline" style={{ color: primary }}>
+          <Link to="/$slug/portal" params={{ slug: bank.slug }} className="text-sm underline" style={{ color: primary }}>
             Cancel
           </Link>
           <Button

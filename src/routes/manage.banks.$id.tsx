@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   finalizeDraft,
@@ -8,8 +9,11 @@ import {
   listCountries,
   listModules,
   listTemplates,
+  updateShortSlug,
 } from "@/lib/bank-builder.functions";
 import { publishDraft, unpublishDraft, deleteBank, clearRenderingHistory } from "@/lib/website/registry.functions";
+import { Input } from "@/components/ui/input";
+import { sanitizeShortSlug, validateShortSlug } from "@/lib/website/reserved-slugs";
 import {
   deleteBankProduct,
   listBankProducts,
@@ -159,7 +163,8 @@ function BankOverview() {
   const manifest = isManifest(draft.manifest) ? draft.manifest : null;
   const navigation = draft.navigation ?? [];
   const logs = Array.isArray(draft.render_logs) ? draft.render_logs : [];
-  const publicRoute = draft.slug ? `/banks/${draft.slug}` : null;
+  const publicSlug = draft.short_slug ?? draft.slug ?? null;
+  const publicRoute = publicSlug ? `/${publicSlug}` : null;
   const isPublished = renderStatus === "published" && !!publicRoute;
   const isReady = renderStatus === "ready";
   const busy = rerenderMut.isPending || publishMut.isPending || unpublishMut.isPending;
@@ -195,6 +200,7 @@ function BankOverview() {
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 {country && <span>{country.flag_emoji} {country.name}</span>}
                 {draft.slug && <span className="font-mono">· slug: {draft.slug}</span>}
+                {draft.short_slug && <span className="font-mono">· url: /{draft.short_slug}</span>}
               </div>
             </div>
           </div>
@@ -297,7 +303,7 @@ function BankOverview() {
                     "Bank is still a draft. Finish the wizard and click Generate Bank."}
                   {renderStatus === "rendering" && "Rendering in progress…"}
                   {renderStatus === "ready" &&
-                    "Website is generated and ready. Click Publish to make it public at /banks/" +
+                    "Website is generated and ready. Click Publish to make it public at /" +
                       (draft.slug ?? "…") +
                       "."}
                   {renderStatus === "archived" && "This bank has been archived."}
@@ -354,6 +360,9 @@ function BankOverview() {
             )}
           </CardContent>
         </Card>
+
+        <ShortSlugEditor draftId={id} current={draft.short_slug ?? ""} onSaved={invalidate} />
+
 
         {manifest && manifest.pages.length > 0 && (
           <Card>
@@ -709,3 +718,59 @@ function BankProductsPanel({
   );
 }
 
+
+function ShortSlugEditor({
+  draftId,
+  current,
+  onSaved,
+}: {
+  draftId: string;
+  current: string;
+  onSaved: () => void;
+}) {
+  const [value, setValue] = useState(current);
+  const doUpdate = useServerFn(updateShortSlug);
+  const mut = useMutation({
+    mutationFn: () => doUpdate({ data: { id: draftId, short_slug: value } }),
+    onSuccess: (r) => {
+      toast.success(`Short URL set to /${r.short_slug}`);
+      setValue(r.short_slug);
+      onSaved();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save slug"),
+  });
+  const clientErr = value === current ? null : validateShortSlug(value);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ExternalLink className="h-4 w-4" /> Short URL
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <p className="text-muted-foreground">
+          Customer-facing URL for this bank. Only lowercase letters, digits, and hyphens.
+          Duplicates are automatically suffixed with -2, -3, etc.
+        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">bankofa.online/</span>
+          <Input
+            value={value}
+            onChange={(e) => setValue(sanitizeShortSlug(e.target.value))}
+            placeholder="boa"
+            className="max-w-[220px] font-mono"
+          />
+          <Button
+            onClick={() => mut.mutate()}
+            disabled={
+              mut.isPending || !value || value === current || !!clientErr
+            }
+          >
+            {mut.isPending ? "Saving…" : "Save"}
+          </Button>
+        </div>
+        {clientErr && <div className="text-xs text-destructive">{clientErr}</div>}
+      </CardContent>
+    </Card>
+  );
+}

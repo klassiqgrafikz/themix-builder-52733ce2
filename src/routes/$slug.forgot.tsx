@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
-export const Route = createFileRoute("/banks/$slug/forgot")({
+export const Route = createFileRoute("/$slug/forgot")({
   loader: async ({ params }) => {
     const bank = await getPublishedBank({ data: { slug: params.slug } });
     if (!bank) throw notFound();
@@ -139,7 +139,7 @@ function ForgotPage() {
           )}
 
           <Link
-            to="/banks/$slug/login"
+            to="/$slug/login"
             params={{ slug: bank.slug }}
             className="block text-sm underline"
             style={{ color: theme.colors.primary }}
