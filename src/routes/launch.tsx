@@ -1,5 +1,4 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { PlatformPinGate } from "@/components/platform/pin-gate";
 
 export const Route = createFileRoute("/launch")({
   head: () => ({
@@ -16,7 +15,6 @@ export const Route = createFileRoute("/launch")({
 
 function LaunchLayout() {
   return (
-    <PlatformPinGate area="Launch New Bank">
       <div className="min-h-screen bg-muted/30">
         <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
@@ -35,6 +33,5 @@ function LaunchLayout() {
           <Outlet />
         </main>
       </div>
-    </PlatformPinGate>
   );
 }
