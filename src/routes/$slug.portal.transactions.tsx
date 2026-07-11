@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useMatch } from "@tanstack/react-router";
+import { createFileRoute, Link, useMatch, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -35,6 +35,8 @@ function TransactionsPage() {
   const [min, setMin] = useState("");
   const [max, setMax] = useState("");
   const [page, setPage] = useState(1);
+  const navigate = useNavigate();
+
 
   const listFn = useServerFn(listTransactions);
   const qy = useQuery({
@@ -122,7 +124,11 @@ function TransactionsPage() {
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-b">
+                  <tr
+                    key={r.id}
+                    className="border-b cursor-pointer transition hover:bg-slate-50"
+                    onClick={() => navigate({ to: "/$slug/portal/transactions/$id", params: { slug: bank.slug, id: r.id } })}
+                  >
                     <td className="py-2 text-xs">{new Date(r.created_at).toLocaleString()}</td>
                     <td>{r.description}</td>
                     <td className="text-xs opacity-70">{r.reference ?? "—"}</td>
@@ -131,7 +137,7 @@ function TransactionsPage() {
                       {r.direction === "debit" ? "-" : r.direction === "credit" ? "+" : ""}{fmt(r.amount, r.currency)}
                     </td>
                     <td className="text-right font-mono text-xs">{fmt(r.balance_after, r.currency)}</td>
-                    <td>
+                    <td onClick={(e) => e.stopPropagation()}>
                       <Link to="/$slug/portal/transactions/$id" params={{ slug: bank.slug, id: r.id }} className="text-xs underline" style={{ color: primary }}>
                         Receipt
                       </Link>
@@ -139,6 +145,7 @@ function TransactionsPage() {
                   </tr>
                 ))}
               </tbody>
+
             </table>
           </div>
         )}

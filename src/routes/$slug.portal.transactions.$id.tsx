@@ -185,11 +185,8 @@ function ReceiptPage() {
     await navigator.clipboard.writeText(shareText());
   };
 
-  const emailReceipt = () => {
-    const subject = encodeURIComponent(`${t.bank_name} receipt — ${t.reference ?? t.id}`);
-    const body = encodeURIComponent(shareText());
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-  };
+  // Email receipt delivery is not implemented server-side yet; button is disabled below.
+
 
   const goDashboard = () => navigate({ to: "/$slug/portal", params: { slug } });
 
@@ -211,9 +208,10 @@ function ReceiptPage() {
           <Button variant="outline" size="sm" onClick={share}>
             <Share2 className="mr-1 h-4 w-4" />Share
           </Button>
-          <Button variant="outline" size="sm" onClick={emailReceipt}>
+          <Button variant="outline" size="sm" disabled title="Email delivery coming soon">
             <Mail className="mr-1 h-4 w-4" />Email
           </Button>
+
           <Button size="sm" onClick={downloadPdf} style={{ backgroundColor: primary }}>
             <Download className="mr-1 h-4 w-4" />Download PDF
           </Button>

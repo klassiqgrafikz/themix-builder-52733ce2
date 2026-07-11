@@ -1,4 +1,4 @@
-import { createFileRoute, useMatch, Link } from "@tanstack/react-router";
+import { createFileRoute, useMatch, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -48,8 +48,10 @@ function TransferPage() {
   const { bank, session } = parent;
   const primary = bank.manifest.theme.colors.primary;
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const restrictions = useRestrictions();
   const restricted = isFeatureRestricted(restrictions, "transfer");
+
 
   const [kind, setKind] = useState<Kind>("own");
   const [sourceId, setSourceId] = useState(session.accounts[0]?.id ?? "");
@@ -168,8 +170,13 @@ function TransferPage() {
     },
     onSuccess: (r) => {
       qc.invalidateQueries();
-      window.location.href = `/${bank.slug}/portal/transactions/${r.transaction_id}?success=1`;
+      navigate({
+        to: "/$slug/portal/transactions/$id",
+        params: { slug: bank.slug, id: r.transaction_id },
+        search: { success: true },
+      });
     },
+
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Transfer failed"),
   });
 
