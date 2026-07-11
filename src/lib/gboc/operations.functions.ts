@@ -25,7 +25,7 @@ export const gbocListBanks = createServerFn({ method: "GET" })
     const { data: banks, error } = await sb
       .from("bb_bank_drafts")
       .select("id, slug, identity, branding, template_id, country_code, status, render_status, published_at")
-      .eq("owner_id", context.userId)
+      // Single-owner platform: no owner_id filter.
       .eq("render_status", "published")
       .order("published_at", { ascending: false });
     if (error) throw new Error(error.message);
