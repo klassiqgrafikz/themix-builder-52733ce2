@@ -1,8 +1,8 @@
 // Server functions exposed to the Global Banking Operations Center UI.
-// Every call is authenticated (requireSupabaseAuth) and tenant-verified.
+// Every call is authenticated (requirePlatformAuth) and tenant-verified.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePlatformAuth } from "@/integrations/supabase/platform-auth-middleware";
 import {
   ACCOUNT_ACTIONS,
   BALANCE_OPS,
@@ -16,7 +16,7 @@ import {
 // -------- list banks --------
 
 export const gbocListBanks = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .handler(async ({ context }): Promise<GbocBankSummary[]> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
@@ -69,7 +69,7 @@ export const gbocListBanks = createServerFn({ method: "GET" })
 // -------- list customers --------
 
 export const gbocListCustomers = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { bank_id: string; search?: string | null }) =>
     z.object({ bank_id: z.string().uuid(), search: z.string().max(120).nullable().optional() }).parse(d),
   )
@@ -157,7 +157,7 @@ export const gbocListCustomers = createServerFn({ method: "GET" })
 // -------- customer detail --------
 
 export const gbocGetCustomer = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { bank_id: string; customer_id: string }) =>
     z.object({ bank_id: z.string().uuid(), customer_id: z.string().uuid() }).parse(d),
   )
@@ -295,7 +295,7 @@ export const gbocGetCustomer = createServerFn({ method: "GET" })
 // -------- balance operation --------
 
 export const gbocBalanceOperation = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: {
     bank_id: string;
     account_id: string;
@@ -332,7 +332,7 @@ export const gbocBalanceOperation = createServerFn({ method: "POST" })
 // -------- account status --------
 
 export const gbocAccountAction = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: {
     bank_id: string;
     account_id: string;
@@ -363,7 +363,7 @@ export const gbocAccountAction = createServerFn({ method: "POST" })
 // -------- restrictions --------
 
 export const gbocSetRestriction = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: {
     bank_id: string;
     account_id: string;
@@ -406,7 +406,7 @@ export const gbocSetRestriction = createServerFn({ method: "POST" })
 // -------- manual transaction --------
 
 export const gbocCreateTransaction = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: {
     bank_id: string;
     account_id: string;
@@ -446,7 +446,7 @@ export const gbocCreateTransaction = createServerFn({ method: "POST" })
 // -------- bank-wide audit --------
 
 export const gbocListAudit = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { bank_id: string }) =>
     z.object({ bank_id: z.string().uuid() }).parse(d),
   )

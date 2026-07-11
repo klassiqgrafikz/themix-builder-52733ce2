@@ -7,11 +7,11 @@
 // After a successful PIN check, the server mints a real Supabase session for
 // a shared platform-admin account and returns the tokens. The client installs
 // them with `supabase.auth.setSession(...)` so subsequent server-fn RPCs carry
-// a valid bearer token and `requireSupabaseAuth` succeeds. There is no
+// a valid bearer token and `requirePlatformAuth` succeeds. There is no
 // separate email/password login for operators.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePlatformAuth } from "@/integrations/supabase/platform-auth-middleware";
 import { createHash } from "node:crypto";
 
 const DEFAULT_PIN = "0499";
@@ -197,7 +197,7 @@ export const verifyPlatformPin = createServerFn({ method: "POST" })
 
 /** Authenticated admin — reveal the current plaintext PIN. */
 export const getPlatformPin = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .handler(async (): Promise<{ pin: string }> => {
     const row = await loadRow();
     return { pin: row?.platform_pin_plain ?? DEFAULT_PIN };
@@ -205,7 +205,7 @@ export const getPlatformPin = createServerFn({ method: "GET" })
 
 /** Authenticated admin — set a new PIN (min 4 digits). */
 export const updatePlatformPin = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { pin: string }) =>
     z.object({ pin: z.string().trim().min(4).max(12).regex(/^\d+$/, "PIN must be digits only") }).parse(d),
   )

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePlatformAuth } from "@/integrations/supabase/platform-auth-middleware";
 import { createPublicServerClient } from "@/integrations/supabase/public-server";
 import type {
   BankProductOverride,
@@ -50,7 +50,7 @@ export const listBlueprintProducts = createServerFn({ method: "GET" })
   });
 
 export const listBankProducts = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { draftId: string }) =>
     z.object({ draftId: z.string().uuid() }).parse(d),
   )
@@ -74,7 +74,7 @@ const upsertSchema = z.object({
 });
 
 export const upsertBankProduct = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: z.input<typeof upsertSchema>) => upsertSchema.parse(d))
   .handler(async ({ context, data }): Promise<BankProductOverride> => {
     const patch = {
@@ -95,7 +95,7 @@ export const upsertBankProduct = createServerFn({ method: "POST" })
   });
 
 export const deleteBankProduct = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { draftId: string; product_code: string }) =>
     z.object({ draftId: z.string().uuid(), product_code: z.string() }).parse(d),
   )
@@ -116,7 +116,7 @@ export type ProductAdoptionRow = {
 };
 
 export const productAdoption = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .handler(async ({ context }): Promise<ProductAdoptionRow[]> => {
     const sb = anyClient(context.supabase);
     const { data: drafts, error: dErr } = await sb

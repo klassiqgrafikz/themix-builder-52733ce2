@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePlatformAuth } from "@/integrations/supabase/platform-auth-middleware";
 import { createPublicServerClient } from "@/integrations/supabase/public-server";
 import type {
   BankCountry,
@@ -86,7 +86,7 @@ export const listBlueprints = createServerFn({ method: "GET" })
   });
 
 export const createDraft = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { mode: "template" | "custom" }) =>
     z.object({ mode: z.enum(["template", "custom"]) }).parse(d),
   )
@@ -101,7 +101,7 @@ export const createDraft = createServerFn({ method: "POST" })
   });
 
 export const useBlueprint = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { blueprintId: string }) =>
     z.object({ blueprintId: z.string().uuid() }).parse(d),
   )
@@ -145,7 +145,7 @@ export const useBlueprint = createServerFn({ method: "POST" })
   });
 
 export const getDraft = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }): Promise<BankDraft> => {
     const { data: row, error } = await anyClient(context.supabase)
@@ -158,7 +158,7 @@ export const getDraft = createServerFn({ method: "GET" })
   });
 
 export const listDrafts = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .handler(async ({ context }): Promise<BankDraft[]> => {
     const { data, error } = await anyClient(context.supabase)
       .from("bb_bank_drafts")
@@ -174,7 +174,7 @@ const updateSchema = z.object({
 });
 
 export const updateDraft = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { id: string; patch: Record<string, unknown> }) => updateSchema.parse(d))
   .handler(async ({ context, data }): Promise<BankDraft> => {
     const { data: row, error } = await anyClient(context.supabase)
@@ -188,7 +188,7 @@ export const updateDraft = createServerFn({ method: "POST" })
   });
 
 export const finalizeDraft = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }): Promise<BankDraft> => {
     const sb = anyClient(context.supabase);

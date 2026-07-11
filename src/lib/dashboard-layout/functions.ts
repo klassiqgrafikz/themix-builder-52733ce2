@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePlatformAuth } from "@/integrations/supabase/platform-auth-middleware";
 import type { DashboardLayout } from "./types";
 import { defaultDashboardLayout } from "./types";
 
@@ -44,7 +44,7 @@ export type LayoutBundle = {
 };
 
 export const getDashboardLayout = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }): Promise<LayoutBundle> => {
     const sb = anyClient(context.supabase);
@@ -61,7 +61,7 @@ export const getDashboardLayout = createServerFn({ method: "GET" })
   });
 
 export const saveDashboardLayoutDraft = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { id: string; layout: DashboardLayout }) =>
     z.object({ id: z.string().uuid(), layout: layoutSchema }).parse(d),
   )
@@ -78,7 +78,7 @@ export const saveDashboardLayoutDraft = createServerFn({ method: "POST" })
   });
 
 export const publishDashboardLayout = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { id: string; layout: DashboardLayout }) =>
     z.object({ id: z.string().uuid(), layout: layoutSchema }).parse(d),
   )
@@ -111,7 +111,7 @@ export const publishDashboardLayout = createServerFn({ method: "POST" })
   });
 
 export const resetDashboardLayout = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }): Promise<{ layout: DashboardLayout }> => {
     const sb = anyClient(context.supabase);
@@ -128,7 +128,7 @@ export const resetDashboardLayout = createServerFn({ method: "POST" })
   });
 
 export const duplicateDashboardLayout = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: { from_id: string; to_id: string }) =>
     z.object({ from_id: z.string().uuid(), to_id: z.string().uuid() }).parse(d),
   )
@@ -159,7 +159,7 @@ export const duplicateDashboardLayout = createServerFn({ method: "POST" })
   });
 
 export const listOwnedBanksForDuplicate = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .handler(async ({ context }): Promise<{ id: string; name: string }[]> => {
     const sb = anyClient(context.supabase);
     const { data, error } = await sb
