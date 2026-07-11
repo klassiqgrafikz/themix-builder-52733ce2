@@ -159,20 +159,14 @@ export const deleteBank = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     const sb = anyClient(context.supabase);
-    // Authorization: draft owner OR gboc admin (has_role).
+    // Single-owner platform: no owner authorization check. Service-role
+    // middleware is the sole authority for platform-management deletes.
     const { data: draft } = await sb
       .from("bb_bank_drafts")
-      .select("id, owner_id")
+      .select("id")
       .eq("id", data.id)
       .maybeSingle();
     if (!draft) throw new Error("Bank not found");
-    if (draft.owner_id !== context.userId) {
-      const { data: isAdmin } = await sb.rpc("has_role", {
-        _user_id: context.userId,
-        _role: "admin",
-      });
-      if (!isAdmin) throw new Error("Not authorized to delete this bank");
-    }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Remove branding assets for this draft.
