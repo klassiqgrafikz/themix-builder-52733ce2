@@ -22,14 +22,14 @@ export const uploadBrandingAsset = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<{ url: string }> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = context.supabase as any;
-    // Verify draft ownership.
+    // Single-owner platform: verify the draft exists; no owner check.
     const { data: draft, error: dErr } = await sb
       .from("bb_bank_drafts")
-      .select("id, owner_id")
+      .select("id")
       .eq("id", data.draft_id)
       .maybeSingle();
     if (dErr) throw new Error(dErr.message);
-    if (!draft || draft.owner_id !== context.userId) throw new Error("Not authorized for this draft");
+    if (!draft) throw new Error("Draft not found");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Decode base64 to Uint8Array (Buffer available under nodejs_compat).
