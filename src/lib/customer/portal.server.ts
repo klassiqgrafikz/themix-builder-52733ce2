@@ -141,18 +141,23 @@ export function buildSessionCookie(opts: {
   return attrs.join("; ");
 }
 
-/** Resolve a published bank id by slug. Returns null if not published. */
+/** Resolve a bank by either its short_slug or its long slug. Returns null if not found. */
 export async function resolveBankBySlug(
   slug: string,
-): Promise<{ id: string; owner_id: string; slug: string } | null> {
+): Promise<{ id: string; owner_id: string; slug: string; short_slug: string | null } | null> {
   const { data, error } = await supabaseAdmin
     .from("bb_bank_drafts")
-    .select("id, owner_id, slug, render_status")
-    .eq("slug", slug)
+    .select("id, owner_id, slug, short_slug")
+    .or(`short_slug.eq.${slug},slug.eq.${slug}`)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
-  return { id: data.id, owner_id: data.owner_id, slug: data.slug! };
+  return {
+    id: data.id,
+    owner_id: data.owner_id,
+    slug: data.slug!,
+    short_slug: data.short_slug ?? null,
+  };
 }
 
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;

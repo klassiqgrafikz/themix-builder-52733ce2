@@ -33,6 +33,7 @@ export type PublishedBankRecord = {
   id: string;
   name: string;
   slug: string;
+  short_slug: string | null;
   route: string;
   blueprint_id: string | null;
   blueprint_category: string | null;
@@ -43,6 +44,12 @@ export type PublishedBankRecord = {
 };
 
 export type WebsiteRegistryEntry = Omit<PublishedBankRecord, "manifest">;
+
+// Prefer the short_slug for public URLs; fall back to the long slug when a
+// legacy row hasn't been backfilled yet.
+function publicSlugFor(row: { short_slug: string | null; slug: string | null }): string {
+  return (row.short_slug ?? row.slug ?? "").toString();
+}
 
 /** Owner-scoped: publish a bank whose render_status is "ready". */
 export const publishDraft = createServerFn({ method: "POST" })
@@ -223,7 +230,7 @@ export const deleteBank = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Public: load a published bank by slug (uses publishable-key client). */
+/** Public: load a published bank by either short_slug or long slug. */
 export const getPublishedBank = createServerFn({ method: "GET" })
   .inputValidator((d: { slug: string }) =>
     z.object({ slug: z.string().min(1).max(80) }).parse(d),
@@ -232,18 +239,20 @@ export const getPublishedBank = createServerFn({ method: "GET" })
     const sb = publicClient();
     const { data: row, error } = await sb
       .from("bb_bank_drafts")
-      .select("id, slug, manifest, navigation, template_id, render_status, published_at, updated_at")
-      .eq("slug", data.slug)
+      .select("id, slug, short_slug, manifest, navigation, template_id, render_status, published_at, updated_at")
+      .or(`short_slug.eq.${data.slug},slug.eq.${data.slug}`)
       .eq("render_status", "published")
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) return null;
     const manifest = row.manifest as unknown as WebsiteManifest;
+    const publicSlug = publicSlugFor(row);
     return {
       id: row.id,
       name: manifest.bank.name,
       slug: row.slug!,
-      route: publicRouteFor(row.slug!),
+      short_slug: row.short_slug ?? null,
+      route: publicRouteFor(publicSlug),
       blueprint_id: manifest.bank.blueprint_id,
       blueprint_category: manifest.bank.blueprint_category,
       status: "published",
@@ -259,17 +268,19 @@ export const listPublishedBanks = createServerFn({ method: "GET" }).handler(
     const sb = publicClient();
     const { data, error } = await sb
       .from("bb_bank_drafts")
-      .select("id, slug, manifest, template_id, published_at, updated_at")
+      .select("id, slug, short_slug, manifest, template_id, published_at, updated_at")
       .eq("render_status", "published")
       .order("published_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map((row) => {
       const manifest = row.manifest as unknown as WebsiteManifest;
+      const publicSlug = publicSlugFor(row);
       return {
         id: row.id,
         name: manifest.bank.name,
         slug: row.slug!,
-        route: publicRouteFor(row.slug!),
+        short_slug: row.short_slug ?? null,
+        route: publicRouteFor(publicSlug),
         blueprint_id: manifest.bank.blueprint_id,
         blueprint_category: manifest.bank.blueprint_category,
         status: "published" as const,

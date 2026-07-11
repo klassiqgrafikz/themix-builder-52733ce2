@@ -35,8 +35,9 @@ function log(stage: RenderStage, level: RenderLogEntry["level"], message: string
   return { stage, level, message, at: new Date().toISOString() };
 }
 
-// The canonical public route for a bank slug. Kept centralised so future
+// The canonical public route for a bank short slug. Kept centralised so future
 // custom-domain routing can override this without touching call sites.
+// Prefers short_slug when available; falls back to the long slug.
 export function publicRouteFor(slug: string): string {
-  return `/banks/${slug}`;
+  return `/${slug}`;
 }
