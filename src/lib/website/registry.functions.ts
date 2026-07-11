@@ -137,9 +137,11 @@ export const clearRenderingHistory = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<{ cleared: number }> => {
     const sb = anyClient(context.supabase);
     const q = sb.from("bb_bank_drafts").update({ render_logs: [] });
+    // Single-owner platform: no owner_id filter. When no id is given, clear
+    // rendering history for every bank.
     const { data: rows, error } = data.id
       ? await q.eq("id", data.id).select("id")
-      : await q.eq("owner_id", context.userId).select("id");
+      : await q.neq("id", "00000000-0000-0000-0000-000000000000").select("id");
     if (error) throw new Error(error.message);
     return { cleared: (rows ?? []).length };
   });
