@@ -32,6 +32,7 @@ import { Route as GbocCustomersRouteImport } from './routes/gboc.customers'
 import { Route as GbocCommunicationsRouteImport } from './routes/gboc.communications'
 import { Route as GbocBanksRouteImport } from './routes/gboc.banks'
 import { Route as GbocAuditRouteImport } from './routes/gboc.audit'
+import { Route as BanksSlugRouteImport } from './routes/banks.$slug'
 import { Route as AdminSectionRouteImport } from './routes/admin.$section'
 import { Route as SlugRegisterRouteImport } from './routes/$slug.register'
 import { Route as SlugPortalRouteImport } from './routes/$slug.portal'
@@ -44,6 +45,7 @@ import { Route as SlugPortalIndexRouteImport } from './routes/$slug.portal.index
 import { Route as ManageBanksIdRouteImport } from './routes/manage.banks.$id'
 import { Route as LaunchCategoryCountryRouteImport } from './routes/launch.$category.$country'
 import { Route as GbocCustomersIdRouteImport } from './routes/gboc.customers.$id'
+import { Route as BanksSlugSplatRouteImport } from './routes/banks.$slug.$'
 import { Route as SlugPortalTransferRouteImport } from './routes/$slug.portal.transfer'
 import { Route as SlugPortalTransactionsRouteImport } from './routes/$slug.portal.transactions'
 import { Route as SlugPortalSupportRouteImport } from './routes/$slug.portal.support'
@@ -174,6 +176,11 @@ const GbocAuditRoute = GbocAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => GbocRoute,
 } as any)
+const BanksSlugRoute = BanksSlugRouteImport.update({
+  id: '/banks/$slug',
+  path: '/banks/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminSectionRoute = AdminSectionRouteImport.update({
   id: '/$section',
   path: '/$section',
@@ -233,6 +240,11 @@ const GbocCustomersIdRoute = GbocCustomersIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => GbocCustomersRoute,
+} as any)
+const BanksSlugSplatRoute = BanksSlugSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => BanksSlugRoute,
 } as any)
 const SlugPortalTransferRoute = SlugPortalTransferRouteImport.update({
   id: '/transfer',
@@ -324,6 +336,7 @@ export interface FileRoutesByFullPath {
   '/$slug/portal': typeof SlugPortalRouteWithChildren
   '/$slug/register': typeof SlugRegisterRoute
   '/admin/$section': typeof AdminSectionRoute
+  '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/gboc/audit': typeof GbocAuditRoute
   '/gboc/banks': typeof GbocBanksRoute
   '/gboc/communications': typeof GbocCommunicationsRoute
@@ -349,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/$slug/portal/support': typeof SlugPortalSupportRoute
   '/$slug/portal/transactions': typeof SlugPortalTransactionsRouteWithChildren
   '/$slug/portal/transfer': typeof SlugPortalTransferRoute
+  '/banks/$slug/$': typeof BanksSlugSplatRoute
   '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/manage/banks/$id': typeof ManageBanksIdRouteWithChildren
@@ -370,6 +384,7 @@ export interface FileRoutesByTo {
   '/$slug/login': typeof SlugLoginRoute
   '/$slug/register': typeof SlugRegisterRoute
   '/admin/$section': typeof AdminSectionRoute
+  '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/gboc/audit': typeof GbocAuditRoute
   '/gboc/banks': typeof GbocBanksRoute
   '/gboc/communications': typeof GbocCommunicationsRoute
@@ -393,6 +408,7 @@ export interface FileRoutesByTo {
   '/$slug/portal/support': typeof SlugPortalSupportRoute
   '/$slug/portal/transactions': typeof SlugPortalTransactionsRouteWithChildren
   '/$slug/portal/transfer': typeof SlugPortalTransferRoute
+  '/banks/$slug/$': typeof BanksSlugSplatRoute
   '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/manage/banks/$id': typeof ManageBanksIdRouteWithChildren
@@ -420,6 +436,7 @@ export interface FileRoutesById {
   '/$slug/portal': typeof SlugPortalRouteWithChildren
   '/$slug/register': typeof SlugRegisterRoute
   '/admin/$section': typeof AdminSectionRoute
+  '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/gboc/audit': typeof GbocAuditRoute
   '/gboc/banks': typeof GbocBanksRoute
   '/gboc/communications': typeof GbocCommunicationsRoute
@@ -445,6 +462,7 @@ export interface FileRoutesById {
   '/$slug/portal/support': typeof SlugPortalSupportRoute
   '/$slug/portal/transactions': typeof SlugPortalTransactionsRouteWithChildren
   '/$slug/portal/transfer': typeof SlugPortalTransferRoute
+  '/banks/$slug/$': typeof BanksSlugSplatRoute
   '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/manage/banks/$id': typeof ManageBanksIdRouteWithChildren
@@ -473,6 +491,7 @@ export interface FileRouteTypes {
     | '/$slug/portal'
     | '/$slug/register'
     | '/admin/$section'
+    | '/banks/$slug'
     | '/gboc/audit'
     | '/gboc/banks'
     | '/gboc/communications'
@@ -498,6 +517,7 @@ export interface FileRouteTypes {
     | '/$slug/portal/support'
     | '/$slug/portal/transactions'
     | '/$slug/portal/transfer'
+    | '/banks/$slug/$'
     | '/gboc/customers/$id'
     | '/launch/$category/$country'
     | '/manage/banks/$id'
@@ -519,6 +539,7 @@ export interface FileRouteTypes {
     | '/$slug/login'
     | '/$slug/register'
     | '/admin/$section'
+    | '/banks/$slug'
     | '/gboc/audit'
     | '/gboc/banks'
     | '/gboc/communications'
@@ -542,6 +563,7 @@ export interface FileRouteTypes {
     | '/$slug/portal/support'
     | '/$slug/portal/transactions'
     | '/$slug/portal/transfer'
+    | '/banks/$slug/$'
     | '/gboc/customers/$id'
     | '/launch/$category/$country'
     | '/manage/banks/$id'
@@ -568,6 +590,7 @@ export interface FileRouteTypes {
     | '/$slug/portal'
     | '/$slug/register'
     | '/admin/$section'
+    | '/banks/$slug'
     | '/gboc/audit'
     | '/gboc/banks'
     | '/gboc/communications'
@@ -593,6 +616,7 @@ export interface FileRouteTypes {
     | '/$slug/portal/support'
     | '/$slug/portal/transactions'
     | '/$slug/portal/transfer'
+    | '/banks/$slug/$'
     | '/gboc/customers/$id'
     | '/launch/$category/$country'
     | '/manage/banks/$id'
@@ -614,6 +638,7 @@ export interface RootRouteChildren {
   GbocRoute: typeof GbocRouteWithChildren
   LaunchRoute: typeof LaunchRouteWithChildren
   ProductsRoute: typeof ProductsRoute
+  BanksSlugRoute: typeof BanksSlugRouteWithChildren
   ManageBanksIdRoute: typeof ManageBanksIdRouteWithChildren
   ApiPublicCustomerAvatarCustomerIdRoute: typeof ApiPublicCustomerAvatarCustomerIdRoute
   ApiPublicBrandingDraftIdKindRoute: typeof ApiPublicBrandingDraftIdKindRoute
@@ -782,6 +807,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GbocAuditRouteImport
       parentRoute: typeof GbocRoute
     }
+    '/banks/$slug': {
+      id: '/banks/$slug'
+      path: '/banks/$slug'
+      fullPath: '/banks/$slug'
+      preLoaderRoute: typeof BanksSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/$section': {
       id: '/admin/$section'
       path: '/$section'
@@ -865,6 +897,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/gboc/customers/$id'
       preLoaderRoute: typeof GbocCustomersIdRouteImport
       parentRoute: typeof GbocCustomersRoute
+    }
+    '/banks/$slug/$': {
+      id: '/banks/$slug/$'
+      path: '/$'
+      fullPath: '/banks/$slug/$'
+      preLoaderRoute: typeof BanksSlugSplatRouteImport
+      parentRoute: typeof BanksSlugRoute
     }
     '/$slug/portal/transfer': {
       id: '/$slug/portal/transfer'
@@ -1116,6 +1155,18 @@ const LaunchRouteChildren: LaunchRouteChildren = {
 const LaunchRouteWithChildren =
   LaunchRoute._addFileChildren(LaunchRouteChildren)
 
+interface BanksSlugRouteChildren {
+  BanksSlugSplatRoute: typeof BanksSlugSplatRoute
+}
+
+const BanksSlugRouteChildren: BanksSlugRouteChildren = {
+  BanksSlugSplatRoute: BanksSlugSplatRoute,
+}
+
+const BanksSlugRouteWithChildren = BanksSlugRoute._addFileChildren(
+  BanksSlugRouteChildren,
+)
+
 interface ManageBanksIdRouteChildren {
   ManageBanksIdDashboardDesignerRoute: typeof ManageBanksIdDashboardDesignerRoute
 }
@@ -1137,6 +1188,7 @@ const rootRouteChildren: RootRouteChildren = {
   GbocRoute: GbocRouteWithChildren,
   LaunchRoute: LaunchRouteWithChildren,
   ProductsRoute: ProductsRoute,
+  BanksSlugRoute: BanksSlugRouteWithChildren,
   ManageBanksIdRoute: ManageBanksIdRouteWithChildren,
   ApiPublicCustomerAvatarCustomerIdRoute:
     ApiPublicCustomerAvatarCustomerIdRoute,
