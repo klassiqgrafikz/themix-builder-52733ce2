@@ -20,22 +20,16 @@ const layoutSchema = z.object({
   updated_at: z.string(),
 });
 
-async function assertOwner(sb: unknown, id: string, userId: string) {
+async function assertBankExists(sb: unknown, id: string) {
+  // Single-owner platform: no owner authorization check.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (sb as any)
     .from("bb_bank_drafts")
-    .select("id, owner_id")
+    .select("id")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Bank not found");
-  if (data.owner_id !== userId) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: isAdmin } = await (sb as any).rpc("has_role", {
-      _user_id: userId, _role: "admin",
-    });
-    if (!isAdmin) throw new Error("Not authorized for this bank");
-  }
 }
 
 export type LayoutBundle = {
@@ -48,7 +42,7 @@ export const getDashboardLayout = createServerFn({ method: "GET" })
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }): Promise<LayoutBundle> => {
     const sb = anyClient(context.supabase);
-    await assertOwner(sb, data.id, context.userId);
+    await assertBankExists(sb, data.id);
     const { data: row, error } = await sb
       .from("bb_bank_drafts")
       .select("dashboard_layout_draft, dashboard_layout")
@@ -67,7 +61,7 @@ export const saveDashboardLayoutDraft = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     const sb = anyClient(context.supabase);
-    await assertOwner(sb, data.id, context.userId);
+    await assertBankExists(sb, data.id);
     const payload = { ...data.layout, updated_at: new Date().toISOString() };
     const { error } = await sb
       .from("bb_bank_drafts")
@@ -84,7 +78,7 @@ export const publishDashboardLayout = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     const sb = anyClient(context.supabase);
-    await assertOwner(sb, data.id, context.userId);
+    await assertBankExists(sb, data.id);
     const payload = { ...data.layout, updated_at: new Date().toISOString() };
 
     // Load current manifest and inject layout so the published portal picks it
@@ -115,7 +109,7 @@ export const resetDashboardLayout = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }): Promise<{ layout: DashboardLayout }> => {
     const sb = anyClient(context.supabase);
-    await assertOwner(sb, data.id, context.userId);
+    await assertBankExists(sb, data.id);
     const layout = defaultDashboardLayout();
     // Draft only — Reset does not touch the published copy. The user must
     // "Publish Layout" to apply the reset to the live dashboard.
@@ -135,8 +129,8 @@ export const duplicateDashboardLayout = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<{ layout: DashboardLayout }> => {
     const sb = anyClient(context.supabase);
     // Caller must own or admin BOTH banks.
-    await assertOwner(sb, data.from_id, context.userId);
-    await assertOwner(sb, data.to_id, context.userId);
+    await assertBankExists(sb, data.from_id);
+    await assertBankExists(sb, data.to_id);
     const { data: src, error: sErr } = await sb
       .from("bb_bank_drafts")
       .select("dashboard_layout, dashboard_layout_draft")
@@ -165,7 +159,7 @@ export const listOwnedBanksForDuplicate = createServerFn({ method: "GET" })
     const { data, error } = await sb
       .from("bb_bank_drafts")
       .select("id, identity")
-      .eq("owner_id", context.userId)
+      .not("id", "is", null)
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map((r: { id: string; identity: { bank_name?: string } | null }) => ({

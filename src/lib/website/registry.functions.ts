@@ -137,9 +137,11 @@ export const clearRenderingHistory = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<{ cleared: number }> => {
     const sb = anyClient(context.supabase);
     const q = sb.from("bb_bank_drafts").update({ render_logs: [] });
+    // Single-owner platform: no owner_id filter. When no id is given, clear
+    // rendering history for every bank.
     const { data: rows, error } = data.id
       ? await q.eq("id", data.id).select("id")
-      : await q.eq("owner_id", context.userId).select("id");
+      : await q.neq("id", "00000000-0000-0000-0000-000000000000").select("id");
     if (error) throw new Error(error.message);
     return { cleared: (rows ?? []).length };
   });
@@ -157,20 +159,14 @@ export const deleteBank = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     const sb = anyClient(context.supabase);
-    // Authorization: draft owner OR gboc admin (has_role).
+    // Single-owner platform: no owner authorization check. Service-role
+    // middleware is the sole authority for platform-management deletes.
     const { data: draft } = await sb
       .from("bb_bank_drafts")
-      .select("id, owner_id")
+      .select("id")
       .eq("id", data.id)
       .maybeSingle();
     if (!draft) throw new Error("Bank not found");
-    if (draft.owner_id !== context.userId) {
-      const { data: isAdmin } = await sb.rpc("has_role", {
-        _user_id: context.userId,
-        _role: "admin",
-      });
-      if (!isAdmin) throw new Error("Not authorized to delete this bank");
-    }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Remove branding assets for this draft.
