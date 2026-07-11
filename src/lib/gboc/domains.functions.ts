@@ -208,7 +208,7 @@ type DomainRow = {
 
 function shape(row: DomainRow, slug: string | null): BankDomain {
   const token = row.verification_token ?? row.id.replace(/-/g, "");
-  const fallback_url = slug ? `https://themix-builder.lovable.app/banks/${slug}` : "";
+  const fallback_url = slug ? `https://themix-builder.lovable.app/${slug}` : "";
   return {
     id: row.id,
     bank_id: row.bank_id,
@@ -232,15 +232,15 @@ function shape(row: DomainRow, slug: string | null): BankDomain {
 }
 
 async function fetchSlug(
-  sb: { from: (t: string) => { select: (c: string) => { eq: (col: string, v: string) => { maybeSingle: () => Promise<{ data: { slug: string | null } | null; error: unknown }> } } } },
+  sb: { from: (t: string) => { select: (c: string) => { eq: (col: string, v: string) => { maybeSingle: () => Promise<{ data: { slug: string | null; short_slug: string | null } | null; error: unknown }> } } } },
   bankId: string,
 ): Promise<string | null> {
   const { data } = await sb
     .from("bb_bank_drafts")
-    .select("slug")
+    .select("slug, short_slug")
     .eq("id", bankId)
     .maybeSingle();
-  return (data?.slug as string | null) ?? null;
+  return (data?.short_slug as string | null) ?? (data?.slug as string | null) ?? null;
 }
 
 // --- Schemas ----------------------------------------------------------------
