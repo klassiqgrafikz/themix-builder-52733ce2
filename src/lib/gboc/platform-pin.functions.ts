@@ -163,16 +163,35 @@ export const verifyPlatformPin = createServerFn({ method: "POST" })
       throw new Error("PLATFORM_ADMIN_PASSWORD is not configured");
     }
 
-    // Try minting a session first; only pay the sign-up cost on the very
-    // first unlock (or if the account was manually removed).
-    try {
-      const session = await mintAdminSessionWithRole(password);
-      return { ok: true, session };
-    } catch {
-      await ensurePlatformAdmin(password);
-      const session = await mintAdminSessionWithRole(password);
-      return { ok: true, session };
+    // 1) Try signing in first — cheapest path when the admin already exists.
+    const first = await trySignIn(password);
+    if (isAdminSession(first)) {
+      return { ok: true, session: await attachRole(first) };
     }
+
+    // 2) Only bootstrap if signIn failed with "invalid credentials"
+    //    (user does not exist yet). Any other error is surfaced verbatim.
+    const looksMissing =
+      first.status === 400 ||
+      /invalid login credentials|invalid credentials|user not found/i.test(first.error);
+    if (!looksMissing) {
+      throw new Error(
+        `supabase.auth.signInWithPassword failed for ${getAdminEmail()}: ${first.error} (status=${first.status ?? "?"}, code=${first.code ?? "?"}) at platform-pin.functions.ts:verifyPlatformPin`,
+      );
+    }
+
+    // 3) Create the admin user. If signUp fails, stop and surface the error.
+    const state = await ensurePlatformAdmin(password);
+    console.log("[platform-pin] ensurePlatformAdmin state", { state });
+
+    // 4) Sign in again — must succeed now, otherwise surface the exact error.
+    const second = await trySignIn(password);
+    if (!isAdminSession(second)) {
+      throw new Error(
+        `Platform admin account was ${state} but subsequent supabase.auth.signInWithPassword still failed for ${getAdminEmail()}: ${second.error} (status=${second.status ?? "?"}, code=${second.code ?? "?"}). Check that PLATFORM_ADMIN_PASSWORD matches the stored user's password and that email confirmations are disabled. (platform-pin.functions.ts:verifyPlatformPin)`,
+      );
+    }
+    return { ok: true, session: await attachRole(second) };
   });
 
 
