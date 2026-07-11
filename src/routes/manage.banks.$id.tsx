@@ -361,6 +361,9 @@ function BankOverview() {
           </CardContent>
         </Card>
 
+        <ShortSlugEditor draftId={id} current={draft.short_slug ?? ""} onSaved={invalidate} />
+
+
         {manifest && manifest.pages.length > 0 && (
           <Card>
             <CardHeader><CardTitle>Generated Pages</CardTitle></CardHeader>
