@@ -159,7 +159,7 @@ export const listOwnedBanksForDuplicate = createServerFn({ method: "GET" })
     const { data, error } = await sb
       .from("bb_bank_drafts")
       .select("id, identity")
-      .eq("owner_id", context.userId)
+      .not("id", "is", null)
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map((r: { id: string; identity: { bank_name?: string } | null }) => ({
