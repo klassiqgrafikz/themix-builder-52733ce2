@@ -1,7 +1,7 @@
 import { createFileRoute, notFound, Link, Outlet } from "@tanstack/react-router";
 import { getPublishedBank } from "@/lib/website/registry.functions";
 
-export const Route = createFileRoute("/banks/$slug")({
+export const Route = createFileRoute("/$slug")({
   loader: async ({ params }) => {
     const bank = await getPublishedBank({ data: { slug: params.slug } });
     if (!bank) throw notFound();

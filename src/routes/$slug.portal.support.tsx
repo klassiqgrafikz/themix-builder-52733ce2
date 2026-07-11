@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export const Route = createFileRoute("/banks/$slug/portal/support")({
+export const Route = createFileRoute("/$slug/portal/support")({
   component: SupportPage,
 });
 
@@ -30,7 +30,7 @@ const FAQ = [
 ];
 
 function SupportPage() {
-  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
   };
   const { bank } = parent;

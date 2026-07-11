@@ -5,12 +5,12 @@ import type { WebsiteManifest } from "@/lib/rendering/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
 import { customerListNotifications } from "@/lib/customer/activity.functions";
 
-export const Route = createFileRoute("/banks/$slug/portal/notifications")({
+export const Route = createFileRoute("/$slug/portal/notifications")({
   component: NotificationsPage,
 });
 
 function NotificationsPage() {
-  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
   };
   const { bank } = parent;

@@ -3,7 +3,7 @@
 // "is this navigation item / route / dashboard widget enabled for this bank?"
 //
 // No queries, no schema, no server calls — pure derivations from the manifest
-// already loaded by the /banks/$slug/portal route loader.
+// already loaded by the /$slug/portal route loader.
 import type { ReactNode } from "react";
 import type { WebsiteManifest, ResolvedProductRef } from "@/lib/rendering/types";
 import { BrandedCard } from "./portal-ui";

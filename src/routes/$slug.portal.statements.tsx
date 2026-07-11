@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export const Route = createFileRoute("/banks/$slug/portal/statements")({
+export const Route = createFileRoute("/$slug/portal/statements")({
   component: StatementsPage,
 });
 
@@ -46,7 +46,7 @@ async function loadImage(url: string): Promise<{ dataUrl: string; w: number; h: 
 }
 
 function StatementsPage() {
-  const parent = useMatch({ from: "/banks/$slug/portal" }).loaderData as {
+  const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
   };

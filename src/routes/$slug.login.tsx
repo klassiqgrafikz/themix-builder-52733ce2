@@ -27,7 +27,7 @@ function humanizeLoginError(err: unknown): string {
   return msg;
 }
 
-export const Route = createFileRoute("/banks/$slug/login")({
+export const Route = createFileRoute("/$slug/login")({
   loader: async ({ params }) => {
     const bank = await getPublishedBank({ data: { slug: params.slug } });
     if (!bank) throw notFound();
@@ -58,7 +58,7 @@ function LoginPage() {
     onSuccess: () => {
       toast.success(`Welcome back, ${email.split("@")[0]}`);
       setTimeout(() => {
-        navigate({ to: "/banks/$slug/portal", params: { slug: bank.slug } });
+        navigate({ to: "/$slug/portal", params: { slug: bank.slug } });
       }, 350);
     },
     onError: (e: unknown) => toast.error(humanizeLoginError(e)),
@@ -94,10 +94,10 @@ function LoginPage() {
         {mut.isPending ? "Signing in…" : "Sign in"}
       </Button>
       <div className="flex items-center justify-between text-sm">
-        <Link to="/banks/$slug/forgot" params={{ slug: bank.slug }} className="underline" style={{ color: theme.colors.primary }}>
+        <Link to="/$slug/forgot" params={{ slug: bank.slug }} className="underline" style={{ color: theme.colors.primary }}>
           Forgot password?
         </Link>
-        <Link to="/banks/$slug/register" params={{ slug: bank.slug }} className="underline" style={{ color: theme.colors.primary }}>
+        <Link to="/$slug/register" params={{ slug: bank.slug }} className="underline" style={{ color: theme.colors.primary }}>
           Open an account
         </Link>
       </div>

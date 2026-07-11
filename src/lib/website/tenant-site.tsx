@@ -90,7 +90,7 @@ function ModernGateway({ manifest }: { manifest: WebsiteManifest }) {
       }}
     >
       <header className="mx-auto flex max-w-6xl items-center gap-3 px-6 py-5">
-        <Link to="/banks/$slug" params={{ slug: bank.slug }} className="flex items-center gap-3">
+        <Link to="/$slug" params={{ slug: bank.slug }} className="flex items-center gap-3">
           <BrandLogo manifest={manifest} size={40} />
           <span
             className="text-lg font-semibold"
@@ -259,7 +259,7 @@ function CorporateGateway({ manifest }: { manifest: WebsiteManifest }) {
       {/* Main header */}
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-5">
-          <Link to="/banks/$slug" params={{ slug: bank.slug }} className="flex items-center gap-3">
+          <Link to="/$slug" params={{ slug: bank.slug }} className="flex items-center gap-3">
             <BrandLogo manifest={manifest} size={44} />
             <div>
               <div
@@ -405,7 +405,7 @@ function PremiumGateway({ manifest }: { manifest: WebsiteManifest }) {
       }}
     >
       <header className="mx-auto flex max-w-6xl items-center px-8 py-6">
-        <Link to="/banks/$slug" params={{ slug: bank.slug }} className="flex items-center gap-3">
+        <Link to="/$slug" params={{ slug: bank.slug }} className="flex items-center gap-3">
           <BrandLogo manifest={manifest} size={40} />
           <div>
             <div className="text-lg" style={heading}>

@@ -15,10 +15,12 @@ import { Route as GbocRouteImport } from './routes/gboc'
 import { Route as BankBuilderRouteImport } from './routes/bank-builder'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LaunchIndexRouteImport } from './routes/launch.index'
 import { Route as GbocIndexRouteImport } from './routes/gboc.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as SlugIndexRouteImport } from './routes/$slug.index'
 import { Route as LaunchCategoryRouteImport } from './routes/launch.$category'
 import { Route as GbocTransactionsRouteImport } from './routes/gboc.transactions'
 import { Route as GbocSettingsRouteImport } from './routes/gboc.settings'
@@ -30,33 +32,31 @@ import { Route as GbocCustomersRouteImport } from './routes/gboc.customers'
 import { Route as GbocCommunicationsRouteImport } from './routes/gboc.communications'
 import { Route as GbocBanksRouteImport } from './routes/gboc.banks'
 import { Route as GbocAuditRouteImport } from './routes/gboc.audit'
-import { Route as BanksSlugRouteImport } from './routes/banks.$slug'
 import { Route as AdminSectionRouteImport } from './routes/admin.$section'
+import { Route as SlugRegisterRouteImport } from './routes/$slug.register'
+import { Route as SlugPortalRouteImport } from './routes/$slug.portal'
+import { Route as SlugLoginRouteImport } from './routes/$slug.login'
+import { Route as SlugForgotRouteImport } from './routes/$slug.forgot'
+import { Route as SlugPageRouteImport } from './routes/$slug.$page'
 import { Route as LaunchCategoryIndexRouteImport } from './routes/launch.$category.index'
 import { Route as GbocCustomersIndexRouteImport } from './routes/gboc.customers.index'
-import { Route as BanksSlugIndexRouteImport } from './routes/banks.$slug.index'
+import { Route as SlugPortalIndexRouteImport } from './routes/$slug.portal.index'
 import { Route as ManageBanksIdRouteImport } from './routes/manage.banks.$id'
 import { Route as LaunchCategoryCountryRouteImport } from './routes/launch.$category.$country'
 import { Route as GbocCustomersIdRouteImport } from './routes/gboc.customers.$id'
-import { Route as BanksSlugRegisterRouteImport } from './routes/banks.$slug.register'
-import { Route as BanksSlugPortalRouteImport } from './routes/banks.$slug.portal'
-import { Route as BanksSlugLoginRouteImport } from './routes/banks.$slug.login'
-import { Route as BanksSlugForgotRouteImport } from './routes/banks.$slug.forgot'
-import { Route as BanksSlugPageRouteImport } from './routes/banks.$slug.$page'
-import { Route as BanksSlugPortalIndexRouteImport } from './routes/banks.$slug.portal.index'
+import { Route as SlugPortalTransferRouteImport } from './routes/$slug.portal.transfer'
+import { Route as SlugPortalTransactionsRouteImport } from './routes/$slug.portal.transactions'
+import { Route as SlugPortalSupportRouteImport } from './routes/$slug.portal.support'
+import { Route as SlugPortalStatementsRouteImport } from './routes/$slug.portal.statements'
+import { Route as SlugPortalSecurityRouteImport } from './routes/$slug.portal.security'
+import { Route as SlugPortalProfileRouteImport } from './routes/$slug.portal.profile'
+import { Route as SlugPortalNotificationsRouteImport } from './routes/$slug.portal.notifications'
+import { Route as SlugPortalCardsRouteImport } from './routes/$slug.portal.cards'
+import { Route as SlugPortalBeneficiariesRouteImport } from './routes/$slug.portal.beneficiaries'
+import { Route as SlugPortalAccountsRouteImport } from './routes/$slug.portal.accounts'
 import { Route as ManageBanksIdDashboardDesignerRouteImport } from './routes/manage.banks.$id.dashboard-designer'
-import { Route as BanksSlugPortalTransferRouteImport } from './routes/banks.$slug.portal.transfer'
-import { Route as BanksSlugPortalTransactionsRouteImport } from './routes/banks.$slug.portal.transactions'
-import { Route as BanksSlugPortalSupportRouteImport } from './routes/banks.$slug.portal.support'
-import { Route as BanksSlugPortalStatementsRouteImport } from './routes/banks.$slug.portal.statements'
-import { Route as BanksSlugPortalSecurityRouteImport } from './routes/banks.$slug.portal.security'
-import { Route as BanksSlugPortalProfileRouteImport } from './routes/banks.$slug.portal.profile'
-import { Route as BanksSlugPortalNotificationsRouteImport } from './routes/banks.$slug.portal.notifications'
-import { Route as BanksSlugPortalCardsRouteImport } from './routes/banks.$slug.portal.cards'
-import { Route as BanksSlugPortalBeneficiariesRouteImport } from './routes/banks.$slug.portal.beneficiaries'
-import { Route as BanksSlugPortalAccountsRouteImport } from './routes/banks.$slug.portal.accounts'
 import { Route as ApiPublicCustomerAvatarCustomerIdRouteImport } from './routes/api/public/customer-avatar.$customerId'
-import { Route as BanksSlugPortalTransactionsIdRouteImport } from './routes/banks.$slug.portal.transactions.$id'
+import { Route as SlugPortalTransactionsIdRouteImport } from './routes/$slug.portal.transactions.$id'
 import { Route as ApiPublicBrandingDraftIdKindRouteImport } from './routes/api/public/branding.$draftId.$kind'
 
 const ProductsRoute = ProductsRouteImport.update({
@@ -89,6 +89,11 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SlugRoute = SlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -108,6 +113,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const SlugIndexRoute = SlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SlugRoute,
 } as any)
 const LaunchCategoryRoute = LaunchCategoryRouteImport.update({
   id: '/$category',
@@ -164,15 +174,35 @@ const GbocAuditRoute = GbocAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => GbocRoute,
 } as any)
-const BanksSlugRoute = BanksSlugRouteImport.update({
-  id: '/banks/$slug',
-  path: '/banks/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminSectionRoute = AdminSectionRouteImport.update({
   id: '/$section',
   path: '/$section',
   getParentRoute: () => AdminRoute,
+} as any)
+const SlugRegisterRoute = SlugRegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugPortalRoute = SlugPortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugLoginRoute = SlugLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugForgotRoute = SlugForgotRouteImport.update({
+  id: '/forgot',
+  path: '/forgot',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugPageRoute = SlugPageRouteImport.update({
+  id: '/$page',
+  path: '/$page',
+  getParentRoute: () => SlugRoute,
 } as any)
 const LaunchCategoryIndexRoute = LaunchCategoryIndexRouteImport.update({
   id: '/',
@@ -184,10 +214,10 @@ const GbocCustomersIndexRoute = GbocCustomersIndexRouteImport.update({
   path: '/',
   getParentRoute: () => GbocCustomersRoute,
 } as any)
-const BanksSlugIndexRoute = BanksSlugIndexRouteImport.update({
+const SlugPortalIndexRoute = SlugPortalIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => BanksSlugRoute,
+  getParentRoute: () => SlugPortalRoute,
 } as any)
 const ManageBanksIdRoute = ManageBanksIdRouteImport.update({
   id: '/manage/banks/$id',
@@ -204,35 +234,55 @@ const GbocCustomersIdRoute = GbocCustomersIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => GbocCustomersRoute,
 } as any)
-const BanksSlugRegisterRoute = BanksSlugRegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => BanksSlugRoute,
+const SlugPortalTransferRoute = SlugPortalTransferRouteImport.update({
+  id: '/transfer',
+  path: '/transfer',
+  getParentRoute: () => SlugPortalRoute,
 } as any)
-const BanksSlugPortalRoute = BanksSlugPortalRouteImport.update({
-  id: '/portal',
-  path: '/portal',
-  getParentRoute: () => BanksSlugRoute,
+const SlugPortalTransactionsRoute = SlugPortalTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => SlugPortalRoute,
 } as any)
-const BanksSlugLoginRoute = BanksSlugLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => BanksSlugRoute,
+const SlugPortalSupportRoute = SlugPortalSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => SlugPortalRoute,
 } as any)
-const BanksSlugForgotRoute = BanksSlugForgotRouteImport.update({
-  id: '/forgot',
-  path: '/forgot',
-  getParentRoute: () => BanksSlugRoute,
+const SlugPortalStatementsRoute = SlugPortalStatementsRouteImport.update({
+  id: '/statements',
+  path: '/statements',
+  getParentRoute: () => SlugPortalRoute,
 } as any)
-const BanksSlugPageRoute = BanksSlugPageRouteImport.update({
-  id: '/$page',
-  path: '/$page',
-  getParentRoute: () => BanksSlugRoute,
+const SlugPortalSecurityRoute = SlugPortalSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => SlugPortalRoute,
 } as any)
-const BanksSlugPortalIndexRoute = BanksSlugPortalIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => BanksSlugPortalRoute,
+const SlugPortalProfileRoute = SlugPortalProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => SlugPortalRoute,
+} as any)
+const SlugPortalNotificationsRoute = SlugPortalNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => SlugPortalRoute,
+} as any)
+const SlugPortalCardsRoute = SlugPortalCardsRouteImport.update({
+  id: '/cards',
+  path: '/cards',
+  getParentRoute: () => SlugPortalRoute,
+} as any)
+const SlugPortalBeneficiariesRoute = SlugPortalBeneficiariesRouteImport.update({
+  id: '/beneficiaries',
+  path: '/beneficiaries',
+  getParentRoute: () => SlugPortalRoute,
+} as any)
+const SlugPortalAccountsRoute = SlugPortalAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => SlugPortalRoute,
 } as any)
 const ManageBanksIdDashboardDesignerRoute =
   ManageBanksIdDashboardDesignerRouteImport.update({
@@ -240,71 +290,17 @@ const ManageBanksIdDashboardDesignerRoute =
     path: '/dashboard-designer',
     getParentRoute: () => ManageBanksIdRoute,
   } as any)
-const BanksSlugPortalTransferRoute = BanksSlugPortalTransferRouteImport.update({
-  id: '/transfer',
-  path: '/transfer',
-  getParentRoute: () => BanksSlugPortalRoute,
-} as any)
-const BanksSlugPortalTransactionsRoute =
-  BanksSlugPortalTransactionsRouteImport.update({
-    id: '/transactions',
-    path: '/transactions',
-    getParentRoute: () => BanksSlugPortalRoute,
-  } as any)
-const BanksSlugPortalSupportRoute = BanksSlugPortalSupportRouteImport.update({
-  id: '/support',
-  path: '/support',
-  getParentRoute: () => BanksSlugPortalRoute,
-} as any)
-const BanksSlugPortalStatementsRoute =
-  BanksSlugPortalStatementsRouteImport.update({
-    id: '/statements',
-    path: '/statements',
-    getParentRoute: () => BanksSlugPortalRoute,
-  } as any)
-const BanksSlugPortalSecurityRoute = BanksSlugPortalSecurityRouteImport.update({
-  id: '/security',
-  path: '/security',
-  getParentRoute: () => BanksSlugPortalRoute,
-} as any)
-const BanksSlugPortalProfileRoute = BanksSlugPortalProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => BanksSlugPortalRoute,
-} as any)
-const BanksSlugPortalNotificationsRoute =
-  BanksSlugPortalNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => BanksSlugPortalRoute,
-  } as any)
-const BanksSlugPortalCardsRoute = BanksSlugPortalCardsRouteImport.update({
-  id: '/cards',
-  path: '/cards',
-  getParentRoute: () => BanksSlugPortalRoute,
-} as any)
-const BanksSlugPortalBeneficiariesRoute =
-  BanksSlugPortalBeneficiariesRouteImport.update({
-    id: '/beneficiaries',
-    path: '/beneficiaries',
-    getParentRoute: () => BanksSlugPortalRoute,
-  } as any)
-const BanksSlugPortalAccountsRoute = BanksSlugPortalAccountsRouteImport.update({
-  id: '/accounts',
-  path: '/accounts',
-  getParentRoute: () => BanksSlugPortalRoute,
-} as any)
 const ApiPublicCustomerAvatarCustomerIdRoute =
   ApiPublicCustomerAvatarCustomerIdRouteImport.update({
     id: '/api/public/customer-avatar/$customerId',
     path: '/api/public/customer-avatar/$customerId',
     getParentRoute: () => rootRouteImport,
   } as any)
-const BanksSlugPortalTransactionsIdRoute =
-  BanksSlugPortalTransactionsIdRouteImport.update({
+const SlugPortalTransactionsIdRoute =
+  SlugPortalTransactionsIdRouteImport.update({
     id: '/$id',
     path: '/$id',
-    getParentRoute: () => BanksSlugPortalTransactionsRoute,
+    getParentRoute: () => SlugPortalTransactionsRoute,
   } as any)
 const ApiPublicBrandingDraftIdKindRoute =
   ApiPublicBrandingDraftIdKindRouteImport.update({
@@ -315,14 +311,19 @@ const ApiPublicBrandingDraftIdKindRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
   '/gboc': typeof GbocRouteWithChildren
   '/launch': typeof LaunchRouteWithChildren
   '/products': typeof ProductsRoute
+  '/$slug/$page': typeof SlugPageRoute
+  '/$slug/forgot': typeof SlugForgotRoute
+  '/$slug/login': typeof SlugLoginRoute
+  '/$slug/portal': typeof SlugPortalRouteWithChildren
+  '/$slug/register': typeof SlugRegisterRoute
   '/admin/$section': typeof AdminSectionRoute
-  '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/gboc/audit': typeof GbocAuditRoute
   '/gboc/banks': typeof GbocBanksRoute
   '/gboc/communications': typeof GbocCommunicationsRoute
@@ -334,41 +335,40 @@ export interface FileRoutesByFullPath {
   '/gboc/settings': typeof GbocSettingsRoute
   '/gboc/transactions': typeof GbocTransactionsRoute
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
+  '/$slug/': typeof SlugIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/gboc/': typeof GbocIndexRoute
   '/launch/': typeof LaunchIndexRoute
-  '/banks/$slug/$page': typeof BanksSlugPageRoute
-  '/banks/$slug/forgot': typeof BanksSlugForgotRoute
-  '/banks/$slug/login': typeof BanksSlugLoginRoute
-  '/banks/$slug/portal': typeof BanksSlugPortalRouteWithChildren
-  '/banks/$slug/register': typeof BanksSlugRegisterRoute
+  '/$slug/portal/accounts': typeof SlugPortalAccountsRoute
+  '/$slug/portal/beneficiaries': typeof SlugPortalBeneficiariesRoute
+  '/$slug/portal/cards': typeof SlugPortalCardsRoute
+  '/$slug/portal/notifications': typeof SlugPortalNotificationsRoute
+  '/$slug/portal/profile': typeof SlugPortalProfileRoute
+  '/$slug/portal/security': typeof SlugPortalSecurityRoute
+  '/$slug/portal/statements': typeof SlugPortalStatementsRoute
+  '/$slug/portal/support': typeof SlugPortalSupportRoute
+  '/$slug/portal/transactions': typeof SlugPortalTransactionsRouteWithChildren
+  '/$slug/portal/transfer': typeof SlugPortalTransferRoute
   '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/manage/banks/$id': typeof ManageBanksIdRouteWithChildren
-  '/banks/$slug/': typeof BanksSlugIndexRoute
+  '/$slug/portal/': typeof SlugPortalIndexRoute
   '/gboc/customers/': typeof GbocCustomersIndexRoute
   '/launch/$category/': typeof LaunchCategoryIndexRoute
+  '/$slug/portal/transactions/$id': typeof SlugPortalTransactionsIdRoute
   '/api/public/customer-avatar/$customerId': typeof ApiPublicCustomerAvatarCustomerIdRoute
-  '/banks/$slug/portal/accounts': typeof BanksSlugPortalAccountsRoute
-  '/banks/$slug/portal/beneficiaries': typeof BanksSlugPortalBeneficiariesRoute
-  '/banks/$slug/portal/cards': typeof BanksSlugPortalCardsRoute
-  '/banks/$slug/portal/notifications': typeof BanksSlugPortalNotificationsRoute
-  '/banks/$slug/portal/profile': typeof BanksSlugPortalProfileRoute
-  '/banks/$slug/portal/security': typeof BanksSlugPortalSecurityRoute
-  '/banks/$slug/portal/statements': typeof BanksSlugPortalStatementsRoute
-  '/banks/$slug/portal/support': typeof BanksSlugPortalSupportRoute
-  '/banks/$slug/portal/transactions': typeof BanksSlugPortalTransactionsRouteWithChildren
-  '/banks/$slug/portal/transfer': typeof BanksSlugPortalTransferRoute
   '/manage/banks/$id/dashboard-designer': typeof ManageBanksIdDashboardDesignerRoute
-  '/banks/$slug/portal/': typeof BanksSlugPortalIndexRoute
   '/api/public/branding/$draftId/$kind': typeof ApiPublicBrandingDraftIdKindRoute
-  '/banks/$slug/portal/transactions/$id': typeof BanksSlugPortalTransactionsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
   '/products': typeof ProductsRoute
+  '/$slug/$page': typeof SlugPageRoute
+  '/$slug/forgot': typeof SlugForgotRoute
+  '/$slug/login': typeof SlugLoginRoute
+  '/$slug/register': typeof SlugRegisterRoute
   '/admin/$section': typeof AdminSectionRoute
   '/gboc/audit': typeof GbocAuditRoute
   '/gboc/banks': typeof GbocBanksRoute
@@ -379,46 +379,47 @@ export interface FileRoutesByTo {
   '/gboc/reports': typeof GbocReportsRoute
   '/gboc/settings': typeof GbocSettingsRoute
   '/gboc/transactions': typeof GbocTransactionsRoute
+  '/$slug': typeof SlugIndexRoute
   '/admin': typeof AdminIndexRoute
   '/gboc': typeof GbocIndexRoute
   '/launch': typeof LaunchIndexRoute
-  '/banks/$slug/$page': typeof BanksSlugPageRoute
-  '/banks/$slug/forgot': typeof BanksSlugForgotRoute
-  '/banks/$slug/login': typeof BanksSlugLoginRoute
-  '/banks/$slug/register': typeof BanksSlugRegisterRoute
+  '/$slug/portal/accounts': typeof SlugPortalAccountsRoute
+  '/$slug/portal/beneficiaries': typeof SlugPortalBeneficiariesRoute
+  '/$slug/portal/cards': typeof SlugPortalCardsRoute
+  '/$slug/portal/notifications': typeof SlugPortalNotificationsRoute
+  '/$slug/portal/profile': typeof SlugPortalProfileRoute
+  '/$slug/portal/security': typeof SlugPortalSecurityRoute
+  '/$slug/portal/statements': typeof SlugPortalStatementsRoute
+  '/$slug/portal/support': typeof SlugPortalSupportRoute
+  '/$slug/portal/transactions': typeof SlugPortalTransactionsRouteWithChildren
+  '/$slug/portal/transfer': typeof SlugPortalTransferRoute
   '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/manage/banks/$id': typeof ManageBanksIdRouteWithChildren
-  '/banks/$slug': typeof BanksSlugIndexRoute
+  '/$slug/portal': typeof SlugPortalIndexRoute
   '/gboc/customers': typeof GbocCustomersIndexRoute
   '/launch/$category': typeof LaunchCategoryIndexRoute
+  '/$slug/portal/transactions/$id': typeof SlugPortalTransactionsIdRoute
   '/api/public/customer-avatar/$customerId': typeof ApiPublicCustomerAvatarCustomerIdRoute
-  '/banks/$slug/portal/accounts': typeof BanksSlugPortalAccountsRoute
-  '/banks/$slug/portal/beneficiaries': typeof BanksSlugPortalBeneficiariesRoute
-  '/banks/$slug/portal/cards': typeof BanksSlugPortalCardsRoute
-  '/banks/$slug/portal/notifications': typeof BanksSlugPortalNotificationsRoute
-  '/banks/$slug/portal/profile': typeof BanksSlugPortalProfileRoute
-  '/banks/$slug/portal/security': typeof BanksSlugPortalSecurityRoute
-  '/banks/$slug/portal/statements': typeof BanksSlugPortalStatementsRoute
-  '/banks/$slug/portal/support': typeof BanksSlugPortalSupportRoute
-  '/banks/$slug/portal/transactions': typeof BanksSlugPortalTransactionsRouteWithChildren
-  '/banks/$slug/portal/transfer': typeof BanksSlugPortalTransferRoute
   '/manage/banks/$id/dashboard-designer': typeof ManageBanksIdDashboardDesignerRoute
-  '/banks/$slug/portal': typeof BanksSlugPortalIndexRoute
   '/api/public/branding/$draftId/$kind': typeof ApiPublicBrandingDraftIdKindRoute
-  '/banks/$slug/portal/transactions/$id': typeof BanksSlugPortalTransactionsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/bank-builder': typeof BankBuilderRoute
   '/gboc': typeof GbocRouteWithChildren
   '/launch': typeof LaunchRouteWithChildren
   '/products': typeof ProductsRoute
+  '/$slug/$page': typeof SlugPageRoute
+  '/$slug/forgot': typeof SlugForgotRoute
+  '/$slug/login': typeof SlugLoginRoute
+  '/$slug/portal': typeof SlugPortalRouteWithChildren
+  '/$slug/register': typeof SlugRegisterRoute
   '/admin/$section': typeof AdminSectionRoute
-  '/banks/$slug': typeof BanksSlugRouteWithChildren
   '/gboc/audit': typeof GbocAuditRoute
   '/gboc/banks': typeof GbocBanksRoute
   '/gboc/communications': typeof GbocCommunicationsRoute
@@ -430,48 +431,48 @@ export interface FileRoutesById {
   '/gboc/settings': typeof GbocSettingsRoute
   '/gboc/transactions': typeof GbocTransactionsRoute
   '/launch/$category': typeof LaunchCategoryRouteWithChildren
+  '/$slug/': typeof SlugIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/gboc/': typeof GbocIndexRoute
   '/launch/': typeof LaunchIndexRoute
-  '/banks/$slug/$page': typeof BanksSlugPageRoute
-  '/banks/$slug/forgot': typeof BanksSlugForgotRoute
-  '/banks/$slug/login': typeof BanksSlugLoginRoute
-  '/banks/$slug/portal': typeof BanksSlugPortalRouteWithChildren
-  '/banks/$slug/register': typeof BanksSlugRegisterRoute
+  '/$slug/portal/accounts': typeof SlugPortalAccountsRoute
+  '/$slug/portal/beneficiaries': typeof SlugPortalBeneficiariesRoute
+  '/$slug/portal/cards': typeof SlugPortalCardsRoute
+  '/$slug/portal/notifications': typeof SlugPortalNotificationsRoute
+  '/$slug/portal/profile': typeof SlugPortalProfileRoute
+  '/$slug/portal/security': typeof SlugPortalSecurityRoute
+  '/$slug/portal/statements': typeof SlugPortalStatementsRoute
+  '/$slug/portal/support': typeof SlugPortalSupportRoute
+  '/$slug/portal/transactions': typeof SlugPortalTransactionsRouteWithChildren
+  '/$slug/portal/transfer': typeof SlugPortalTransferRoute
   '/gboc/customers/$id': typeof GbocCustomersIdRoute
   '/launch/$category/$country': typeof LaunchCategoryCountryRoute
   '/manage/banks/$id': typeof ManageBanksIdRouteWithChildren
-  '/banks/$slug/': typeof BanksSlugIndexRoute
+  '/$slug/portal/': typeof SlugPortalIndexRoute
   '/gboc/customers/': typeof GbocCustomersIndexRoute
   '/launch/$category/': typeof LaunchCategoryIndexRoute
+  '/$slug/portal/transactions/$id': typeof SlugPortalTransactionsIdRoute
   '/api/public/customer-avatar/$customerId': typeof ApiPublicCustomerAvatarCustomerIdRoute
-  '/banks/$slug/portal/accounts': typeof BanksSlugPortalAccountsRoute
-  '/banks/$slug/portal/beneficiaries': typeof BanksSlugPortalBeneficiariesRoute
-  '/banks/$slug/portal/cards': typeof BanksSlugPortalCardsRoute
-  '/banks/$slug/portal/notifications': typeof BanksSlugPortalNotificationsRoute
-  '/banks/$slug/portal/profile': typeof BanksSlugPortalProfileRoute
-  '/banks/$slug/portal/security': typeof BanksSlugPortalSecurityRoute
-  '/banks/$slug/portal/statements': typeof BanksSlugPortalStatementsRoute
-  '/banks/$slug/portal/support': typeof BanksSlugPortalSupportRoute
-  '/banks/$slug/portal/transactions': typeof BanksSlugPortalTransactionsRouteWithChildren
-  '/banks/$slug/portal/transfer': typeof BanksSlugPortalTransferRoute
   '/manage/banks/$id/dashboard-designer': typeof ManageBanksIdDashboardDesignerRoute
-  '/banks/$slug/portal/': typeof BanksSlugPortalIndexRoute
   '/api/public/branding/$draftId/$kind': typeof ApiPublicBrandingDraftIdKindRoute
-  '/banks/$slug/portal/transactions/$id': typeof BanksSlugPortalTransactionsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$slug'
     | '/admin'
     | '/auth'
     | '/bank-builder'
     | '/gboc'
     | '/launch'
     | '/products'
+    | '/$slug/$page'
+    | '/$slug/forgot'
+    | '/$slug/login'
+    | '/$slug/portal'
+    | '/$slug/register'
     | '/admin/$section'
-    | '/banks/$slug'
     | '/gboc/audit'
     | '/gboc/banks'
     | '/gboc/communications'
@@ -483,41 +484,40 @@ export interface FileRouteTypes {
     | '/gboc/settings'
     | '/gboc/transactions'
     | '/launch/$category'
+    | '/$slug/'
     | '/admin/'
     | '/gboc/'
     | '/launch/'
-    | '/banks/$slug/$page'
-    | '/banks/$slug/forgot'
-    | '/banks/$slug/login'
-    | '/banks/$slug/portal'
-    | '/banks/$slug/register'
+    | '/$slug/portal/accounts'
+    | '/$slug/portal/beneficiaries'
+    | '/$slug/portal/cards'
+    | '/$slug/portal/notifications'
+    | '/$slug/portal/profile'
+    | '/$slug/portal/security'
+    | '/$slug/portal/statements'
+    | '/$slug/portal/support'
+    | '/$slug/portal/transactions'
+    | '/$slug/portal/transfer'
     | '/gboc/customers/$id'
     | '/launch/$category/$country'
     | '/manage/banks/$id'
-    | '/banks/$slug/'
+    | '/$slug/portal/'
     | '/gboc/customers/'
     | '/launch/$category/'
+    | '/$slug/portal/transactions/$id'
     | '/api/public/customer-avatar/$customerId'
-    | '/banks/$slug/portal/accounts'
-    | '/banks/$slug/portal/beneficiaries'
-    | '/banks/$slug/portal/cards'
-    | '/banks/$slug/portal/notifications'
-    | '/banks/$slug/portal/profile'
-    | '/banks/$slug/portal/security'
-    | '/banks/$slug/portal/statements'
-    | '/banks/$slug/portal/support'
-    | '/banks/$slug/portal/transactions'
-    | '/banks/$slug/portal/transfer'
     | '/manage/banks/$id/dashboard-designer'
-    | '/banks/$slug/portal/'
     | '/api/public/branding/$draftId/$kind'
-    | '/banks/$slug/portal/transactions/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/bank-builder'
     | '/products'
+    | '/$slug/$page'
+    | '/$slug/forgot'
+    | '/$slug/login'
+    | '/$slug/register'
     | '/admin/$section'
     | '/gboc/audit'
     | '/gboc/banks'
@@ -528,45 +528,46 @@ export interface FileRouteTypes {
     | '/gboc/reports'
     | '/gboc/settings'
     | '/gboc/transactions'
+    | '/$slug'
     | '/admin'
     | '/gboc'
     | '/launch'
-    | '/banks/$slug/$page'
-    | '/banks/$slug/forgot'
-    | '/banks/$slug/login'
-    | '/banks/$slug/register'
+    | '/$slug/portal/accounts'
+    | '/$slug/portal/beneficiaries'
+    | '/$slug/portal/cards'
+    | '/$slug/portal/notifications'
+    | '/$slug/portal/profile'
+    | '/$slug/portal/security'
+    | '/$slug/portal/statements'
+    | '/$slug/portal/support'
+    | '/$slug/portal/transactions'
+    | '/$slug/portal/transfer'
     | '/gboc/customers/$id'
     | '/launch/$category/$country'
     | '/manage/banks/$id'
-    | '/banks/$slug'
+    | '/$slug/portal'
     | '/gboc/customers'
     | '/launch/$category'
+    | '/$slug/portal/transactions/$id'
     | '/api/public/customer-avatar/$customerId'
-    | '/banks/$slug/portal/accounts'
-    | '/banks/$slug/portal/beneficiaries'
-    | '/banks/$slug/portal/cards'
-    | '/banks/$slug/portal/notifications'
-    | '/banks/$slug/portal/profile'
-    | '/banks/$slug/portal/security'
-    | '/banks/$slug/portal/statements'
-    | '/banks/$slug/portal/support'
-    | '/banks/$slug/portal/transactions'
-    | '/banks/$slug/portal/transfer'
     | '/manage/banks/$id/dashboard-designer'
-    | '/banks/$slug/portal'
     | '/api/public/branding/$draftId/$kind'
-    | '/banks/$slug/portal/transactions/$id'
   id:
     | '__root__'
     | '/'
+    | '/$slug'
     | '/admin'
     | '/auth'
     | '/bank-builder'
     | '/gboc'
     | '/launch'
     | '/products'
+    | '/$slug/$page'
+    | '/$slug/forgot'
+    | '/$slug/login'
+    | '/$slug/portal'
+    | '/$slug/register'
     | '/admin/$section'
-    | '/banks/$slug'
     | '/gboc/audit'
     | '/gboc/banks'
     | '/gboc/communications'
@@ -578,46 +579,41 @@ export interface FileRouteTypes {
     | '/gboc/settings'
     | '/gboc/transactions'
     | '/launch/$category'
+    | '/$slug/'
     | '/admin/'
     | '/gboc/'
     | '/launch/'
-    | '/banks/$slug/$page'
-    | '/banks/$slug/forgot'
-    | '/banks/$slug/login'
-    | '/banks/$slug/portal'
-    | '/banks/$slug/register'
+    | '/$slug/portal/accounts'
+    | '/$slug/portal/beneficiaries'
+    | '/$slug/portal/cards'
+    | '/$slug/portal/notifications'
+    | '/$slug/portal/profile'
+    | '/$slug/portal/security'
+    | '/$slug/portal/statements'
+    | '/$slug/portal/support'
+    | '/$slug/portal/transactions'
+    | '/$slug/portal/transfer'
     | '/gboc/customers/$id'
     | '/launch/$category/$country'
     | '/manage/banks/$id'
-    | '/banks/$slug/'
+    | '/$slug/portal/'
     | '/gboc/customers/'
     | '/launch/$category/'
+    | '/$slug/portal/transactions/$id'
     | '/api/public/customer-avatar/$customerId'
-    | '/banks/$slug/portal/accounts'
-    | '/banks/$slug/portal/beneficiaries'
-    | '/banks/$slug/portal/cards'
-    | '/banks/$slug/portal/notifications'
-    | '/banks/$slug/portal/profile'
-    | '/banks/$slug/portal/security'
-    | '/banks/$slug/portal/statements'
-    | '/banks/$slug/portal/support'
-    | '/banks/$slug/portal/transactions'
-    | '/banks/$slug/portal/transfer'
     | '/manage/banks/$id/dashboard-designer'
-    | '/banks/$slug/portal/'
     | '/api/public/branding/$draftId/$kind'
-    | '/banks/$slug/portal/transactions/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SlugRoute: typeof SlugRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   BankBuilderRoute: typeof BankBuilderRoute
   GbocRoute: typeof GbocRouteWithChildren
   LaunchRoute: typeof LaunchRouteWithChildren
   ProductsRoute: typeof ProductsRoute
-  BanksSlugRoute: typeof BanksSlugRouteWithChildren
   ManageBanksIdRoute: typeof ManageBanksIdRouteWithChildren
   ApiPublicCustomerAvatarCustomerIdRoute: typeof ApiPublicCustomerAvatarCustomerIdRoute
   ApiPublicBrandingDraftIdKindRoute: typeof ApiPublicBrandingDraftIdKindRoute
@@ -667,6 +663,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$slug': {
+      id: '/$slug'
+      path: '/$slug'
+      fullPath: '/$slug'
+      preLoaderRoute: typeof SlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -694,6 +697,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/$slug/': {
+      id: '/$slug/'
+      path: '/'
+      fullPath: '/$slug/'
+      preLoaderRoute: typeof SlugIndexRouteImport
+      parentRoute: typeof SlugRoute
     }
     '/launch/$category': {
       id: '/launch/$category'
@@ -772,19 +782,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GbocAuditRouteImport
       parentRoute: typeof GbocRoute
     }
-    '/banks/$slug': {
-      id: '/banks/$slug'
-      path: '/banks/$slug'
-      fullPath: '/banks/$slug'
-      preLoaderRoute: typeof BanksSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin/$section': {
       id: '/admin/$section'
       path: '/$section'
       fullPath: '/admin/$section'
       preLoaderRoute: typeof AdminSectionRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/$slug/register': {
+      id: '/$slug/register'
+      path: '/register'
+      fullPath: '/$slug/register'
+      preLoaderRoute: typeof SlugRegisterRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/portal': {
+      id: '/$slug/portal'
+      path: '/portal'
+      fullPath: '/$slug/portal'
+      preLoaderRoute: typeof SlugPortalRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/login': {
+      id: '/$slug/login'
+      path: '/login'
+      fullPath: '/$slug/login'
+      preLoaderRoute: typeof SlugLoginRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/forgot': {
+      id: '/$slug/forgot'
+      path: '/forgot'
+      fullPath: '/$slug/forgot'
+      preLoaderRoute: typeof SlugForgotRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/$page': {
+      id: '/$slug/$page'
+      path: '/$page'
+      fullPath: '/$slug/$page'
+      preLoaderRoute: typeof SlugPageRouteImport
+      parentRoute: typeof SlugRoute
     }
     '/launch/$category/': {
       id: '/launch/$category/'
@@ -800,12 +838,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GbocCustomersIndexRouteImport
       parentRoute: typeof GbocCustomersRoute
     }
-    '/banks/$slug/': {
-      id: '/banks/$slug/'
+    '/$slug/portal/': {
+      id: '/$slug/portal/'
       path: '/'
-      fullPath: '/banks/$slug/'
-      preLoaderRoute: typeof BanksSlugIndexRouteImport
-      parentRoute: typeof BanksSlugRoute
+      fullPath: '/$slug/portal/'
+      preLoaderRoute: typeof SlugPortalIndexRouteImport
+      parentRoute: typeof SlugPortalRoute
     }
     '/manage/banks/$id': {
       id: '/manage/banks/$id'
@@ -828,47 +866,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GbocCustomersIdRouteImport
       parentRoute: typeof GbocCustomersRoute
     }
-    '/banks/$slug/register': {
-      id: '/banks/$slug/register'
-      path: '/register'
-      fullPath: '/banks/$slug/register'
-      preLoaderRoute: typeof BanksSlugRegisterRouteImport
-      parentRoute: typeof BanksSlugRoute
+    '/$slug/portal/transfer': {
+      id: '/$slug/portal/transfer'
+      path: '/transfer'
+      fullPath: '/$slug/portal/transfer'
+      preLoaderRoute: typeof SlugPortalTransferRouteImport
+      parentRoute: typeof SlugPortalRoute
     }
-    '/banks/$slug/portal': {
-      id: '/banks/$slug/portal'
-      path: '/portal'
-      fullPath: '/banks/$slug/portal'
-      preLoaderRoute: typeof BanksSlugPortalRouteImport
-      parentRoute: typeof BanksSlugRoute
+    '/$slug/portal/transactions': {
+      id: '/$slug/portal/transactions'
+      path: '/transactions'
+      fullPath: '/$slug/portal/transactions'
+      preLoaderRoute: typeof SlugPortalTransactionsRouteImport
+      parentRoute: typeof SlugPortalRoute
     }
-    '/banks/$slug/login': {
-      id: '/banks/$slug/login'
-      path: '/login'
-      fullPath: '/banks/$slug/login'
-      preLoaderRoute: typeof BanksSlugLoginRouteImport
-      parentRoute: typeof BanksSlugRoute
+    '/$slug/portal/support': {
+      id: '/$slug/portal/support'
+      path: '/support'
+      fullPath: '/$slug/portal/support'
+      preLoaderRoute: typeof SlugPortalSupportRouteImport
+      parentRoute: typeof SlugPortalRoute
     }
-    '/banks/$slug/forgot': {
-      id: '/banks/$slug/forgot'
-      path: '/forgot'
-      fullPath: '/banks/$slug/forgot'
-      preLoaderRoute: typeof BanksSlugForgotRouteImport
-      parentRoute: typeof BanksSlugRoute
+    '/$slug/portal/statements': {
+      id: '/$slug/portal/statements'
+      path: '/statements'
+      fullPath: '/$slug/portal/statements'
+      preLoaderRoute: typeof SlugPortalStatementsRouteImport
+      parentRoute: typeof SlugPortalRoute
     }
-    '/banks/$slug/$page': {
-      id: '/banks/$slug/$page'
-      path: '/$page'
-      fullPath: '/banks/$slug/$page'
-      preLoaderRoute: typeof BanksSlugPageRouteImport
-      parentRoute: typeof BanksSlugRoute
+    '/$slug/portal/security': {
+      id: '/$slug/portal/security'
+      path: '/security'
+      fullPath: '/$slug/portal/security'
+      preLoaderRoute: typeof SlugPortalSecurityRouteImport
+      parentRoute: typeof SlugPortalRoute
     }
-    '/banks/$slug/portal/': {
-      id: '/banks/$slug/portal/'
-      path: '/'
-      fullPath: '/banks/$slug/portal/'
-      preLoaderRoute: typeof BanksSlugPortalIndexRouteImport
-      parentRoute: typeof BanksSlugPortalRoute
+    '/$slug/portal/profile': {
+      id: '/$slug/portal/profile'
+      path: '/profile'
+      fullPath: '/$slug/portal/profile'
+      preLoaderRoute: typeof SlugPortalProfileRouteImport
+      parentRoute: typeof SlugPortalRoute
+    }
+    '/$slug/portal/notifications': {
+      id: '/$slug/portal/notifications'
+      path: '/notifications'
+      fullPath: '/$slug/portal/notifications'
+      preLoaderRoute: typeof SlugPortalNotificationsRouteImport
+      parentRoute: typeof SlugPortalRoute
+    }
+    '/$slug/portal/cards': {
+      id: '/$slug/portal/cards'
+      path: '/cards'
+      fullPath: '/$slug/portal/cards'
+      preLoaderRoute: typeof SlugPortalCardsRouteImport
+      parentRoute: typeof SlugPortalRoute
+    }
+    '/$slug/portal/beneficiaries': {
+      id: '/$slug/portal/beneficiaries'
+      path: '/beneficiaries'
+      fullPath: '/$slug/portal/beneficiaries'
+      preLoaderRoute: typeof SlugPortalBeneficiariesRouteImport
+      parentRoute: typeof SlugPortalRoute
+    }
+    '/$slug/portal/accounts': {
+      id: '/$slug/portal/accounts'
+      path: '/accounts'
+      fullPath: '/$slug/portal/accounts'
+      preLoaderRoute: typeof SlugPortalAccountsRouteImport
+      parentRoute: typeof SlugPortalRoute
     }
     '/manage/banks/$id/dashboard-designer': {
       id: '/manage/banks/$id/dashboard-designer'
@@ -877,76 +943,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManageBanksIdDashboardDesignerRouteImport
       parentRoute: typeof ManageBanksIdRoute
     }
-    '/banks/$slug/portal/transfer': {
-      id: '/banks/$slug/portal/transfer'
-      path: '/transfer'
-      fullPath: '/banks/$slug/portal/transfer'
-      preLoaderRoute: typeof BanksSlugPortalTransferRouteImport
-      parentRoute: typeof BanksSlugPortalRoute
-    }
-    '/banks/$slug/portal/transactions': {
-      id: '/banks/$slug/portal/transactions'
-      path: '/transactions'
-      fullPath: '/banks/$slug/portal/transactions'
-      preLoaderRoute: typeof BanksSlugPortalTransactionsRouteImport
-      parentRoute: typeof BanksSlugPortalRoute
-    }
-    '/banks/$slug/portal/support': {
-      id: '/banks/$slug/portal/support'
-      path: '/support'
-      fullPath: '/banks/$slug/portal/support'
-      preLoaderRoute: typeof BanksSlugPortalSupportRouteImport
-      parentRoute: typeof BanksSlugPortalRoute
-    }
-    '/banks/$slug/portal/statements': {
-      id: '/banks/$slug/portal/statements'
-      path: '/statements'
-      fullPath: '/banks/$slug/portal/statements'
-      preLoaderRoute: typeof BanksSlugPortalStatementsRouteImport
-      parentRoute: typeof BanksSlugPortalRoute
-    }
-    '/banks/$slug/portal/security': {
-      id: '/banks/$slug/portal/security'
-      path: '/security'
-      fullPath: '/banks/$slug/portal/security'
-      preLoaderRoute: typeof BanksSlugPortalSecurityRouteImport
-      parentRoute: typeof BanksSlugPortalRoute
-    }
-    '/banks/$slug/portal/profile': {
-      id: '/banks/$slug/portal/profile'
-      path: '/profile'
-      fullPath: '/banks/$slug/portal/profile'
-      preLoaderRoute: typeof BanksSlugPortalProfileRouteImport
-      parentRoute: typeof BanksSlugPortalRoute
-    }
-    '/banks/$slug/portal/notifications': {
-      id: '/banks/$slug/portal/notifications'
-      path: '/notifications'
-      fullPath: '/banks/$slug/portal/notifications'
-      preLoaderRoute: typeof BanksSlugPortalNotificationsRouteImport
-      parentRoute: typeof BanksSlugPortalRoute
-    }
-    '/banks/$slug/portal/cards': {
-      id: '/banks/$slug/portal/cards'
-      path: '/cards'
-      fullPath: '/banks/$slug/portal/cards'
-      preLoaderRoute: typeof BanksSlugPortalCardsRouteImport
-      parentRoute: typeof BanksSlugPortalRoute
-    }
-    '/banks/$slug/portal/beneficiaries': {
-      id: '/banks/$slug/portal/beneficiaries'
-      path: '/beneficiaries'
-      fullPath: '/banks/$slug/portal/beneficiaries'
-      preLoaderRoute: typeof BanksSlugPortalBeneficiariesRouteImport
-      parentRoute: typeof BanksSlugPortalRoute
-    }
-    '/banks/$slug/portal/accounts': {
-      id: '/banks/$slug/portal/accounts'
-      path: '/accounts'
-      fullPath: '/banks/$slug/portal/accounts'
-      preLoaderRoute: typeof BanksSlugPortalAccountsRouteImport
-      parentRoute: typeof BanksSlugPortalRoute
-    }
     '/api/public/customer-avatar/$customerId': {
       id: '/api/public/customer-avatar/$customerId'
       path: '/api/public/customer-avatar/$customerId'
@@ -954,12 +950,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCustomerAvatarCustomerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/banks/$slug/portal/transactions/$id': {
-      id: '/banks/$slug/portal/transactions/$id'
+    '/$slug/portal/transactions/$id': {
+      id: '/$slug/portal/transactions/$id'
       path: '/$id'
-      fullPath: '/banks/$slug/portal/transactions/$id'
-      preLoaderRoute: typeof BanksSlugPortalTransactionsIdRouteImport
-      parentRoute: typeof BanksSlugPortalTransactionsRoute
+      fullPath: '/$slug/portal/transactions/$id'
+      preLoaderRoute: typeof SlugPortalTransactionsIdRouteImport
+      parentRoute: typeof SlugPortalTransactionsRoute
     }
     '/api/public/branding/$draftId/$kind': {
       id: '/api/public/branding/$draftId/$kind'
@@ -970,6 +966,72 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface SlugPortalTransactionsRouteChildren {
+  SlugPortalTransactionsIdRoute: typeof SlugPortalTransactionsIdRoute
+}
+
+const SlugPortalTransactionsRouteChildren: SlugPortalTransactionsRouteChildren =
+  {
+    SlugPortalTransactionsIdRoute: SlugPortalTransactionsIdRoute,
+  }
+
+const SlugPortalTransactionsRouteWithChildren =
+  SlugPortalTransactionsRoute._addFileChildren(
+    SlugPortalTransactionsRouteChildren,
+  )
+
+interface SlugPortalRouteChildren {
+  SlugPortalAccountsRoute: typeof SlugPortalAccountsRoute
+  SlugPortalBeneficiariesRoute: typeof SlugPortalBeneficiariesRoute
+  SlugPortalCardsRoute: typeof SlugPortalCardsRoute
+  SlugPortalNotificationsRoute: typeof SlugPortalNotificationsRoute
+  SlugPortalProfileRoute: typeof SlugPortalProfileRoute
+  SlugPortalSecurityRoute: typeof SlugPortalSecurityRoute
+  SlugPortalStatementsRoute: typeof SlugPortalStatementsRoute
+  SlugPortalSupportRoute: typeof SlugPortalSupportRoute
+  SlugPortalTransactionsRoute: typeof SlugPortalTransactionsRouteWithChildren
+  SlugPortalTransferRoute: typeof SlugPortalTransferRoute
+  SlugPortalIndexRoute: typeof SlugPortalIndexRoute
+}
+
+const SlugPortalRouteChildren: SlugPortalRouteChildren = {
+  SlugPortalAccountsRoute: SlugPortalAccountsRoute,
+  SlugPortalBeneficiariesRoute: SlugPortalBeneficiariesRoute,
+  SlugPortalCardsRoute: SlugPortalCardsRoute,
+  SlugPortalNotificationsRoute: SlugPortalNotificationsRoute,
+  SlugPortalProfileRoute: SlugPortalProfileRoute,
+  SlugPortalSecurityRoute: SlugPortalSecurityRoute,
+  SlugPortalStatementsRoute: SlugPortalStatementsRoute,
+  SlugPortalSupportRoute: SlugPortalSupportRoute,
+  SlugPortalTransactionsRoute: SlugPortalTransactionsRouteWithChildren,
+  SlugPortalTransferRoute: SlugPortalTransferRoute,
+  SlugPortalIndexRoute: SlugPortalIndexRoute,
+}
+
+const SlugPortalRouteWithChildren = SlugPortalRoute._addFileChildren(
+  SlugPortalRouteChildren,
+)
+
+interface SlugRouteChildren {
+  SlugPageRoute: typeof SlugPageRoute
+  SlugForgotRoute: typeof SlugForgotRoute
+  SlugLoginRoute: typeof SlugLoginRoute
+  SlugPortalRoute: typeof SlugPortalRouteWithChildren
+  SlugRegisterRoute: typeof SlugRegisterRoute
+  SlugIndexRoute: typeof SlugIndexRoute
+}
+
+const SlugRouteChildren: SlugRouteChildren = {
+  SlugPageRoute: SlugPageRoute,
+  SlugForgotRoute: SlugForgotRoute,
+  SlugLoginRoute: SlugLoginRoute,
+  SlugPortalRoute: SlugPortalRouteWithChildren,
+  SlugRegisterRoute: SlugRegisterRoute,
+  SlugIndexRoute: SlugIndexRoute,
+}
+
+const SlugRouteWithChildren = SlugRoute._addFileChildren(SlugRouteChildren)
 
 interface AdminRouteChildren {
   AdminSectionRoute: typeof AdminSectionRoute
@@ -1054,75 +1116,6 @@ const LaunchRouteChildren: LaunchRouteChildren = {
 const LaunchRouteWithChildren =
   LaunchRoute._addFileChildren(LaunchRouteChildren)
 
-interface BanksSlugPortalTransactionsRouteChildren {
-  BanksSlugPortalTransactionsIdRoute: typeof BanksSlugPortalTransactionsIdRoute
-}
-
-const BanksSlugPortalTransactionsRouteChildren: BanksSlugPortalTransactionsRouteChildren =
-  {
-    BanksSlugPortalTransactionsIdRoute: BanksSlugPortalTransactionsIdRoute,
-  }
-
-const BanksSlugPortalTransactionsRouteWithChildren =
-  BanksSlugPortalTransactionsRoute._addFileChildren(
-    BanksSlugPortalTransactionsRouteChildren,
-  )
-
-interface BanksSlugPortalRouteChildren {
-  BanksSlugPortalAccountsRoute: typeof BanksSlugPortalAccountsRoute
-  BanksSlugPortalBeneficiariesRoute: typeof BanksSlugPortalBeneficiariesRoute
-  BanksSlugPortalCardsRoute: typeof BanksSlugPortalCardsRoute
-  BanksSlugPortalNotificationsRoute: typeof BanksSlugPortalNotificationsRoute
-  BanksSlugPortalProfileRoute: typeof BanksSlugPortalProfileRoute
-  BanksSlugPortalSecurityRoute: typeof BanksSlugPortalSecurityRoute
-  BanksSlugPortalStatementsRoute: typeof BanksSlugPortalStatementsRoute
-  BanksSlugPortalSupportRoute: typeof BanksSlugPortalSupportRoute
-  BanksSlugPortalTransactionsRoute: typeof BanksSlugPortalTransactionsRouteWithChildren
-  BanksSlugPortalTransferRoute: typeof BanksSlugPortalTransferRoute
-  BanksSlugPortalIndexRoute: typeof BanksSlugPortalIndexRoute
-}
-
-const BanksSlugPortalRouteChildren: BanksSlugPortalRouteChildren = {
-  BanksSlugPortalAccountsRoute: BanksSlugPortalAccountsRoute,
-  BanksSlugPortalBeneficiariesRoute: BanksSlugPortalBeneficiariesRoute,
-  BanksSlugPortalCardsRoute: BanksSlugPortalCardsRoute,
-  BanksSlugPortalNotificationsRoute: BanksSlugPortalNotificationsRoute,
-  BanksSlugPortalProfileRoute: BanksSlugPortalProfileRoute,
-  BanksSlugPortalSecurityRoute: BanksSlugPortalSecurityRoute,
-  BanksSlugPortalStatementsRoute: BanksSlugPortalStatementsRoute,
-  BanksSlugPortalSupportRoute: BanksSlugPortalSupportRoute,
-  BanksSlugPortalTransactionsRoute:
-    BanksSlugPortalTransactionsRouteWithChildren,
-  BanksSlugPortalTransferRoute: BanksSlugPortalTransferRoute,
-  BanksSlugPortalIndexRoute: BanksSlugPortalIndexRoute,
-}
-
-const BanksSlugPortalRouteWithChildren = BanksSlugPortalRoute._addFileChildren(
-  BanksSlugPortalRouteChildren,
-)
-
-interface BanksSlugRouteChildren {
-  BanksSlugPageRoute: typeof BanksSlugPageRoute
-  BanksSlugForgotRoute: typeof BanksSlugForgotRoute
-  BanksSlugLoginRoute: typeof BanksSlugLoginRoute
-  BanksSlugPortalRoute: typeof BanksSlugPortalRouteWithChildren
-  BanksSlugRegisterRoute: typeof BanksSlugRegisterRoute
-  BanksSlugIndexRoute: typeof BanksSlugIndexRoute
-}
-
-const BanksSlugRouteChildren: BanksSlugRouteChildren = {
-  BanksSlugPageRoute: BanksSlugPageRoute,
-  BanksSlugForgotRoute: BanksSlugForgotRoute,
-  BanksSlugLoginRoute: BanksSlugLoginRoute,
-  BanksSlugPortalRoute: BanksSlugPortalRouteWithChildren,
-  BanksSlugRegisterRoute: BanksSlugRegisterRoute,
-  BanksSlugIndexRoute: BanksSlugIndexRoute,
-}
-
-const BanksSlugRouteWithChildren = BanksSlugRoute._addFileChildren(
-  BanksSlugRouteChildren,
-)
-
 interface ManageBanksIdRouteChildren {
   ManageBanksIdDashboardDesignerRoute: typeof ManageBanksIdDashboardDesignerRoute
 }
@@ -1137,13 +1130,13 @@ const ManageBanksIdRouteWithChildren = ManageBanksIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SlugRoute: SlugRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   BankBuilderRoute: BankBuilderRoute,
   GbocRoute: GbocRouteWithChildren,
   LaunchRoute: LaunchRouteWithChildren,
   ProductsRoute: ProductsRoute,
-  BanksSlugRoute: BanksSlugRouteWithChildren,
   ManageBanksIdRoute: ManageBanksIdRouteWithChildren,
   ApiPublicCustomerAvatarCustomerIdRoute:
     ApiPublicCustomerAvatarCustomerIdRoute,

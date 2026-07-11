@@ -44,7 +44,7 @@ export function TenantGateway({ manifest }: { manifest: WebsiteManifest }) {
 
         <div className="mt-10 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
-            to="/banks/$slug/login"
+            to="/$slug/login"
             params={{ slug: bank.slug }}
             className="inline-flex items-center justify-center rounded-full px-8 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: theme.colors.accent }}
@@ -52,7 +52,7 @@ export function TenantGateway({ manifest }: { manifest: WebsiteManifest }) {
             Customer Login
           </Link>
           <Link
-            to="/banks/$slug/register"
+            to="/$slug/register"
             params={{ slug: bank.slug }}
             className="inline-flex items-center justify-center rounded-full px-8 py-3 text-sm font-semibold transition-opacity hover:opacity-90"
             style={{
