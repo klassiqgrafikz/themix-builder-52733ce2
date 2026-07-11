@@ -1089,6 +1089,7 @@ export type Database = {
           render_logs: Json
           render_status: string
           rendered_at: string | null
+          short_slug: string | null
           simulation: Json
           slug: string | null
           status: string
@@ -1114,6 +1115,7 @@ export type Database = {
           render_logs?: Json
           render_status?: string
           rendered_at?: string | null
+          short_slug?: string | null
           simulation?: Json
           slug?: string | null
           status?: string
@@ -1139,6 +1141,7 @@ export type Database = {
           render_logs?: Json
           render_status?: string
           rendered_at?: string | null
+          short_slug?: string | null
           simulation?: Json
           slug?: string | null
           status?: string

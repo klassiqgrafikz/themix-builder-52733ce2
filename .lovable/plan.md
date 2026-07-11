@@ -1,58 +1,102 @@
-# Phase 6C – Enterprise Banking Platform Polish
+# Short-Slug Routing Refactor
 
-Scope: usability, admin, realism, branding, and country banking standards. No changes to CBE, Financial Event Bus, Ledger, Website Rendering Engine internals, Auth, Multi-tenant architecture, or existing server-fn contracts (only additive).
+Simplify customer-facing URLs from `/banks/bank-of-america/portal` to `/boa` + `/portal`, without touching banking logic, GBOC, blueprints, dashboard designer, or auth mechanics.
 
-## 1. Delete Bank
-- Add `deleteBank` server fn (owner or GBOC admin). Removes: website registry row, published manifest, navigation, branding assets in `bank-branding` bucket, customer portal artefacts derived from the draft, rendering timeline entries for the bank. Keeps audit logs by default; accepts `purge_audit: boolean` flag for full purge (admin only).
-- Add "Delete Bank" action with `AlertDialog` in `manage.banks.$id.tsx` and inside GBOC banks list.
+## 1. Database (single migration)
 
-## 2. Login Experience (all login/registration/security forms)
-- After successful auth: show sonner toast "Welcome back" / "Login successful" then navigate.
-- Add password-visibility eye toggle (`Eye`/`EyeOff`) on every password input: customer login, register, forgot/reset, platform PIN, security-center change-password, admin auth.
-- Map errors from `supabase.auth` and customer-session server fns to friendly messages: bad password, unknown email, restricted, frozen, rate-limited, session expired, network/server. Wrap all `mutate` `onError` handlers.
+Add `short_slug` to `bb_bank_drafts` alongside existing `slug`:
 
-## 3. Blueprint Library
-- Replace coloured tiles in `bank-builder.tsx` blueprint step. Each card shows: mini homepage preview (rendered from blueprint theme+hero using existing `manifest-builder` helpers), flag emoji + country name, bank type badge, theme colour swatches, "Preview" (modal with full mock) and "Use Blueprint" buttons. Add search input and country/type filters.
+- `short_slug text` — nullable, `UNIQUE`, indexed
+- Backfill: for each row, derive from bank name (acronym if ≥2 words, else sanitized name, max 12 chars, `-2/-3` on collisions). Existing long `slug` remains untouched, so all storage keys, published manifests, and custom-domain records keep working.
+- No RLS/grant changes (column added to existing table).
 
-## 4. Independent Branding
-- Audit rendering pipeline: confirm every route/page consumes branding from the tenant's own manifest (`tenant-site.tsx`, `portal-ui.tsx`, statements PDF, emails). Remove any fallbacks that pull from a global default that could bleed across tenants; each tenant reads its own draft/manifest colours + logo + favicon + fonts and applies to browser title/icon via `head()` on tenant routes.
+Add reserved-slug list in code (not SQL): `portal, accounts, cards, transactions, support, profile, security, statements, beneficiaries, notifications, transfer, admin, gboc, launch, auth, banks, bank-builder, products, manage, api, assets`. Bank Builder validates against it and auto-suffixes.
 
-## 5. Platform PIN gate
-- New `platform_pin` field in `gboc_platform_settings` (default `0499`, hashed). Server fns: `verifyPlatformPin`, `updatePlatformPin` (auth + admin, min 4 digits, returns success).
-- Client: `PlatformPinGate` component wrapping admin surfaces (Blueprint Library, Bank Management, Products, GBOC root, Reports, Rendering, Platform Settings). PIN cached in sessionStorage after verify.
-- Platform Settings → "Platform Security" card: reveal current PIN (admin-only server fn returning it), change/confirm/save with validation.
+## 2. New route tree
 
-## 6. Rendering Timeline
-- Add "Clear History" button + confirm dialog on rendering timeline page. Server fn deletes only rendering-timeline rows for tenant (or all, admin), never banks/customers/audit/manifests/ledger.
+Public (bank landing + auth):
+```text
+src/routes/$bankSlug.tsx           layout — resolves bank by short_slug OR slug
+src/routes/$bankSlug.index.tsx     /:slug         (gateway/home)
+src/routes/$bankSlug.login.tsx     /:slug/login
+src/routes/$bankSlug.register.tsx  /:slug/register
+src/routes/$bankSlug.forgot.tsx    /:slug/forgot
+src/routes/$bankSlug.$page.tsx     /:slug/:cms-page
+```
 
-## 7. Branding Upload (already partly done in 6B)
-- Ensure bank-builder branding step uses upload widgets for Logo, Favicon, Hero — with drag-drop, live preview thumbnail, and progress. Remove URL text inputs from primary flow (keep as "advanced" collapsible).
+Authenticated portal (pathless layout, flat URLs):
+```text
+src/routes/_portal.tsx                  layout — reads session, resolves bank server-side
+src/routes/_portal.portal.tsx           /portal
+src/routes/_portal.accounts.tsx         /accounts
+src/routes/_portal.cards.tsx            /cards
+src/routes/_portal.transactions.tsx     /transactions
+src/routes/_portal.transactions.$id.tsx /transactions/:id
+src/routes/_portal.transfer.tsx         /transfer
+src/routes/_portal.beneficiaries.tsx    /beneficiaries
+src/routes/_portal.statements.tsx       /statements
+src/routes/_portal.support.tsx          /support
+src/routes/_portal.profile.tsx          /profile
+src/routes/_portal.security.tsx         /security
+src/routes/_portal.notifications.tsx    /notifications
+```
 
-## 8. Professional PDF Statements
-- Extend `statements` PDF generator: bank logo (fetched from branding URL), bank name+address, customer full name+number, account number (+ country identifier), statement period, opening/closing balances, per-row debit/credit/running balance/reference/timestamp, page numbers ("Page X of Y"), footer with bank name + generated timestamp + disclaimer. Branding inherited per tenant.
+Each `_portal.*` route body is moved verbatim from its `banks.$slug.portal.*` counterpart; the only change is how the bank/session are obtained (see §3).
 
-## 9. Global Live Chat (extend 6B)
-- Extend chat_config schema to accept all listed fields per provider (Tawk direct link, Crisp chat link, Smartsupp chat link, WhatsApp business number/link/greeting, Telegram bot token/chat id/group link). Widget component already routes by provider — add fallback "Open Chat" link when script disabled.
+## 3. Session-based bank resolution
 
-## 10. Transfer Experience (extend 6B)
-- Tabs already renamed. Ensure Domestic tab: enter account number → debounced `lookupDomesticAccount` → show "✓ Verified Customer: name / account type" badge, disable Submit until verified. International tab: full field set already exists; add Beneficiary Address, Bank Address, Transit Number if missing; pass through as narration metadata.
+Today portal server functions take `{ slug }` as input and cross-check against the session. Change:
 
-## 11. Restrictions UX
-- `useRestrictions()` context (from 6B) is in place; extend to Cards, Statements, Withdrawals, Transfers pages: banner + disabled controls + tooltip explaining reason.
+- `customer/session.server.ts` — session cookie already stores `customer_id`; add `bank_id` (already there via customer row). Loader helper `requireCustomerSession()` returns `{ session, bank }` with no slug argument.
+- All `_portal.*` routes call server fns without a slug; server fns derive the bank from the session row.
+- Customer-facing server fns (`accounts.functions.ts`, `cards.functions.ts`, `transactions.functions.ts`, `transfers.functions.ts`, `beneficiaries.functions.ts`, `support.functions.ts`, `security.functions.ts`, `customer.functions.ts` portal reads, `activity.functions.ts`) gain a `slug`-less overload; the slug param stays accepted for back-compat but is ignored in favor of the session.
+- Login/register/forgot still take `slug` (pre-session).
 
-## 12. Country Banking Standards
-- Extend `bank_customer_accounts` with nullable columns: `iban`, `swift_bic`, `routing_number`, `sort_code`, `bsb`, `transit_number`, `institution_number` (migration; existing `account_number` stays universal).
-- Account-creation helper generates country-appropriate identifiers based on tenant country (NG 10-digit; US routing+acct; UK sort+acct; AU BSB+acct; CA institution+transit+acct; DE/FR/ES/IT IBAN+BIC).
-- Portal account cards + International Transfer prefill display only fields relevant to the tenant's country. CBE keeps using `id`/`account_number` internally.
+## 4. Back-compat redirects
 
-## 13. Validation
-- `tsgo --noEmit` clean.
-- Manual click-through: delete bank, login toasts+errors, password eye, blueprint previews, PIN gate + change, rendering clear, branding uploads, PDF, chat, transfers, restrictions, per-country identifiers.
+Keep the `banks.$slug.*` route files but replace each component with a redirect:
 
-## Technical Notes
-- New server fns: `deleteBank`, `verifyPlatformPin`, `getPlatformPin` (admin), `updatePlatformPin`, `clearRenderingHistory`, country-account-format helpers.
-- New migrations: add `platform_pin` (text, hashed with pgcrypto) to `gboc_platform_settings`; add country identifier columns to `bank_customer_accounts` with proper GRANTs preserved.
-- No CBE / Ledger / Event Bus code touched. Auth flow untouched (only UX polish around inputs and toasts).
+- `/banks/:slug` → `/:short_slug`
+- `/banks/:slug/login|register|forgot` → `/:short_slug/login|register|forgot`
+- `/banks/:slug/portal` and any `/banks/:slug/portal/*` → `/portal`, `/accounts`, etc. (mapped in one table)
+- Redirect resolves the bank's `short_slug` from `slug` (loader) and issues `throw redirect({ to, params, statusCode: 301 })`.
 
-## Delivery
-Given the breadth (12 functional parts + validation), I'll ship in one continuous implementation pass and report per-part status at the end.
+## 5. Bank Builder
+
+Add "URL slug" field to the builder form (existing UI in `bank-builder.tsx` / `bank-builder.functions.ts`):
+
+- Text input beneath Display Name, prefilled from generator.
+- Live validation: lowercase, `[a-z0-9-]`, 2–20 chars, not reserved, unique (server check on save).
+- Server: on save, sanitize + collision-suffix; store in `short_slug`.
+
+## 6. Internal links to update
+
+Every `<Link to="/banks/$slug/...">` and every `navigate({ to: "/banks/$slug/..." })` in customer-facing UI:
+
+- Public pages (login/register/forgot, gateway, CMS pages): keep `$bankSlug` param but link via new routes.
+- Post-login navigations: link to flat `/portal`, `/accounts`, etc. — no params.
+- Portal sidebar, header, breadcrumbs, notification bell, chat widget, product-gating "unavailable" links, back links.
+- Login success handler: redirect to `/portal` instead of `/banks/:slug/portal`.
+- Any email templates / notification copy referring to `/banks/:slug/...` — updated to platform absolute URL + new path.
+- Manifest builder / tenant-site anchor generation.
+
+GBOC, admin, launch, manage, bank-builder pages: unchanged (they don't use customer routes).
+
+## 7. Custom-domain router
+
+`custom-domain-router.server.ts` currently maps a hostname → bank slug → `/banks/:slug`. Update its rewrite target to the new short-slug path (or flat portal path if session cookie present on that origin). Behavior on custom domains: root of the domain serves the bank's `/:short_slug` view; `/login`, `/register`, `/portal`, etc. work without the slug (single-tenant on that host).
+
+## 8. Verification
+
+- `bun run typecheck` (via harness) — zero errors.
+- Manual: log in on preview, confirm redirect to `/portal`, navigate through portal pages, confirm old `/banks/:slug/*` URLs 301 to new ones, confirm Bank Builder saves a short slug and shows collision suffix.
+
+## Out of scope (explicit)
+
+Banking logic, branding, auth mechanics, customer session storage, GBOC, blueprint generation, dashboard designer, platform management, admin routes.
+
+## Risk notes
+
+- Any bank whose current long `slug` collides with a reserved word after backfill (unlikely — all current slugs are hyphenated bank names) is auto-suffixed.
+- Customers with parallel sessions across banks (rare in this app) will see only their most recent bank after this change — the answer chosen for §3 accepts this.
+- One-time DB migration is destructive-free (column add + backfill only); rollback = drop column.
