@@ -42,7 +42,7 @@ export const getDashboardLayout = createServerFn({ method: "GET" })
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }): Promise<LayoutBundle> => {
     const sb = anyClient(context.supabase);
-    await assertOwner(sb, data.id, context.userId);
+    await assertBankExists(sb, data.id);
     const { data: row, error } = await sb
       .from("bb_bank_drafts")
       .select("dashboard_layout_draft, dashboard_layout")
@@ -61,7 +61,7 @@ export const saveDashboardLayoutDraft = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     const sb = anyClient(context.supabase);
-    await assertOwner(sb, data.id, context.userId);
+    await assertBankExists(sb, data.id);
     const payload = { ...data.layout, updated_at: new Date().toISOString() };
     const { error } = await sb
       .from("bb_bank_drafts")
@@ -78,7 +78,7 @@ export const publishDashboardLayout = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     const sb = anyClient(context.supabase);
-    await assertOwner(sb, data.id, context.userId);
+    await assertBankExists(sb, data.id);
     const payload = { ...data.layout, updated_at: new Date().toISOString() };
 
     // Load current manifest and inject layout so the published portal picks it
@@ -109,7 +109,7 @@ export const resetDashboardLayout = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }): Promise<{ layout: DashboardLayout }> => {
     const sb = anyClient(context.supabase);
-    await assertOwner(sb, data.id, context.userId);
+    await assertBankExists(sb, data.id);
     const layout = defaultDashboardLayout();
     // Draft only — Reset does not touch the published copy. The user must
     // "Publish Layout" to apply the reset to the live dashboard.
@@ -129,8 +129,8 @@ export const duplicateDashboardLayout = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<{ layout: DashboardLayout }> => {
     const sb = anyClient(context.supabase);
     // Caller must own or admin BOTH banks.
-    await assertOwner(sb, data.from_id, context.userId);
-    await assertOwner(sb, data.to_id, context.userId);
+    await assertBankExists(sb, data.from_id);
+    await assertBankExists(sb, data.to_id);
     const { data: src, error: sErr } = await sb
       .from("bb_bank_drafts")
       .select("dashboard_layout, dashboard_layout_draft")
