@@ -48,8 +48,10 @@ function TransferPage() {
   const { bank, session } = parent;
   const primary = bank.manifest.theme.colors.primary;
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const restrictions = useRestrictions();
   const restricted = isFeatureRestricted(restrictions, "transfer");
+
 
   const [kind, setKind] = useState<Kind>("own");
   const [sourceId, setSourceId] = useState(session.accounts[0]?.id ?? "");
