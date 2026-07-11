@@ -60,35 +60,59 @@ async function createPublishableClient() {
 }
 
 /**
- * Ensure the shared platform-admin auth user exists with the configured
- * password. Uses the public sign-up endpoint (auto_confirm_email must be
- * enabled on the project). Idempotent: on a subsequent call sign-up returns
- * "User already registered" and we fall through to signInWithPassword.
+ * Ensure the shared platform-admin auth user exists. Returns:
+ *  - "created"  — signUp succeeded and returned a user
+ *  - "exists"   — signUp reported the user is already registered
+ * Throws with the raw Supabase error message for anything else.
  */
-async function ensurePlatformAdmin(password: string): Promise<void> {
+async function ensurePlatformAdmin(password: string): Promise<"created" | "exists"> {
   const sb = await createPublishableClient();
-  const { error } = await sb.auth.signUp({
-    email: getAdminEmail(),
+  const email = getAdminEmail();
+  const { data, error } = await sb.auth.signUp({
+    email,
     password,
     options: { data: { role: "platform_admin" } },
   });
-  if (!error) return;
-  // Already-registered is fine; anything else is a real failure.
+  console.log("[platform-pin] signUp result", {
+    email,
+    hasUser: Boolean(data?.user),
+    userId: data?.user?.id ?? null,
+    hasSession: Boolean(data?.session),
+    error: error ? { message: error.message, status: error.status, code: (error as { code?: string }).code } : null,
+  });
+  if (!error) {
+    if (data?.user) return "created";
+    throw new Error(
+      `signUp returned no user for ${email}. Likely cause: email confirmations are enabled on this Supabase project — disable "Confirm email" under Authentication → Providers → Email, or pre-create the admin user manually. (platform-pin.functions.ts:ensurePlatformAdmin)`,
+    );
+  }
   const msg = error.message.toLowerCase();
   if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
-    return;
+    return "exists";
   }
-  throw new Error(`Unable to provision platform admin: ${error.message}`);
+  throw new Error(
+    `supabase.auth.signUp failed for ${email}: ${error.message} (status=${error.status ?? "?"}, code=${(error as { code?: string }).code ?? "?"}) at platform-pin.functions.ts:ensurePlatformAdmin`,
+  );
 }
 
-async function mintAdminSession(password: string): Promise<AdminSession> {
+type SignInFailure = { error: string; status?: number; code?: string };
+
+async function trySignIn(password: string): Promise<AdminSession | SignInFailure> {
   const sb = await createPublishableClient();
-  const { data, error } = await sb.auth.signInWithPassword({
-    email: getAdminEmail(),
-    password,
+  const email = getAdminEmail();
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  console.log("[platform-pin] signInWithPassword result", {
+    email,
+    hasSession: Boolean(data?.session),
+    userId: data?.user?.id ?? null,
+    error: error ? { message: error.message, status: error.status, code: (error as { code?: string }).code } : null,
   });
   if (error || !data.session) {
-    throw new Error(error?.message ?? "Platform admin sign-in failed");
+    return {
+      error: error?.message ?? "signInWithPassword returned no session",
+      status: error?.status,
+      code: (error as { code?: string } | null)?.code,
+    };
   }
   return {
     access_token: data.session.access_token,
@@ -96,10 +120,6 @@ async function mintAdminSession(password: string): Promise<AdminSession> {
   };
 }
 
-/**
- * Ensure the shared platform-admin auth user has the `platform_admin` role in
- * `public.user_roles`. Idempotent via the (user_id, role) unique constraint.
- */
 async function ensurePlatformAdminRole(userId: string): Promise<void> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,9 +128,7 @@ async function ensurePlatformAdminRole(userId: string): Promise<void> {
     .upsert({ user_id: userId, role: "platform_admin" }, { onConflict: "user_id,role" });
 }
 
-async function mintAdminSessionWithRole(password: string): Promise<AdminSession> {
-  const session = await mintAdminSession(password);
-  // Decode `sub` from JWT payload without a library.
+async function attachRole(session: AdminSession): Promise<AdminSession> {
   try {
     const payload = JSON.parse(
       Buffer.from(session.access_token.split(".")[1], "base64").toString("utf8"),
@@ -120,6 +138,10 @@ async function mintAdminSessionWithRole(password: string): Promise<AdminSession>
     // Non-fatal: role assignment can be retried on next unlock.
   }
   return session;
+}
+
+function isAdminSession(v: AdminSession | SignInFailure): v is AdminSession {
+  return typeof (v as AdminSession).access_token === "string";
 }
 
 /**
@@ -141,16 +163,35 @@ export const verifyPlatformPin = createServerFn({ method: "POST" })
       throw new Error("PLATFORM_ADMIN_PASSWORD is not configured");
     }
 
-    // Try minting a session first; only pay the sign-up cost on the very
-    // first unlock (or if the account was manually removed).
-    try {
-      const session = await mintAdminSessionWithRole(password);
-      return { ok: true, session };
-    } catch {
-      await ensurePlatformAdmin(password);
-      const session = await mintAdminSessionWithRole(password);
-      return { ok: true, session };
+    // 1) Try signing in first — cheapest path when the admin already exists.
+    const first = await trySignIn(password);
+    if (isAdminSession(first)) {
+      return { ok: true, session: await attachRole(first) };
     }
+
+    // 2) Only bootstrap if signIn failed with "invalid credentials"
+    //    (user does not exist yet). Any other error is surfaced verbatim.
+    const looksMissing =
+      first.status === 400 ||
+      /invalid login credentials|invalid credentials|user not found/i.test(first.error);
+    if (!looksMissing) {
+      throw new Error(
+        `supabase.auth.signInWithPassword failed for ${getAdminEmail()}: ${first.error} (status=${first.status ?? "?"}, code=${first.code ?? "?"}) at platform-pin.functions.ts:verifyPlatformPin`,
+      );
+    }
+
+    // 3) Create the admin user. If signUp fails, stop and surface the error.
+    const state = await ensurePlatformAdmin(password);
+    console.log("[platform-pin] ensurePlatformAdmin state", { state });
+
+    // 4) Sign in again — must succeed now, otherwise surface the exact error.
+    const second = await trySignIn(password);
+    if (!isAdminSession(second)) {
+      throw new Error(
+        `Platform admin account was ${state} but subsequent supabase.auth.signInWithPassword still failed for ${getAdminEmail()}: ${second.error} (status=${second.status ?? "?"}, code=${second.code ?? "?"}). Check that PLATFORM_ADMIN_PASSWORD matches the stored user's password and that email confirmations are disabled. (platform-pin.functions.ts:verifyPlatformPin)`,
+      );
+    }
+    return { ok: true, session: await attachRole(second) };
   });
 
 
