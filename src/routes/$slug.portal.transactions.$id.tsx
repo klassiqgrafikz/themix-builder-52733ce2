@@ -185,11 +185,8 @@ function ReceiptPage() {
     await navigator.clipboard.writeText(shareText());
   };
 
-  const emailReceipt = () => {
-    const subject = encodeURIComponent(`${t.bank_name} receipt — ${t.reference ?? t.id}`);
-    const body = encodeURIComponent(shareText());
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-  };
+  // Email receipt delivery is not implemented server-side yet; button is disabled below.
+
 
   const goDashboard = () => navigate({ to: "/$slug/portal", params: { slug } });
 
