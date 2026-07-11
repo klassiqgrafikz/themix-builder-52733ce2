@@ -26,7 +26,24 @@ export function PlatformPinGate({ children, area }: { children: React.ReactNode;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.sessionStorage.getItem(KEY) === "1") setOk(true);
+    if (window.sessionStorage.getItem(KEY) === "1") {
+      setOk(true);
+      return;
+    }
+    // TEMPORARY: dev-only PIN bypass via ?pin=0499 query param.
+    // Remove this block along with DEV_PIN_BYPASS once external Supabase
+    // migration is complete.
+    const DEV_PIN_BYPASS = true;
+    if (DEV_PIN_BYPASS) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("pin") === "0499") {
+        window.sessionStorage.setItem(KEY, "1");
+        setOk(true);
+        url.searchParams.delete("pin");
+        window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+        return;
+      }
+    }
   }, []);
 
 
