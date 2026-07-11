@@ -53,10 +53,9 @@ function isPlatformHost(hostname: string): boolean {
   return PLATFORM_HOST_SUFFIXES.some((s) => h === s || h.endsWith(s));
 }
 
-// Paths that must never be prefixed with /banks/<slug> — server functions,
+// Paths that must never be prefixed with /<slug> — server functions,
 // static assets, API routes, etc.
 function shouldRewritePath(pathname: string): boolean {
-  if (pathname.startsWith("/banks/")) return false;
   if (pathname.startsWith("/_")) return false; // _serverFn, _build, _router
   if (pathname.startsWith("/api/")) return false;
   if (pathname.startsWith("/assets/")) return false;
@@ -75,10 +74,12 @@ async function rewriteForCustomDomain(request: Request): Promise<Request> {
   const slug = await resolveCustomDomainSlug(url.hostname);
   if (!slug) return request;
   if (!shouldRewritePath(url.pathname)) return request;
+  // If the path already starts with the bank's slug (e.g. shared link), don't double-prefix.
+  if (url.pathname === `/${slug}` || url.pathname.startsWith(`/${slug}/`)) return request;
 
   const rewritten = new URL(url.toString());
   rewritten.pathname =
-    url.pathname === "/" ? `/banks/${slug}` : `/banks/${slug}${url.pathname}`;
+    url.pathname === "/" ? `/${slug}` : `/${slug}${url.pathname}`;
   return new Request(rewritten.toString(), request);
 }
 
