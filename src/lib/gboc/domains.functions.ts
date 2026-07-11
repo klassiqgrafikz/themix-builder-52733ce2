@@ -4,7 +4,7 @@
 // DNS-over-HTTPS and HEAD requests. No SSL provisioning yet.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requirePlatformAuth } from "@/integrations/supabase/platform-auth-middleware";
+import { withPlatformServiceRole } from "@/integrations/supabase/platform-service-middleware";
 import { logActivity } from "@/lib/gboc/domain-activity";
 
 export type DomainStatus = "pending" | "connected" | "error" | "verified" | "failed";
@@ -248,7 +248,7 @@ const bankIdSchema = z.object({ bank_id: z.string().uuid() });
 
 // --- Read -------------------------------------------------------------------
 export const getBankDomain = createServerFn({ method: "GET" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { bank_id: string }) => bankIdSchema.parse(d))
   .handler(async ({ context, data }): Promise<BankDomain | null> => {
     const { data: row, error } = await context.supabase
@@ -285,7 +285,7 @@ export const getBankDomain = createServerFn({ method: "GET" })
 
 // --- Save -------------------------------------------------------------------
 export const saveBankDomain = createServerFn({ method: "POST" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { bank_id: string; domain: string; is_primary?: boolean }) =>
     z
       .object({
@@ -802,7 +802,7 @@ async function runDiagnostics(
 
 // --- Diagnose (read-only, does not update DB) -------------------------------
 export const diagnoseBankDomain = createServerFn({ method: "POST" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { bank_id: string }) => bankIdSchema.parse(d))
   .handler(async ({ context, data }): Promise<DomainDiagnostics | null> => {
     const { data: existing, error } = await context.supabase
@@ -820,7 +820,7 @@ export const diagnoseBankDomain = createServerFn({ method: "POST" })
 
 // --- Verify (runs diagnostics and persists resulting state) -----------------
 export const verifyBankDomain = createServerFn({ method: "POST" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { bank_id: string }) => bankIdSchema.parse(d))
   .handler(async ({ context, data }): Promise<{ domain: BankDomain; diagnostics: DomainDiagnostics }> => {
     const { data: existing, error: readErr } = await context.supabase
@@ -907,7 +907,7 @@ export const verifyBankDomain = createServerFn({ method: "POST" })
   });
 
 export const removeBankDomain = createServerFn({ method: "POST" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { bank_id: string }) => bankIdSchema.parse(d))
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     const { data: existing } = await context.supabase

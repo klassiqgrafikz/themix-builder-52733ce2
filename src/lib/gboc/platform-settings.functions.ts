@@ -1,7 +1,7 @@
 // GBOC platform settings (single-row config controlled from the operations center).
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requirePlatformAuth } from "@/integrations/supabase/platform-auth-middleware";
+import { withPlatformServiceRole } from "@/integrations/supabase/platform-service-middleware";
 
 
 export type ChatProvider =
@@ -108,7 +108,7 @@ const updateSchema = z.object({
 
 
 export const updatePlatformSettings = createServerFn({ method: "POST" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: z.input<typeof updateSchema>) => updateSchema.parse(d))
   .handler(async ({ data, context }): Promise<PlatformSettings> => {
     const supabaseAdmin = context.supabase;

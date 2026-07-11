@@ -21,7 +21,6 @@ import {
   type DashboardPropValue,
   type WidthSize,
 } from "@/lib/dashboard-layout/types";
-import { PlatformPinGate } from "@/components/platform/pin-gate";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,9 +47,7 @@ export const Route = createFileRoute("/manage/banks/$id/dashboard-designer")({
 
 function DesignerPage() {
   return (
-    <PlatformPinGate area="Dashboard Layout Designer">
       <Designer />
-    </PlatformPinGate>
   );
 }
 

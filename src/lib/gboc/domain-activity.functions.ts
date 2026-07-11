@@ -3,7 +3,7 @@
 //   * detectDnsProvider  — best-effort DNS-provider detection via NS lookup.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requirePlatformAuth } from "@/integrations/supabase/platform-auth-middleware";
+import { withPlatformServiceRole } from "@/integrations/supabase/platform-service-middleware";
 
 export type DomainActivityEntry = {
   id: string;
@@ -17,7 +17,7 @@ export type DomainActivityEntry = {
 };
 
 export const listDomainActivity = createServerFn({ method: "GET" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { bank_id: string; limit?: number }) =>
     z
       .object({
@@ -188,7 +188,7 @@ const PROVIDERS: Array<{
 type DohNsAnswer = { name: string; type: number; TTL: number; data: string };
 
 export const detectDnsProvider = createServerFn({ method: "POST" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { domain: string }) =>
     z.object({ domain: z.string().trim().toLowerCase().min(3) }).parse(d),
   )

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requirePlatformAuth } from "@/integrations/supabase/platform-auth-middleware";
+import { withPlatformServiceRole } from "@/integrations/supabase/platform-service-middleware";
 import type { CustomerProfile } from "./types";
 
 export type AdminCustomerRow = CustomerProfile & {
@@ -10,7 +10,7 @@ export type AdminCustomerRow = CustomerProfile & {
 };
 
 export const adminListCustomers = createServerFn({ method: "GET" })
-  .middleware([requirePlatformAuth])
+  .middleware([withPlatformServiceRole])
   .inputValidator((d: { bank_id?: string | null; search?: string | null }) =>
     z
       .object({
