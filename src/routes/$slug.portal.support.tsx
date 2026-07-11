@@ -25,7 +25,6 @@ export const Route = createFileRoute("/$slug/portal/support")({
 
 const FAQ = [
   { q: "How do I reset my password?", a: "Use the Security section to change your password, or the Forgot Password link on the sign-in page." },
-  { q: "Are transfers real money?", a: "This is a simulated banking environment. Every operation runs through the same Core Banking Engine used in production." },
   { q: "Why is my account restricted?", a: "Restrictions are set by your bank's operations team. Contact support for details on your specific case." },
 ];
 
@@ -77,13 +76,9 @@ function SupportPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-semibold" style={{ color: primary }}>Support Center</h1>
-            <div className="mt-2 grid gap-3 text-sm md:grid-cols-3">
-              <div><div className="text-xs uppercase opacity-70">Email</div><div>{cfgQ.data?.support_email ?? "support@themixweb.dev"}</div></div>
-              <div><div className="text-xs uppercase opacity-70">Phone</div><div>{cfgQ.data?.support_phone ?? "—"}</div></div>
-              <div>
-                <div className="text-xs uppercase opacity-70">Live chat</div>
-                <div>{cfgQ.data?.live_chat_enabled ? `Available via ${cfgQ.data.chat_provider}` : "Currently disabled by the operations team"}</div>
-              </div>
+            <div className="mt-2 text-sm">
+              <div className="text-xs uppercase opacity-70">Live chat</div>
+              <div>{cfgQ.data?.live_chat_enabled ? `Available via ${cfgQ.data.chat_provider}` : "Currently disabled by the operations team"}</div>
             </div>
           </div>
           {cfgQ.data && <ChatWidget config={cfgQ.data} primary={primary} />}

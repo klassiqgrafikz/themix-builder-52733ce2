@@ -1091,19 +1091,25 @@ function LayoutDrivenDashboard(props: {
                 {transactions.slice(0, 6).map((t) => {
                   const isCredit = t.direction === "credit"; const isDebit = t.direction === "debit";
                   return (
-                    <li key={t.id} className="flex items-center justify-between gap-3 py-3 text-sm">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-xl ${isCredit ? "bg-emerald-50 text-emerald-600" : isDebit ? "bg-rose-50 text-rose-600" : "bg-slate-100 text-slate-600"}`}>
-                          {isCredit ? <ArrowDownToLine className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="truncate font-medium text-slate-800">{t.description || t.kind}</div>
-                          <div className="text-xs text-slate-500">{new Date(t.created_at).toLocaleString()} · <span className="capitalize">{t.kind}</span></div>
+                    <li key={t.id}>
+                      <Link
+                        to="/$slug/portal/transactions/$id"
+                        params={{ slug, id: t.id }}
+                        className="flex items-center justify-between gap-3 py-3 text-sm transition hover:bg-slate-50"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-xl ${isCredit ? "bg-emerald-50 text-emerald-600" : isDebit ? "bg-rose-50 text-rose-600" : "bg-slate-100 text-slate-600"}`}>
+                            {isCredit ? <ArrowDownToLine className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="truncate font-medium text-slate-800">{t.description || t.kind}</div>
+                            <div className="text-xs text-slate-500">{new Date(t.created_at).toLocaleString()} · <span className="capitalize">{t.kind}</span></div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="ml-3 whitespace-nowrap font-mono text-sm font-semibold" style={{ color: isCredit ? "#16a34a" : isDebit ? "#dc2626" : undefined }}>
-                        {isDebit ? "-" : isCredit ? "+" : ""}{fmt(t.amount, t.currency)}
-                      </div>
+                        <div className="ml-3 whitespace-nowrap font-mono text-sm font-semibold" style={{ color: isCredit ? "#16a34a" : isDebit ? "#dc2626" : undefined }}>
+                          {isDebit ? "-" : isCredit ? "+" : ""}{fmt(t.amount, t.currency)}
+                        </div>
+                      </Link>
                     </li>
                   );
                 })}

@@ -12,15 +12,13 @@ export const Route = createFileRoute("/$slug")({
       return { meta: [{ title: "Not found" }, { name: "robots", content: "noindex" }] };
     }
     const m = loaderData.bank.manifest;
+    const icon = m.brand.login_logo_url ?? m.brand.dashboard_logo_url;
     return {
       meta: [
-        { title: `${m.bank.name} — ${m.metadata.description}` },
+        { title: m.bank.name },
         { name: "description", content: m.metadata.description },
-        { property: "og:title", content: m.bank.name },
-        { property: "og:description", content: m.metadata.description },
-        { property: "og:type", content: "website" },
-        { name: "twitter:card", content: "summary_large_image" },
       ],
+      links: icon ? [{ rel: "icon", href: icon }] : [],
     };
   },
   notFoundComponent: TenantNotFound,
