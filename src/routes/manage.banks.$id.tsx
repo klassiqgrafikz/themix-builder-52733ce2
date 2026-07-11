@@ -718,3 +718,59 @@ function BankProductsPanel({
   );
 }
 
+
+function ShortSlugEditor({
+  draftId,
+  current,
+  onSaved,
+}: {
+  draftId: string;
+  current: string;
+  onSaved: () => void;
+}) {
+  const [value, setValue] = useState(current);
+  const doUpdate = useServerFn(updateShortSlug);
+  const mut = useMutation({
+    mutationFn: () => doUpdate({ data: { id: draftId, short_slug: value } }),
+    onSuccess: (r) => {
+      toast.success(`Short URL set to /${r.short_slug}`);
+      setValue(r.short_slug);
+      onSaved();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to save slug"),
+  });
+  const clientErr = value === current ? null : validateShortSlug(value);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ExternalLink className="h-4 w-4" /> Short URL
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <p className="text-muted-foreground">
+          Customer-facing URL for this bank. Only lowercase letters, digits, and hyphens.
+          Duplicates are automatically suffixed with -2, -3, etc.
+        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">bankofa.online/</span>
+          <Input
+            value={value}
+            onChange={(e) => setValue(sanitizeShortSlug(e.target.value))}
+            placeholder="boa"
+            className="max-w-[220px] font-mono"
+          />
+          <Button
+            onClick={() => mut.mutate()}
+            disabled={
+              mut.isPending || !value || value === current || !!clientErr
+            }
+          >
+            {mut.isPending ? "Saving…" : "Save"}
+          </Button>
+        </div>
+        {clientErr && <div className="text-xs text-destructive">{clientErr}</div>}
+      </CardContent>
+    </Card>
+  );
+}
