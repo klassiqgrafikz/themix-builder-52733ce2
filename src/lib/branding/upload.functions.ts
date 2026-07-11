@@ -2,7 +2,7 @@
 // and exposes a stable public URL served by /api/public/branding/$draftId/$kind.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePlatformAuth } from "@/integrations/supabase/platform-auth-middleware";
 
 const KIND = z.enum(["login_logo", "dashboard_logo"]);
 export type BrandingKind = z.infer<typeof KIND>;
@@ -17,7 +17,7 @@ const uploadSchema = z.object({
 });
 
 export const uploadBrandingAsset = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requirePlatformAuth])
   .inputValidator((d: z.input<typeof uploadSchema>) => uploadSchema.parse(d))
   .handler(async ({ context, data }): Promise<{ url: string }> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
