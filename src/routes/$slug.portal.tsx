@@ -21,16 +21,17 @@ export const Route = createFileRoute("/$slug/portal")({
     const restrictions = await listMyRestrictions({ data: { slug: params.slug } }).catch(() => []);
     return { bank, session, restrictions };
   },
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: loaderData
-          ? `Customer portal — ${loaderData.bank.manifest.bank.name}`
-          : "Customer portal",
-      },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    const m = loaderData?.bank.manifest;
+    const icon = m?.brand.dashboard_logo_url ?? m?.brand.login_logo_url ?? null;
+    return {
+      meta: [
+        { title: m ? m.bank.name : "Customer portal" },
+        { name: "robots", content: "noindex" },
+      ],
+      links: icon ? [{ rel: "icon", href: icon }] : [],
+    };
+  },
   component: PortalLayout,
 });
 
