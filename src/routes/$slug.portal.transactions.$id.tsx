@@ -208,9 +208,10 @@ function ReceiptPage() {
           <Button variant="outline" size="sm" onClick={share}>
             <Share2 className="mr-1 h-4 w-4" />Share
           </Button>
-          <Button variant="outline" size="sm" onClick={emailReceipt}>
+          <Button variant="outline" size="sm" disabled title="Email delivery coming soon">
             <Mail className="mr-1 h-4 w-4" />Email
           </Button>
+
           <Button size="sm" onClick={downloadPdf} style={{ backgroundColor: primary }}>
             <Download className="mr-1 h-4 w-4" />Download PDF
           </Button>
