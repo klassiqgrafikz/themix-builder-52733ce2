@@ -35,6 +35,8 @@ function TransactionsPage() {
   const [min, setMin] = useState("");
   const [max, setMax] = useState("");
   const [page, setPage] = useState(1);
+  const navigate = useNavigate();
+
 
   const listFn = useServerFn(listTransactions);
   const qy = useQuery({
