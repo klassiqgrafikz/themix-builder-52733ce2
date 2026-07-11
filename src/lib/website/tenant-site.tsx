@@ -64,9 +64,9 @@ function BrandLogo({ manifest, size = 44 }: { manifest: WebsiteManifest; size?: 
 function useActions(bank: WebsiteManifest["bank"]) {
   const hasSession = useHasSession(bank.slug);
   return {
-    portalHref: hasSession ? `/banks/${bank.slug}/portal` : `/banks/${bank.slug}/login`,
+    portalHref: hasSession ? `/${bank.slug}/portal` : `/${bank.slug}/login`,
     portalLabel: hasSession ? "My portal" : "Customer login",
-    registerHref: `/banks/${bank.slug}/register`,
+    registerHref: `/${bank.slug}/register`,
   };
 }
 
@@ -250,7 +250,7 @@ function CorporateGateway({ manifest }: { manifest: WebsiteManifest }) {
           </span>
           <div className="flex items-center gap-4 opacity-90">
             <a href={actions.portalHref}>{actions.portalLabel}</a>
-            <a href={`/banks/${bank.slug}/forgot`}>Forgot password</a>
+            <a href={`/${bank.slug}/forgot`}>Forgot password</a>
             <span>Rates &amp; fees</span>
           </div>
         </div>
