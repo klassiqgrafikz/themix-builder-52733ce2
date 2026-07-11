@@ -20,22 +20,16 @@ const layoutSchema = z.object({
   updated_at: z.string(),
 });
 
-async function assertOwner(sb: unknown, id: string, userId: string) {
+async function assertBankExists(sb: unknown, id: string) {
+  // Single-owner platform: no owner authorization check.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (sb as any)
     .from("bb_bank_drafts")
-    .select("id, owner_id")
+    .select("id")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Bank not found");
-  if (data.owner_id !== userId) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: isAdmin } = await (sb as any).rpc("has_role", {
-      _user_id: userId, _role: "admin",
-    });
-    if (!isAdmin) throw new Error("Not authorized for this bank");
-  }
 }
 
 export type LayoutBundle = {
