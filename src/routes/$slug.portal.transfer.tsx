@@ -171,13 +171,15 @@ function TransferPage() {
         },
       });
     },
-    onSuccess: (r) => {
+    onSuccess: async (r) => {
       qc.invalidateQueries();
-      navigate({
-        to: "/$slug/portal/transactions/$id",
-        params: { slug: bank.slug, id: r.transaction_id },
-        search: { success: true },
-      });
+      try {
+        const tx = await doGetTx({ data: { slug: bank.slug, id: r.transaction_id } });
+        if (tx) setSuccessTx(tx);
+        else toast.success("Transfer completed");
+      } catch {
+        toast.success("Transfer completed");
+      }
     },
 
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Transfer failed"),
