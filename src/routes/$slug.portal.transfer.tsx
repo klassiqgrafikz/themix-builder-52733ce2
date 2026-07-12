@@ -1,4 +1,4 @@
-import { createFileRoute, useMatch, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useMatch, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -8,7 +8,9 @@ import type { CustomerSession } from "@/lib/customer/types";
 import { BrandedCard, useRestrictions, isFeatureRestricted } from "@/lib/customer/portal-ui";
 import { isNavEnabled, ProductUnavailable } from "@/lib/customer/product-gating";
 import { lookupDomesticAccount, submitTransfer } from "@/lib/customer/transfers.functions";
+import { getTransactionDetail, type TxDetail } from "@/lib/customer/transactions.functions";
 import { listBeneficiaries } from "@/lib/customer/beneficiaries.functions";
+import { TransferSuccessReceipt } from "@/lib/customer/transfer-success";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,9 +50,10 @@ function TransferPage() {
   const { bank, session } = parent;
   const primary = bank.manifest.theme.colors.primary;
   const qc = useQueryClient();
-  const navigate = useNavigate();
+  const [successTx, setSuccessTx] = useState<TxDetail | null>(null);
   const restrictions = useRestrictions();
   const restricted = isFeatureRestricted(restrictions, "transfer");
+  const doGetTx = useServerFn(getTransactionDetail);
 
 
   const [kind, setKind] = useState<Kind>("own");
@@ -168,13 +171,15 @@ function TransferPage() {
         },
       });
     },
-    onSuccess: (r) => {
+    onSuccess: async (r) => {
       qc.invalidateQueries();
-      navigate({
-        to: "/$slug/portal/transactions/$id",
-        params: { slug: bank.slug, id: r.transaction_id },
-        search: { success: true },
-      });
+      try {
+        const tx = await doGetTx({ data: { slug: bank.slug, id: r.transaction_id } });
+        if (tx) setSuccessTx(tx);
+        else toast.success("Transfer completed");
+      } catch {
+        toast.success("Transfer completed");
+      }
     },
 
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Transfer failed"),
@@ -194,6 +199,14 @@ function TransferPage() {
     }
     return true;
   }, [restricted, sourceId, amount, kind, destId, beneficiaryId, lookupState.status, name, intl, accNum]);
+
+  if (successTx) {
+    return (
+      <div className="space-y-6">
+        <TransferSuccessReceipt tx={successTx} slug={bank.slug} manifest={bank.manifest} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -1,15 +1,18 @@
-import { createFileRoute, Link, useMatch, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useMatch, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerSession } from "@/lib/customer/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
-import { listTransactions } from "@/lib/customer/transactions.functions";
+import { listTransactions, getTransactionDetail } from "@/lib/customer/transactions.functions";
+import { downloadReceiptPdf } from "@/lib/customer/receipt-pdf";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
 export const Route = createFileRoute("/$slug/portal/transactions")({
   component: TransactionsPage,
@@ -39,6 +42,7 @@ function TransactionsPage() {
 
 
   const listFn = useServerFn(listTransactions);
+  const doGetTx = useServerFn(getTransactionDetail);
   const qy = useQuery({
     queryKey: ["tx", bank.slug, q, account, dir, from, to, min, max, page],
     queryFn: () =>
@@ -137,10 +141,29 @@ function TransactionsPage() {
                       {r.direction === "debit" ? "-" : r.direction === "credit" ? "+" : ""}{fmt(r.amount, r.currency)}
                     </td>
                     <td className="text-right font-mono text-xs">{fmt(r.balance_after, r.currency)}</td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <Link to="/$slug/portal/transactions/$id" params={{ slug: bank.slug, id: r.id }} className="text-xs underline" style={{ color: primary }}>
-                        Receipt
-                      </Link>
+                    <td onClick={(e) => e.stopPropagation()} className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Download receipt"
+                        aria-label="Download receipt"
+                        onClick={async () => {
+                          try {
+                            const tx = await doGetTx({ data: { slug: bank.slug, id: r.id } });
+                            if (!tx) { toast.error("Receipt not available"); return; }
+                            const logoUrl =
+                              bank.manifest.brand.dashboard_logo_url ??
+                              bank.manifest.brand.login_logo_url ??
+                              null;
+                            await downloadReceiptPdf(tx, logoUrl);
+                          } catch {
+                            toast.error("Failed to download receipt");
+                          }
+                        }}
+                        style={{ color: primary }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
