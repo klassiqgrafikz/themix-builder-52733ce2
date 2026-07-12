@@ -8,7 +8,12 @@ import { getTransactionDetail, type TxDetail } from "@/lib/customer/transactions
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Download, Printer, Share2, Mail, Home } from "lucide-react";
 
-const searchSchema = z.object({ success: z.coerce.boolean().optional() });
+const searchSchema = z.object({
+  success: z
+    .union([z.boolean(), z.string(), z.number()])
+    .optional()
+    .transform((v) => v === true || v === "true" || v === "1" || v === 1),
+});
 
 export const Route = createFileRoute("/$slug/portal/transactions/$id")({
   validateSearch: (s) => searchSchema.parse(s),
@@ -190,6 +195,68 @@ function ReceiptPage() {
 
   const goDashboard = () => navigate({ to: "/$slug/portal", params: { slug } });
 
+  if (success) {
+    return (
+      <div className="space-y-4">
+        <BrandedCard manifest={manifest} className="print:border-none print:shadow-none">
+          <div className="flex flex-col items-center text-center">
+            <div className="grid h-20 w-20 place-items-center rounded-full bg-emerald-100">
+              <CheckCircle2 className="h-14 w-14 text-emerald-600" />
+            </div>
+            <h1 className="mt-4 text-3xl font-bold text-emerald-700">Transfer Successful</h1>
+            <div className="mt-1 text-xs uppercase tracking-wide opacity-60">
+              {friendlyKind(t.kind)}
+            </div>
+            <div className="mt-4 text-5xl font-bold" style={{ color: primary }}>
+              {fmt(t.amount, t.currency)}
+            </div>
+            <div className="mt-2 text-sm capitalize text-emerald-700 font-medium">
+              Status: {t.status}
+            </div>
+          </div>
+
+          <dl className="mt-8 grid gap-3 border-t pt-6 text-sm md:grid-cols-2">
+            <Field label="Sender">{t.customer_name}</Field>
+            <Field label="Sender Account">{t.account_number || "—"}</Field>
+            <Field label="Recipient">{beneficiary?.name ?? (t.direction === "credit" ? t.customer_name : "—")}</Field>
+            <Field label="Recipient Bank">{beneficiary?.bank_name ?? t.bank_name}</Field>
+            <Field label="Account Number">{beneficiary?.account_number ?? "—"}</Field>
+            <Field label="Date">{d.toLocaleDateString()}</Field>
+            <Field label="Time">{d.toLocaleTimeString()}</Field>
+            <Field label="Transaction Reference">
+              <span className="break-all font-mono text-xs">{t.reference ?? "—"}</span>
+            </Field>
+            <Field label="Transaction ID">
+              <span className="break-all font-mono text-xs">{t.id}</span>
+            </Field>
+            <div className="md:col-span-2">
+              <dt className="text-xs uppercase opacity-70">Narration</dt>
+              <dd>{t.description}</dd>
+            </div>
+          </dl>
+
+          <div className="mt-8 flex flex-wrap justify-center gap-2 print:hidden">
+            <Button variant="outline" onClick={downloadPdf}>
+              <Download className="mr-1 h-4 w-4" />Download PDF
+            </Button>
+            <Button variant="outline" onClick={printReceipt}>
+              <Printer className="mr-1 h-4 w-4" />Print
+            </Button>
+            <Button variant="outline" onClick={share}>
+              <Share2 className="mr-1 h-4 w-4" />Share
+            </Button>
+          </div>
+
+          <div className="mt-4 flex justify-center print:hidden">
+            <Button size="lg" onClick={goDashboard} style={{ backgroundColor: primary }}>
+              <Home className="mr-2 h-4 w-4" />Done — Return to Dashboard
+            </Button>
+          </div>
+        </BrandedCard>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between print:hidden">
@@ -211,7 +278,6 @@ function ReceiptPage() {
           <Button variant="outline" size="sm" disabled title="Email delivery coming soon">
             <Mail className="mr-1 h-4 w-4" />Email
           </Button>
-
           <Button size="sm" onClick={downloadPdf} style={{ backgroundColor: primary }}>
             <Download className="mr-1 h-4 w-4" />Download PDF
           </Button>
@@ -219,21 +285,6 @@ function ReceiptPage() {
       </div>
 
       <BrandedCard manifest={manifest} className="print:border-none print:shadow-none">
-        {success && (
-          <div className="mb-6 flex flex-col items-center text-center">
-            <div className="grid h-16 w-16 place-items-center rounded-full bg-emerald-100">
-              <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-            </div>
-            <h1 className="mt-3 text-2xl font-bold text-emerald-700">Transfer Successful</h1>
-            <div className="mt-1 text-xs uppercase tracking-wide opacity-60">
-              {friendlyKind(t.kind)}
-            </div>
-            <div className="mt-3 text-4xl font-bold" style={{ color: primary }}>
-              {fmt(t.amount, t.currency)}
-            </div>
-          </div>
-        )}
-
         <div className="flex items-center gap-3 border-b pb-3">
           {logoUrl ? (
             <img src={logoUrl} alt="" className="h-10 w-10 rounded object-contain" />
@@ -283,14 +334,6 @@ function ReceiptPage() {
         <div className="mt-6 border-t pt-3 text-xs italic opacity-70">
           This receipt is system generated and does not require a signature.
         </div>
-
-        {success && (
-          <div className="mt-6 flex justify-center print:hidden">
-            <Button size="lg" onClick={goDashboard} style={{ backgroundColor: primary }}>
-              <Home className="mr-2 h-4 w-4" />Done — Return to Dashboard
-            </Button>
-          </div>
-        )}
       </BrandedCard>
     </div>
   );
