@@ -200,6 +200,14 @@ function TransferPage() {
     return true;
   }, [restricted, sourceId, amount, kind, destId, beneficiaryId, lookupState.status, name, intl, accNum]);
 
+  if (successTx) {
+    return (
+      <div className="space-y-6">
+        <TransferSuccessReceipt tx={successTx} slug={bank.slug} manifest={bank.manifest} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <BrandedCard manifest={bank.manifest}>
