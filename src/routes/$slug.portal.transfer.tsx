@@ -1,4 +1,4 @@
-import { createFileRoute, useMatch, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useMatch, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -8,7 +8,9 @@ import type { CustomerSession } from "@/lib/customer/types";
 import { BrandedCard, useRestrictions, isFeatureRestricted } from "@/lib/customer/portal-ui";
 import { isNavEnabled, ProductUnavailable } from "@/lib/customer/product-gating";
 import { lookupDomesticAccount, submitTransfer } from "@/lib/customer/transfers.functions";
+import { getTransactionDetail, type TxDetail } from "@/lib/customer/transactions.functions";
 import { listBeneficiaries } from "@/lib/customer/beneficiaries.functions";
+import { TransferSuccessReceipt } from "@/lib/customer/transfer-success";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
