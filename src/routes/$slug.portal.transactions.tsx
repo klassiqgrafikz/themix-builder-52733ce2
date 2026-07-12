@@ -42,6 +42,7 @@ function TransactionsPage() {
 
 
   const listFn = useServerFn(listTransactions);
+  const doGetTx = useServerFn(getTransactionDetail);
   const qy = useQuery({
     queryKey: ["tx", bank.slug, q, account, dir, from, to, min, max, page],
     queryFn: () =>
