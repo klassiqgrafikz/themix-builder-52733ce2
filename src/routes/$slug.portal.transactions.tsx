@@ -140,10 +140,29 @@ function TransactionsPage() {
                       {r.direction === "debit" ? "-" : r.direction === "credit" ? "+" : ""}{fmt(r.amount, r.currency)}
                     </td>
                     <td className="text-right font-mono text-xs">{fmt(r.balance_after, r.currency)}</td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <Link to="/$slug/portal/transactions/$id" params={{ slug: bank.slug, id: r.id }} className="text-xs underline" style={{ color: primary }}>
-                        Receipt
-                      </Link>
+                    <td onClick={(e) => e.stopPropagation()} className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Download receipt"
+                        aria-label="Download receipt"
+                        onClick={async () => {
+                          try {
+                            const tx = await doGetTx({ data: { slug: bank.slug, id: r.id } });
+                            if (!tx) { toast.error("Receipt not available"); return; }
+                            const logoUrl =
+                              bank.manifest.brand.dashboard_logo_url ??
+                              bank.manifest.brand.login_logo_url ??
+                              null;
+                            await downloadReceiptPdf(tx, logoUrl);
+                          } catch {
+                            toast.error("Failed to download receipt");
+                          }
+                        }}
+                        style={{ color: primary }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
