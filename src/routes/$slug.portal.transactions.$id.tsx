@@ -8,7 +8,12 @@ import { getTransactionDetail, type TxDetail } from "@/lib/customer/transactions
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Download, Printer, Share2, Mail, Home } from "lucide-react";
 
-const searchSchema = z.object({ success: z.coerce.boolean().optional() });
+const searchSchema = z.object({
+  success: z
+    .union([z.boolean(), z.string(), z.number()])
+    .optional()
+    .transform((v) => v === true || v === "true" || v === "1" || v === 1),
+});
 
 export const Route = createFileRoute("/$slug/portal/transactions/$id")({
   validateSearch: (s) => searchSchema.parse(s),
