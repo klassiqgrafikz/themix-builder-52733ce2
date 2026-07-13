@@ -309,8 +309,13 @@ function DashboardPage() {
   // Layout-driven rendering (Phase 3): if the bank publishes a dashboard
   // layout via the Designer, render sections in that order/width/visibility.
   // Otherwise fall through to the existing default dashboard below.
-  const publishedLayout = (manifest as unknown as { dashboard_layout?: DashboardLayout })
-    .dashboard_layout;
+  const manifestExt = manifest as unknown as {
+    dashboard_layout?: DashboardLayout;
+    dashboard_style?: "classic" | "premium_card";
+  };
+  const publishedLayout = manifestExt.dashboard_layout;
+  const dashboardStyle: "classic" | "premium_card" =
+    manifestExt.dashboard_style === "premium_card" ? "premium_card" : "classic";
   if (publishedLayout && Array.isArray(publishedLayout.items) && publishedLayout.items.length) {
     return (
       <LayoutDrivenDashboard
@@ -399,75 +404,89 @@ function DashboardPage() {
           </div>
         </div>
 
-        <div className="space-y-0">
-          {/* Account Number */}
-          <div
-            className="flex items-center justify-between gap-4 border-b-2 py-7"
-            style={dividerColor}
-          >
-            <div className="min-w-0">
-              <p className={labelText}>Account Number</p>
-              <p
-                className="mt-1 truncate text-lg font-medium tracking-[0.12em] text-slate-900 md:text-xl"
-                style={{ fontFamily: theme.typography.heading }}
-              >
-                {acctMasked}
-              </p>
-              {primaryAccount?.iban && (
-                <p className="mt-1 truncate font-mono text-xs text-slate-400">
-                  {primaryAccount.iban}
+        {dashboardStyle === "premium_card" ? (
+          <PremiumCardSummary
+            currency={currency}
+            balance={balance}
+            balanceVisible={balanceVisible}
+            setBalanceVisible={setBalanceVisible}
+            acctNumber={acctNumber}
+            acctMasked={acctMasked}
+            onCopy={copyText}
+            fontHeading={theme.typography.heading}
+          />
+        ) : (
+          <div className="space-y-0">
+            {/* Account Number */}
+            <div
+              className="flex items-center justify-between gap-4 border-b-2 py-7"
+              style={dividerColor}
+            >
+              <div className="min-w-0">
+                <p className={labelText}>Account Number</p>
+                <p
+                  className="mt-1 truncate text-lg font-medium tracking-[0.12em] text-slate-900 md:text-xl"
+                  style={{ fontFamily: theme.typography.heading }}
+                >
+                  {acctMasked}
                 </p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => copyText(acctNumber, "Account number")}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
-            >
-              <Copy className="h-3.5 w-3.5" /> Copy
-            </button>
-          </div>
-
-          {/* Available Balance */}
-          <div
-            className="flex items-center justify-between gap-4 border-b-2 py-7"
-            style={dividerColor}
-          >
-            <div className="min-w-0">
-              <p className={labelText}>Available Balance · {currency}</p>
-              <p
-                className="mt-1 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl"
-                style={{ fontFamily: theme.typography.heading }}
+                {primaryAccount?.iban && (
+                  <p className="mt-1 truncate font-mono text-xs text-slate-400">
+                    {primaryAccount.iban}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => copyText(acctNumber, "Account number")}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
               >
-                {balanceVisible ? fmt(balance, currency) : "••••••"}
+                <Copy className="h-3.5 w-3.5" /> Copy
+              </button>
+            </div>
+
+            {/* Available Balance */}
+            <div
+              className="flex items-center justify-between gap-4 border-b-2 py-7"
+              style={dividerColor}
+            >
+              <div className="min-w-0">
+                <p className={labelText}>Available Balance · {currency}</p>
+                <p
+                  className="mt-1 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl"
+                  style={{ fontFamily: theme.typography.heading }}
+                >
+                  {balanceVisible ? fmt(balance, currency) : "••••••"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBalanceVisible((v) => !v)}
+                aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+              >
+                {balanceVisible ? (
+                  <Eye className="h-3.5 w-3.5" />
+                ) : (
+                  <EyeOff className="h-3.5 w-3.5" />
+                )}
+                {balanceVisible ? "Hide" : "Show"}
+              </button>
+            </div>
+
+            {/* Current Balance */}
+            <div className="py-7">
+              <p className={labelText}>Current Balance</p>
+              <p className="mt-1 text-xl font-semibold text-slate-700 md:text-2xl">
+                {balanceVisible && primaryAccount
+                  ? fmt(primaryAccount.current_balance, currency)
+                  : "••••"}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setBalanceVisible((v) => !v)}
-              aria-label={balanceVisible ? "Hide balance" : "Show balance"}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
-            >
-              {balanceVisible ? (
-                <Eye className="h-3.5 w-3.5" />
-              ) : (
-                <EyeOff className="h-3.5 w-3.5" />
-              )}
-              {balanceVisible ? "Hide" : "Show"}
-            </button>
           </div>
-
-          {/* Current Balance */}
-          <div className="py-7">
-            <p className={labelText}>Current Balance</p>
-            <p className="mt-1 text-xl font-semibold text-slate-700 md:text-2xl">
-              {balanceVisible && primaryAccount
-                ? fmt(primaryAccount.current_balance, currency)
-                : "••••"}
-            </p>
-          </div>
-        </div>
+        )}
       </section>
+
 
       {/* Quick Actions */}
       <section>
@@ -1228,4 +1247,100 @@ function LayoutDrivenDashboard(props: {
 
 // Silence unused import if defaultDashboardLayout is imported but not referenced yet.
 void defaultDashboardLayout;
+
+/* ------------------------------------------------------------------ */
+/*  Premium Card account summary (Layout B).                           */
+/*  Only replaces the account-summary block; all other portal sections */
+/*  render exactly as before.                                          */
+/* ------------------------------------------------------------------ */
+export function PremiumCardSummary({
+  currency,
+  balance,
+  balanceVisible,
+  setBalanceVisible,
+  acctNumber,
+  acctMasked,
+  onCopy,
+  fontHeading,
+}: {
+  currency: string;
+  balance: number;
+  balanceVisible: boolean;
+  setBalanceVisible: (fn: (v: boolean) => boolean) => void;
+  acctNumber: string;
+  acctMasked: string;
+  onCopy: (v: string, label: string) => void | Promise<void>;
+  fontHeading?: string;
+}) {
+  const amount = balanceVisible ? fmt(balance, currency) : "••••••";
+  return (
+    <section
+      className="relative overflow-hidden rounded-3xl p-6 text-white shadow-xl md:p-8"
+      style={{
+        background:
+          "linear-gradient(135deg, var(--tenant-primary) 0%, color-mix(in oklab, var(--tenant-primary) 60%, black) 100%)",
+      }}
+    >
+      <div
+        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full opacity-20"
+        style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 70%)" }}
+      />
+      <div
+        className="pointer-events-none absolute -bottom-24 -left-10 h-64 w-64 rounded-full opacity-10"
+        style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 70%)" }}
+      />
+
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-80">
+            Account Number
+          </p>
+          <div className="mt-1 flex items-center gap-2">
+            <p
+              className="truncate text-base font-medium tracking-[0.14em] md:text-lg"
+              style={{ fontFamily: fontHeading }}
+            >
+              {acctMasked || "—"}
+            </p>
+            <button
+              type="button"
+              onClick={() => onCopy(acctNumber, "Account number")}
+              aria-label="Copy account number"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-100 ring-1 ring-inset ring-emerald-300/40">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+          Active
+        </span>
+      </div>
+
+      <div className="relative mt-8">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-80">
+          Available Balance · {currency}
+        </p>
+        <div className="mt-2 flex items-end justify-between gap-3">
+          <p
+            className="text-4xl font-bold tracking-tight md:text-5xl"
+            style={{ fontFamily: fontHeading }}
+          >
+            {amount}
+          </p>
+          <button
+            type="button"
+            onClick={() => setBalanceVisible((v) => !v)}
+            aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+          >
+            {balanceVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 

@@ -49,6 +49,7 @@ export function buildManifest(args: {
     pages,
     navigation,
     products,
+    dashboard_style: cfg.branding.dashboard_style ?? "classic",
     metadata: {
       title: name,
       description: `${name} — powered by TheMixWeb`,
