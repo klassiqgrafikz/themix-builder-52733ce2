@@ -59,6 +59,8 @@ export type BankIdentity = {
   language: string;
 };
 
+export type DashboardStyle = "classic" | "premium_card";
+
 export type BankBranding = {
   primary_color: string;
   secondary_color: string;
@@ -70,6 +72,7 @@ export type BankBranding = {
   button_style: "rounded" | "square" | "pill";
   border_radius: number;
   dark_mode: boolean;
+  dashboard_style?: DashboardStyle;
 };
 
 export type BankFeatures = Record<string, boolean>;
