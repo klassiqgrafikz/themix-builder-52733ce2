@@ -11,6 +11,7 @@ import {
   listTemplates,
   updateShortSlug,
 } from "@/lib/bank-builder.functions";
+import { updateDraft } from "@/lib/bank-builder.functions";
 import { publishDraft, unpublishDraft, deleteBank, clearRenderingHistory } from "@/lib/website/registry.functions";
 import { Input } from "@/components/ui/input";
 import { sanitizeShortSlug, validateShortSlug } from "@/lib/website/reserved-slugs";
