@@ -383,6 +383,15 @@ function BankOverview() {
 
         <BankProductsPanel draftId={id} onChanged={() => rerenderMut.mutate()} rerenderPending={rerenderMut.isPending} />
 
+        <DashboardStylePanel
+          draftId={id}
+          current={(branding.dashboard_style as "classic" | "premium_card" | undefined) ?? "classic"}
+          primaryColor={branding.primary_color ?? "#0a2540"}
+          secondaryColor={branding.secondary_color ?? "#1e88e5"}
+          onSaved={invalidate}
+        />
+
+
 
         <Card>
           <CardHeader><CardTitle>Rendering Timeline</CardTitle></CardHeader>
