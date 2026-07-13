@@ -308,28 +308,39 @@ function ReceiptPage() {
           </div>
         </div>
 
-        <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-          <Field label="Transaction Type">{friendlyKind(t.kind)}</Field>
-          <Field label="Amount"><span className="font-semibold">{fmt(t.amount, t.currency)}</span></Field>
-          <Field label="Currency">{t.currency}</Field>
-          <Field label="Direction"><span className="capitalize">{t.direction}</span></Field>
-          <Field label="Sender">{t.customer_name}</Field>
-          <Field label="Sender Account">{t.account_number || "—"}</Field>
-          <Field label="Recipient">{beneficiary?.name ?? (t.direction === "credit" ? t.customer_name : "—")}</Field>
-          <Field label="Recipient Account">{beneficiary?.account_number ?? "—"}</Field>
-          <Field label="Recipient Bank">{beneficiary?.bank_name ?? t.bank_name}</Field>
-          <Field label="Channel">Online Banking</Field>
-          <Field label="Date">{d.toLocaleDateString()}</Field>
-          <Field label="Time">{d.toLocaleTimeString()}</Field>
-          <Field label="Transaction ID"><span className="break-all font-mono text-xs">{t.id}</span></Field>
-          <Field label="Transaction Reference"><span className="break-all font-mono text-xs">{t.reference ?? "—"}</span></Field>
-          <Field label="Available Balance">{fmt(t.balance_after, t.currency)}</Field>
-          <Field label="Charges">{fmt(0, t.currency)}</Field>
-          <div className="md:col-span-2">
-            <dt className="text-xs uppercase opacity-70">Narration</dt>
-            <dd>{t.description}</dd>
-          </div>
-        </dl>
+        {(() => {
+          const balanceBefore =
+            t.direction === "credit"
+              ? t.balance_after - t.amount
+              : t.direction === "debit"
+                ? t.balance_after + t.amount
+                : t.balance_after;
+          return (
+            <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+              <Field label="Transaction Type">{friendlyKind(t.kind)}</Field>
+              <Field label="Amount"><span className="font-semibold">{fmt(t.amount, t.currency)}</span></Field>
+              <Field label="Currency">{t.currency}</Field>
+              <Field label="Direction"><span className="capitalize">{t.direction}</span></Field>
+              <Field label="Sender">{t.customer_name}</Field>
+              <Field label="Sender Account">{t.account_number || "—"}</Field>
+              <Field label="Recipient">{beneficiary?.name ?? (t.direction === "credit" ? t.customer_name : "—")}</Field>
+              <Field label="Recipient Account">{beneficiary?.account_number ?? "—"}</Field>
+              <Field label="Recipient Bank">{beneficiary?.bank_name ?? t.bank_name}</Field>
+              <Field label="Channel">Online Banking</Field>
+              <Field label="Date">{d.toLocaleDateString()}</Field>
+              <Field label="Time">{d.toLocaleTimeString()}</Field>
+              <Field label="Transaction ID"><span className="break-all font-mono text-xs">{t.id}</span></Field>
+              <Field label="Transaction Reference"><span className="break-all font-mono text-xs">{t.reference ?? "—"}</span></Field>
+              <Field label="Balance Before">{fmt(balanceBefore, t.currency)}</Field>
+              <Field label="Balance After">{fmt(t.balance_after, t.currency)}</Field>
+              <Field label="Charges">{fmt(0, t.currency)}</Field>
+              <div className="md:col-span-2">
+                <dt className="text-xs uppercase opacity-70">Narration</dt>
+                <dd>{t.description}</dd>
+              </div>
+            </dl>
+          );
+        })()}
 
         <div className="mt-6 border-t pt-3 text-xs italic opacity-70">
           This receipt is system generated and does not require a signature.

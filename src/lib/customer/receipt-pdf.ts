@@ -67,6 +67,12 @@ export async function buildReceiptPdf(
   y += 50;
 
   const d = new Date(t.created_at);
+  const balanceBefore =
+    t.direction === "credit"
+      ? t.balance_after - t.amount
+      : t.direction === "debit"
+        ? t.balance_after + t.amount
+        : t.balance_after;
   const rows: [string, string][] = [
     ["Status", (t.status || "successful").toUpperCase()],
     ["Transaction Type", friendlyKind(t.kind)],
@@ -82,7 +88,8 @@ export async function buildReceiptPdf(
     ["Time", d.toLocaleTimeString()],
     ["Channel", "Online Banking"],
     ["Narration", t.description || "—"],
-    ["Available Balance", fmt(t.balance_after, t.currency)],
+    ["Balance Before", fmt(balanceBefore, t.currency)],
+    ["Balance After", fmt(t.balance_after, t.currency)],
   ];
 
   doc.setFontSize(10);
