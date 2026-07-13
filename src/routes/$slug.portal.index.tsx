@@ -309,8 +309,13 @@ function DashboardPage() {
   // Layout-driven rendering (Phase 3): if the bank publishes a dashboard
   // layout via the Designer, render sections in that order/width/visibility.
   // Otherwise fall through to the existing default dashboard below.
-  const publishedLayout = (manifest as unknown as { dashboard_layout?: DashboardLayout })
-    .dashboard_layout;
+  const manifestExt = manifest as unknown as {
+    dashboard_layout?: DashboardLayout;
+    dashboard_style?: "classic" | "premium_card";
+  };
+  const publishedLayout = manifestExt.dashboard_layout;
+  const dashboardStyle: "classic" | "premium_card" =
+    manifestExt.dashboard_style === "premium_card" ? "premium_card" : "classic";
   if (publishedLayout && Array.isArray(publishedLayout.items) && publishedLayout.items.length) {
     return (
       <LayoutDrivenDashboard
