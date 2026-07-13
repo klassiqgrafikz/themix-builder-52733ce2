@@ -784,3 +784,153 @@ function ShortSlugEditor({
     </Card>
   );
 }
+
+function DashboardStylePanel({
+  draftId,
+  current,
+  primaryColor,
+  secondaryColor,
+  onSaved,
+}: {
+  draftId: string;
+  current: "classic" | "premium_card";
+  primaryColor: string;
+  secondaryColor: string;
+  onSaved: () => void;
+}) {
+  const qc = useQueryClient();
+  const [selected, setSelected] = useState<"classic" | "premium_card">(current);
+  const [preview, setPreview] = useState<"classic" | "premium_card" | null>(null);
+  const updateFn = useServerFn(updateDraft);
+
+  const saveMut = useMutation({
+    mutationFn: async () => {
+      const draft = qc.getQueryData<BankDraft>(["bb-draft", draftId]);
+      const branding = { ...(draft?.branding ?? {}), dashboard_style: selected };
+      const patch: Record<string, unknown> = { branding };
+      // Inject into the current manifest so the live customer portal reflects
+      // the change without requiring a full website re-render.
+      if (draft?.manifest && typeof draft.manifest === "object" && "version" in draft.manifest) {
+        patch.manifest = { ...draft.manifest, dashboard_style: selected };
+      }
+      return updateFn({ data: { id: draftId, patch } });
+    },
+    onSuccess: () => {
+      toast.success("Dashboard layout saved");
+      onSaved();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
+  });
+
+  const previewStyle = preview ?? selected;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <LayoutDashboard className="h-4 w-4" /> Dashboard Layout
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <p className="text-xs text-muted-foreground">
+          Choose how the customer's account summary is displayed on the dashboard.
+          All other sections (Quick Actions, Recent Transactions, Cards, etc.) render exactly the same.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(
+            [
+              {
+                key: "classic" as const,
+                title: "Classic Layout",
+                desc: "Current dashboard layout with account number and balance shown as stacked rows.",
+              },
+              {
+                key: "premium_card" as const,
+                title: "Premium Card Layout",
+                desc: "Modern account card with account number and available balance inside one premium card using the bank's primary colour.",
+              },
+            ]
+          ).map((opt) => {
+            const active = selected === opt.key;
+            return (
+              <button
+                type="button"
+                key={opt.key}
+                onClick={() => setSelected(opt.key)}
+                className={`rounded-lg border p-4 text-left transition ${
+                  active ? "border-primary ring-2 ring-primary/30" : "hover:border-primary/60"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">{opt.title}</div>
+                  {active && <Badge variant="default" className="text-[10px]">Selected</Badge>}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">{opt.desc}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="rounded-lg border bg-muted/30 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Preview
+            </div>
+            <div className="text-[10px] text-muted-foreground">
+              {previewStyle === "premium_card" ? "Premium Card Layout" : "Classic Layout"}
+            </div>
+          </div>
+          {previewStyle === "premium_card" ? (
+            <div
+              className="rounded-2xl p-5 text-white shadow-md"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+              }}
+            >
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-widest opacity-80">
+                <span>Account Number</span>
+                <span className="rounded-full bg-emerald-400/25 px-2 py-0.5 text-emerald-100">Active</span>
+              </div>
+              <div className="mt-1 font-mono text-sm tracking-[0.14em]">1234 5678 9012 3456</div>
+              <div className="mt-5 text-[10px] uppercase tracking-widest opacity-80">
+                Available Balance · USD
+              </div>
+              <div className="mt-1 text-3xl font-bold">$24,580.00</div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="border-b py-3">
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Account Number</div>
+                <div className="font-mono text-sm tracking-[0.14em]">1234 5678 9012 3456</div>
+              </div>
+              <div className="border-b py-3">
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Available Balance · USD</div>
+                <div className="text-2xl font-bold">$24,580.00</div>
+              </div>
+              <div className="py-2">
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Current Balance</div>
+                <div className="text-lg font-semibold">$24,580.00</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setPreview((p) => (p === selected ? null : selected))}
+          >
+            {preview === selected ? "Hide Preview" : "Preview"}
+          </Button>
+          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || selected === current}>
+            {saveMut.isPending ? "Saving…" : "Save Layout"}
+          </Button>
+          {selected !== current && (
+            <span className="text-xs text-muted-foreground">Unsaved changes</span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
