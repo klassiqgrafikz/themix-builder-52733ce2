@@ -399,75 +399,89 @@ function DashboardPage() {
           </div>
         </div>
 
-        <div className="space-y-0">
-          {/* Account Number */}
-          <div
-            className="flex items-center justify-between gap-4 border-b-2 py-7"
-            style={dividerColor}
-          >
-            <div className="min-w-0">
-              <p className={labelText}>Account Number</p>
-              <p
-                className="mt-1 truncate text-lg font-medium tracking-[0.12em] text-slate-900 md:text-xl"
-                style={{ fontFamily: theme.typography.heading }}
-              >
-                {acctMasked}
-              </p>
-              {primaryAccount?.iban && (
-                <p className="mt-1 truncate font-mono text-xs text-slate-400">
-                  {primaryAccount.iban}
+        {dashboardStyle === "premium_card" ? (
+          <PremiumCardSummary
+            currency={currency}
+            balance={balance}
+            balanceVisible={balanceVisible}
+            setBalanceVisible={setBalanceVisible}
+            acctNumber={acctNumber}
+            acctMasked={acctMasked}
+            onCopy={copyText}
+            fontHeading={theme.typography.heading}
+          />
+        ) : (
+          <div className="space-y-0">
+            {/* Account Number */}
+            <div
+              className="flex items-center justify-between gap-4 border-b-2 py-7"
+              style={dividerColor}
+            >
+              <div className="min-w-0">
+                <p className={labelText}>Account Number</p>
+                <p
+                  className="mt-1 truncate text-lg font-medium tracking-[0.12em] text-slate-900 md:text-xl"
+                  style={{ fontFamily: theme.typography.heading }}
+                >
+                  {acctMasked}
                 </p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => copyText(acctNumber, "Account number")}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
-            >
-              <Copy className="h-3.5 w-3.5" /> Copy
-            </button>
-          </div>
-
-          {/* Available Balance */}
-          <div
-            className="flex items-center justify-between gap-4 border-b-2 py-7"
-            style={dividerColor}
-          >
-            <div className="min-w-0">
-              <p className={labelText}>Available Balance · {currency}</p>
-              <p
-                className="mt-1 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl"
-                style={{ fontFamily: theme.typography.heading }}
+                {primaryAccount?.iban && (
+                  <p className="mt-1 truncate font-mono text-xs text-slate-400">
+                    {primaryAccount.iban}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => copyText(acctNumber, "Account number")}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
               >
-                {balanceVisible ? fmt(balance, currency) : "••••••"}
+                <Copy className="h-3.5 w-3.5" /> Copy
+              </button>
+            </div>
+
+            {/* Available Balance */}
+            <div
+              className="flex items-center justify-between gap-4 border-b-2 py-7"
+              style={dividerColor}
+            >
+              <div className="min-w-0">
+                <p className={labelText}>Available Balance · {currency}</p>
+                <p
+                  className="mt-1 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl"
+                  style={{ fontFamily: theme.typography.heading }}
+                >
+                  {balanceVisible ? fmt(balance, currency) : "••••••"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBalanceVisible((v) => !v)}
+                aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+              >
+                {balanceVisible ? (
+                  <Eye className="h-3.5 w-3.5" />
+                ) : (
+                  <EyeOff className="h-3.5 w-3.5" />
+                )}
+                {balanceVisible ? "Hide" : "Show"}
+              </button>
+            </div>
+
+            {/* Current Balance */}
+            <div className="py-7">
+              <p className={labelText}>Current Balance</p>
+              <p className="mt-1 text-xl font-semibold text-slate-700 md:text-2xl">
+                {balanceVisible && primaryAccount
+                  ? fmt(primaryAccount.current_balance, currency)
+                  : "••••"}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setBalanceVisible((v) => !v)}
-              aria-label={balanceVisible ? "Hide balance" : "Show balance"}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
-            >
-              {balanceVisible ? (
-                <Eye className="h-3.5 w-3.5" />
-              ) : (
-                <EyeOff className="h-3.5 w-3.5" />
-              )}
-              {balanceVisible ? "Hide" : "Show"}
-            </button>
           </div>
-
-          {/* Current Balance */}
-          <div className="py-7">
-            <p className={labelText}>Current Balance</p>
-            <p className="mt-1 text-xl font-semibold text-slate-700 md:text-2xl">
-              {balanceVisible && primaryAccount
-                ? fmt(primaryAccount.current_balance, currency)
-                : "••••"}
-            </p>
-          </div>
-        </div>
+        )}
       </section>
+
 
       {/* Quick Actions */}
       <section>
