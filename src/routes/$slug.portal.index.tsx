@@ -1248,3 +1248,99 @@ function LayoutDrivenDashboard(props: {
 // Silence unused import if defaultDashboardLayout is imported but not referenced yet.
 void defaultDashboardLayout;
 
+/* ------------------------------------------------------------------ */
+/*  Premium Card account summary (Layout B).                           */
+/*  Only replaces the account-summary block; all other portal sections */
+/*  render exactly as before.                                          */
+/* ------------------------------------------------------------------ */
+export function PremiumCardSummary({
+  currency,
+  balance,
+  balanceVisible,
+  setBalanceVisible,
+  acctNumber,
+  acctMasked,
+  onCopy,
+  fontHeading,
+}: {
+  currency: string;
+  balance: number;
+  balanceVisible: boolean;
+  setBalanceVisible: (fn: (v: boolean) => boolean) => void;
+  acctNumber: string;
+  acctMasked: string;
+  onCopy: (v: string, label: string) => void | Promise<void>;
+  fontHeading?: string;
+}) {
+  const amount = balanceVisible ? fmt(balance, currency) : "••••••";
+  return (
+    <section
+      className="relative overflow-hidden rounded-3xl p-6 text-white shadow-xl md:p-8"
+      style={{
+        background:
+          "linear-gradient(135deg, var(--tenant-primary) 0%, color-mix(in oklab, var(--tenant-primary) 60%, black) 100%)",
+      }}
+    >
+      <div
+        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full opacity-20"
+        style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 70%)" }}
+      />
+      <div
+        className="pointer-events-none absolute -bottom-24 -left-10 h-64 w-64 rounded-full opacity-10"
+        style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 70%)" }}
+      />
+
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-80">
+            Account Number
+          </p>
+          <div className="mt-1 flex items-center gap-2">
+            <p
+              className="truncate text-base font-medium tracking-[0.14em] md:text-lg"
+              style={{ fontFamily: fontHeading }}
+            >
+              {acctMasked || "—"}
+            </p>
+            <button
+              type="button"
+              onClick={() => onCopy(acctNumber, "Account number")}
+              aria-label="Copy account number"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-100 ring-1 ring-inset ring-emerald-300/40">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+          Active
+        </span>
+      </div>
+
+      <div className="relative mt-8">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-80">
+          Available Balance · {currency}
+        </p>
+        <div className="mt-2 flex items-end justify-between gap-3">
+          <p
+            className="text-4xl font-bold tracking-tight md:text-5xl"
+            style={{ fontFamily: fontHeading }}
+          >
+            {amount}
+          </p>
+          <button
+            type="button"
+            onClick={() => setBalanceVisible((v) => !v)}
+            aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+          >
+            {balanceVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
