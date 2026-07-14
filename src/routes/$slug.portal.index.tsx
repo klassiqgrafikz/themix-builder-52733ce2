@@ -490,26 +490,24 @@ function DashboardPage() {
           title="Quick actions"
           subtitle="Move money and manage your banking essentials"
         />
-        <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-4">
           {quickActions.map((a) => (
             <Link
               key={a.title}
               to={a.to}
               params={{ slug }}
-              className="group flex items-start gap-4 transition hover:opacity-90"
+              className="group flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white p-3 text-center transition hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-sm sm:p-4"
             >
               <span
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white transition-transform duration-200 group-hover:scale-105 sm:h-12 sm:w-12"
                 style={{ background: "var(--tenant-primary)" }}
               >
                 <a.icon className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <div className="flex items-center gap-1 text-sm font-semibold text-slate-900">
+                <div className="truncate text-xs font-semibold text-slate-900 sm:text-sm">
                   {a.title}
-                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 transition group-hover:text-slate-500" />
                 </div>
-                <div className="mt-0.5 text-xs leading-snug text-slate-500">{a.subtitle}</div>
               </div>
             </Link>
           ))}
