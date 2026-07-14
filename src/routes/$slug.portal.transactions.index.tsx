@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 
-export const Route = createFileRoute("/$slug/portal/transactions")({
+export const Route = createFileRoute("/$slug/portal/transactions/")({
   component: TransactionsPage,
 });
 
