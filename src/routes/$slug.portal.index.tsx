@@ -443,12 +443,17 @@ function DashboardPage() {
             >
               <div className="min-w-0">
                 <p className={labelText}>Available Balance · {currency}</p>
-                <p
-                  className="mt-1 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl"
+                <button
+                  type="button"
+                  onClick={() => setBalanceVisible((v) => !v)}
+                  aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+                  className="mt-1 block text-left text-3xl font-bold tracking-tight text-slate-900 transition-opacity duration-300 md:text-4xl"
                   style={{ fontFamily: theme.typography.heading }}
                 >
-                  {balanceVisible ? fmt(balance, currency) : "••••••"}
-                </p>
+                  <span key={balanceVisible ? "shown" : "hidden"} className="inline-block animate-fade-in">
+                    {balanceVisible ? fmt(balance, currency) : "••••••"}
+                  </span>
+                </button>
               </div>
               <button
                 type="button"
