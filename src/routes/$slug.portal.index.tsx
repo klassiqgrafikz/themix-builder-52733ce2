@@ -1313,12 +1313,17 @@ export function PremiumCardSummary({
           Available Balance · {currency}
         </p>
         <div className="mt-2 flex items-end justify-between gap-3">
-          <p
-            className="text-4xl font-bold tracking-tight md:text-5xl"
+          <button
+            type="button"
+            onClick={() => setBalanceVisible((v) => !v)}
+            aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+            className="text-left text-4xl font-bold tracking-tight transition-opacity duration-300 md:text-5xl"
             style={{ fontFamily: fontHeading }}
           >
-            {amount}
-          </p>
+            <span key={balanceVisible ? "s" : "h"} className="inline-block animate-fade-in">
+              {amount}
+            </span>
+          </button>
           <button
             type="button"
             onClick={() => setBalanceVisible((v) => !v)}
