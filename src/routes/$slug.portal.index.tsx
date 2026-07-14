@@ -393,15 +393,6 @@ function DashboardPage() {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-700">
-              {primaryAccount?.account_type ?? "Account"}
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              {primaryAccount?.status ?? "Active"}
-            </span>
-          </div>
         </div>
 
         {dashboardStyle === "premium_card" ? (
@@ -452,12 +443,17 @@ function DashboardPage() {
             >
               <div className="min-w-0">
                 <p className={labelText}>Available Balance · {currency}</p>
-                <p
-                  className="mt-1 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl"
+                <button
+                  type="button"
+                  onClick={() => setBalanceVisible((v) => !v)}
+                  aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+                  className="mt-1 block text-left text-3xl font-bold tracking-tight text-slate-900 transition-opacity duration-300 md:text-4xl"
                   style={{ fontFamily: theme.typography.heading }}
                 >
-                  {balanceVisible ? fmt(balance, currency) : "••••••"}
-                </p>
+                  <span key={balanceVisible ? "shown" : "hidden"} className="inline-block animate-fade-in">
+                    {balanceVisible ? fmt(balance, currency) : "••••••"}
+                  </span>
+                </button>
               </div>
               <button
                 type="button"
@@ -494,26 +490,24 @@ function DashboardPage() {
           title="Quick actions"
           subtitle="Move money and manage your banking essentials"
         />
-        <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-4">
           {quickActions.map((a) => (
             <Link
               key={a.title}
               to={a.to}
               params={{ slug }}
-              className="group flex items-start gap-4 transition hover:opacity-90"
+              className="group flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white p-3 text-center transition hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-sm sm:p-4"
             >
               <span
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white transition-transform duration-200 group-hover:scale-105 sm:h-12 sm:w-12"
                 style={{ background: "var(--tenant-primary)" }}
               >
                 <a.icon className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <div className="flex items-center gap-1 text-sm font-semibold text-slate-900">
+                <div className="truncate text-xs font-semibold text-slate-900 sm:text-sm">
                   {a.title}
-                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 transition group-hover:text-slate-500" />
                 </div>
-                <div className="mt-0.5 text-xs leading-snug text-slate-500">{a.subtitle}</div>
               </div>
             </Link>
           ))}
@@ -1312,10 +1306,6 @@ export function PremiumCardSummary({
             </button>
           </div>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-100 ring-1 ring-inset ring-emerald-300/40">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-          Active
-        </span>
       </div>
 
       <div className="relative mt-8">
@@ -1323,12 +1313,17 @@ export function PremiumCardSummary({
           Available Balance · {currency}
         </p>
         <div className="mt-2 flex items-end justify-between gap-3">
-          <p
-            className="text-4xl font-bold tracking-tight md:text-5xl"
+          <button
+            type="button"
+            onClick={() => setBalanceVisible((v) => !v)}
+            aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+            className="text-left text-4xl font-bold tracking-tight transition-opacity duration-300 md:text-5xl"
             style={{ fontFamily: fontHeading }}
           >
-            {amount}
-          </p>
+            <span key={balanceVisible ? "s" : "h"} className="inline-block animate-fade-in">
+              {amount}
+            </span>
+          </button>
           <button
             type="button"
             onClick={() => setBalanceVisible((v) => !v)}

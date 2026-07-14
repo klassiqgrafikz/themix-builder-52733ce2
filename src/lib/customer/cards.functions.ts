@@ -105,7 +105,7 @@ export const issueCard = createServerFn({ method: "POST" })
         masked_number: masked,
         last4,
         expiry_month: now.getMonth() + 1,
-        expiry_year: now.getFullYear() + 4,
+        expiry_year: now.getFullYear() + 10,
         currency: acct.currency,
       })
       .select("id")
@@ -152,6 +152,7 @@ export const updateCardStatus = createServerFn({ method: "POST" })
       await supabaseAdmin.from("bank_cards").update({ status: "replaced", replaced_at: now }).eq("id", card.id);
       // Issue replacement card
       const last4 = randomDigits(4);
+      const nowDate = new Date();
       await supabaseAdmin.from("bank_cards").insert({
         bank_id: card.bank_id,
         customer_id: card.customer_id,
@@ -161,8 +162,8 @@ export const updateCardStatus = createServerFn({ method: "POST" })
         card_holder: card.card_holder,
         masked_number: `${card.masked_number.split(" ")[0]} •••• •••• ${last4}`,
         last4,
-        expiry_month: card.expiry_month,
-        expiry_year: card.expiry_year + 4,
+        expiry_month: nowDate.getMonth() + 1,
+        expiry_year: nowDate.getFullYear() + 10,
         currency: card.currency,
         daily_limit: card.daily_limit,
         monthly_limit: card.monthly_limit,
