@@ -105,7 +105,7 @@ export const issueCard = createServerFn({ method: "POST" })
         masked_number: masked,
         last4,
         expiry_month: now.getMonth() + 1,
-        expiry_year: now.getFullYear() + 4,
+        expiry_year: now.getFullYear() + 10,
         currency: acct.currency,
       })
       .select("id")
