@@ -47,6 +47,7 @@ import { Route as LaunchCategoryCountryRouteImport } from './routes/launch.$cate
 import { Route as GbocCustomersIdRouteImport } from './routes/gboc.customers.$id'
 import { Route as BanksSlugSplatRouteImport } from './routes/banks.$slug.$'
 import { Route as SlugPortalTransferRouteImport } from './routes/$slug.portal.transfer'
+import { Route as SlugPortalTransactionsRouteImport } from './routes/$slug.portal.transactions'
 import { Route as SlugPortalSupportRouteImport } from './routes/$slug.portal.support'
 import { Route as SlugPortalStatementsRouteImport } from './routes/$slug.portal.statements'
 import { Route as SlugPortalSecurityRouteImport } from './routes/$slug.portal.security'
@@ -251,6 +252,11 @@ const SlugPortalTransferRoute = SlugPortalTransferRouteImport.update({
   path: '/transfer',
   getParentRoute: () => SlugPortalRoute,
 } as any)
+const SlugPortalTransactionsRoute = SlugPortalTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => SlugPortalRoute,
+} as any)
 const SlugPortalSupportRoute = SlugPortalSupportRouteImport.update({
   id: '/support',
   path: '/support',
@@ -293,9 +299,9 @@ const SlugPortalAccountsRoute = SlugPortalAccountsRouteImport.update({
 } as any)
 const SlugPortalTransactionsIndexRoute =
   SlugPortalTransactionsIndexRouteImport.update({
-    id: '/transactions/',
-    path: '/transactions/',
-    getParentRoute: () => SlugPortalRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => SlugPortalTransactionsRoute,
   } as any)
 const ManageBanksIdDashboardDesignerRoute =
   ManageBanksIdDashboardDesignerRouteImport.update({
@@ -311,9 +317,9 @@ const ApiPublicCustomerAvatarCustomerIdRoute =
   } as any)
 const SlugPortalTransactionsIdRoute =
   SlugPortalTransactionsIdRouteImport.update({
-    id: '/transactions/$id',
-    path: '/transactions/$id',
-    getParentRoute: () => SlugPortalRoute,
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => SlugPortalTransactionsRoute,
   } as any)
 const ApiPublicBrandingDraftIdKindRoute =
   ApiPublicBrandingDraftIdKindRouteImport.update({
@@ -361,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/$slug/portal/security': typeof SlugPortalSecurityRoute
   '/$slug/portal/statements': typeof SlugPortalStatementsRoute
   '/$slug/portal/support': typeof SlugPortalSupportRoute
+  '/$slug/portal/transactions': typeof SlugPortalTransactionsRouteWithChildren
   '/$slug/portal/transfer': typeof SlugPortalTransferRoute
   '/banks/$slug/$': typeof BanksSlugSplatRoute
   '/gboc/customers/$id': typeof GbocCustomersIdRoute
@@ -461,6 +468,7 @@ export interface FileRoutesById {
   '/$slug/portal/security': typeof SlugPortalSecurityRoute
   '/$slug/portal/statements': typeof SlugPortalStatementsRoute
   '/$slug/portal/support': typeof SlugPortalSupportRoute
+  '/$slug/portal/transactions': typeof SlugPortalTransactionsRouteWithChildren
   '/$slug/portal/transfer': typeof SlugPortalTransferRoute
   '/banks/$slug/$': typeof BanksSlugSplatRoute
   '/gboc/customers/$id': typeof GbocCustomersIdRoute
@@ -516,6 +524,7 @@ export interface FileRouteTypes {
     | '/$slug/portal/security'
     | '/$slug/portal/statements'
     | '/$slug/portal/support'
+    | '/$slug/portal/transactions'
     | '/$slug/portal/transfer'
     | '/banks/$slug/$'
     | '/gboc/customers/$id'
@@ -615,6 +624,7 @@ export interface FileRouteTypes {
     | '/$slug/portal/security'
     | '/$slug/portal/statements'
     | '/$slug/portal/support'
+    | '/$slug/portal/transactions'
     | '/$slug/portal/transfer'
     | '/banks/$slug/$'
     | '/gboc/customers/$id'
@@ -913,6 +923,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SlugPortalTransferRouteImport
       parentRoute: typeof SlugPortalRoute
     }
+    '/$slug/portal/transactions': {
+      id: '/$slug/portal/transactions'
+      path: '/transactions'
+      fullPath: '/$slug/portal/transactions'
+      preLoaderRoute: typeof SlugPortalTransactionsRouteImport
+      parentRoute: typeof SlugPortalRoute
+    }
     '/$slug/portal/support': {
       id: '/$slug/portal/support'
       path: '/support'
@@ -971,10 +988,10 @@ declare module '@tanstack/react-router' {
     }
     '/$slug/portal/transactions/': {
       id: '/$slug/portal/transactions/'
-      path: '/transactions'
+      path: '/'
       fullPath: '/$slug/portal/transactions/'
       preLoaderRoute: typeof SlugPortalTransactionsIndexRouteImport
-      parentRoute: typeof SlugPortalRoute
+      parentRoute: typeof SlugPortalTransactionsRoute
     }
     '/manage/banks/$id/dashboard-designer': {
       id: '/manage/banks/$id/dashboard-designer'
@@ -992,10 +1009,10 @@ declare module '@tanstack/react-router' {
     }
     '/$slug/portal/transactions/$id': {
       id: '/$slug/portal/transactions/$id'
-      path: '/transactions/$id'
+      path: '/$id'
       fullPath: '/$slug/portal/transactions/$id'
       preLoaderRoute: typeof SlugPortalTransactionsIdRouteImport
-      parentRoute: typeof SlugPortalRoute
+      parentRoute: typeof SlugPortalTransactionsRoute
     }
     '/api/public/branding/$draftId/$kind': {
       id: '/api/public/branding/$draftId/$kind'
@@ -1007,6 +1024,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface SlugPortalTransactionsRouteChildren {
+  SlugPortalTransactionsIdRoute: typeof SlugPortalTransactionsIdRoute
+  SlugPortalTransactionsIndexRoute: typeof SlugPortalTransactionsIndexRoute
+}
+
+const SlugPortalTransactionsRouteChildren: SlugPortalTransactionsRouteChildren =
+  {
+    SlugPortalTransactionsIdRoute: SlugPortalTransactionsIdRoute,
+    SlugPortalTransactionsIndexRoute: SlugPortalTransactionsIndexRoute,
+  }
+
+const SlugPortalTransactionsRouteWithChildren =
+  SlugPortalTransactionsRoute._addFileChildren(
+    SlugPortalTransactionsRouteChildren,
+  )
+
 interface SlugPortalRouteChildren {
   SlugPortalAccountsRoute: typeof SlugPortalAccountsRoute
   SlugPortalBeneficiariesRoute: typeof SlugPortalBeneficiariesRoute
@@ -1016,10 +1049,9 @@ interface SlugPortalRouteChildren {
   SlugPortalSecurityRoute: typeof SlugPortalSecurityRoute
   SlugPortalStatementsRoute: typeof SlugPortalStatementsRoute
   SlugPortalSupportRoute: typeof SlugPortalSupportRoute
+  SlugPortalTransactionsRoute: typeof SlugPortalTransactionsRouteWithChildren
   SlugPortalTransferRoute: typeof SlugPortalTransferRoute
   SlugPortalIndexRoute: typeof SlugPortalIndexRoute
-  SlugPortalTransactionsIdRoute: typeof SlugPortalTransactionsIdRoute
-  SlugPortalTransactionsIndexRoute: typeof SlugPortalTransactionsIndexRoute
 }
 
 const SlugPortalRouteChildren: SlugPortalRouteChildren = {
@@ -1031,10 +1063,9 @@ const SlugPortalRouteChildren: SlugPortalRouteChildren = {
   SlugPortalSecurityRoute: SlugPortalSecurityRoute,
   SlugPortalStatementsRoute: SlugPortalStatementsRoute,
   SlugPortalSupportRoute: SlugPortalSupportRoute,
+  SlugPortalTransactionsRoute: SlugPortalTransactionsRouteWithChildren,
   SlugPortalTransferRoute: SlugPortalTransferRoute,
   SlugPortalIndexRoute: SlugPortalIndexRoute,
-  SlugPortalTransactionsIdRoute: SlugPortalTransactionsIdRoute,
-  SlugPortalTransactionsIndexRoute: SlugPortalTransactionsIndexRoute,
 }
 
 const SlugPortalRouteWithChildren = SlugPortalRoute._addFileChildren(
