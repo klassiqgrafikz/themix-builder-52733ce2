@@ -1363,4 +1363,163 @@ export function PremiumCardSummary({
   );
 }
 
+type SummaryProps = {
+  currency: string;
+  balance: number;
+  balanceVisible: boolean;
+  setBalanceVisible: (fn: (v: boolean) => boolean) => void;
+  acctNumber: string;
+  acctMasked: string;
+  onCopy: (v: string, label: string) => void | Promise<void>;
+  fontHeading?: string;
+};
+
+export function ModernSummary({
+  currency,
+  balance,
+  balanceVisible,
+  setBalanceVisible,
+  acctNumber,
+  acctMasked,
+  onCopy,
+  fontHeading,
+}: SummaryProps) {
+  const amount = balanceVisible ? fmt(balance, currency) : "••••••";
+  return (
+    <section className="grid gap-4 md:grid-cols-5">
+      <div
+        className="relative overflow-hidden rounded-3xl p-6 text-white shadow-lg md:col-span-3 md:p-8"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--tenant-primary) 0%, color-mix(in oklab, var(--tenant-primary) 55%, #ffffff) 100%)",
+        }}
+      >
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-16 -left-8 h-48 w-48 rounded-full bg-black/10 blur-2xl" />
+        <div className="relative">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] opacity-80">
+            Total Balance · {currency}
+          </p>
+          <button
+            type="button"
+            onClick={() => setBalanceVisible((v) => !v)}
+            className="mt-2 text-left text-4xl font-bold tracking-tight md:text-5xl"
+            style={{ fontFamily: fontHeading }}
+          >
+            <span key={balanceVisible ? "s" : "h"} className="inline-block animate-fade-in">
+              {amount}
+            </span>
+          </button>
+          <div className="mt-6 flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.28em] opacity-70">Account</p>
+              <p className="mt-1 truncate font-mono text-sm tracking-[0.18em]">{acctMasked || "—"}</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => onCopy(acctNumber, "Account number")}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25"
+                aria-label="Copy account number"
+              >
+                <Copy className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setBalanceVisible((v) => !v)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25"
+                aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+              >
+                {balanceVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3 md:col-span-2">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+            Available
+          </p>
+          <p
+            className="mt-2 text-2xl font-bold text-slate-900"
+            style={{ fontFamily: fontHeading }}
+          >
+            {amount}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+            Currency
+          </p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{currency}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function MinimalSummary({
+  currency,
+  balance,
+  balanceVisible,
+  setBalanceVisible,
+  acctNumber,
+  acctMasked,
+  onCopy,
+  fontHeading,
+}: SummaryProps) {
+  const amount = balanceVisible ? fmt(balance, currency) : "••••••";
+  return (
+    <section className="rounded-none border-y border-slate-200 bg-white py-10">
+      <div className="mx-auto max-w-3xl px-1 sm:px-2">
+        <p className="text-[10px] font-medium uppercase tracking-[0.32em] text-slate-400">
+          Available Balance · {currency}
+        </p>
+        <button
+          type="button"
+          onClick={() => setBalanceVisible((v) => !v)}
+          className="mt-3 block text-left text-5xl font-light tracking-tight text-slate-900 md:text-6xl"
+          style={{ fontFamily: fontHeading, letterSpacing: "-0.02em" }}
+        >
+          <span key={balanceVisible ? "s" : "h"} className="inline-block animate-fade-in">
+            {amount}
+          </span>
+        </button>
+        <div className="mt-8 grid gap-6 border-t border-slate-100 pt-6 sm:grid-cols-2">
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+              Account Number
+            </p>
+            <div className="mt-2 flex items-center gap-3">
+              <p className="font-mono text-base tracking-[0.16em] text-slate-800">{acctMasked || "—"}</p>
+              <button
+                type="button"
+                onClick={() => onCopy(acctNumber, "Account number")}
+                className="text-xs text-slate-500 underline underline-offset-4 hover:text-slate-800"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+          <div className="sm:text-right">
+            <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+              Balance visibility
+            </p>
+            <button
+              type="button"
+              onClick={() => setBalanceVisible((v) => !v)}
+              className="mt-2 inline-flex items-center gap-2 text-xs text-slate-500 hover:text-slate-800"
+            >
+              {balanceVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              {balanceVisible ? "Hide balance" : "Show balance"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
 
