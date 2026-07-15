@@ -385,7 +385,7 @@ function BankOverview() {
 
         <DashboardStylePanel
           draftId={id}
-          current={(branding.dashboard_style as "classic" | "premium_card" | undefined) ?? "classic"}
+          current={normalizeStyle(branding.dashboard_style)}
           primaryColor={branding.primary_color ?? "#0a2540"}
           secondaryColor={branding.secondary_color ?? "#1e88e5"}
           onSaved={invalidate}
