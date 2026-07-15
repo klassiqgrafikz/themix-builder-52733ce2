@@ -311,11 +311,14 @@ function DashboardPage() {
   // Otherwise fall through to the existing default dashboard below.
   const manifestExt = manifest as unknown as {
     dashboard_layout?: DashboardLayout;
-    dashboard_style?: "classic" | "premium_card";
+    dashboard_style?: string;
   };
   const publishedLayout = manifestExt.dashboard_layout;
-  const dashboardStyle: "classic" | "premium_card" =
-    manifestExt.dashboard_style === "premium_card" ? "premium_card" : "classic";
+  const dashboardStyle: "classic" | "modern" | "minimal" | "premium" =
+    manifestExt.dashboard_style === "modern" ? "modern" :
+    manifestExt.dashboard_style === "minimal" ? "minimal" :
+    manifestExt.dashboard_style === "premium" || manifestExt.dashboard_style === "premium_card" ? "premium" :
+    "classic";
   if (publishedLayout && Array.isArray(publishedLayout.items) && publishedLayout.items.length) {
     return (
       <LayoutDrivenDashboard
