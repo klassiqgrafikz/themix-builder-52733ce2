@@ -398,8 +398,30 @@ function DashboardPage() {
           </div>
         </div>
 
-        {dashboardStyle === "premium_card" ? (
+        {dashboardStyle === "premium" ? (
           <PremiumCardSummary
+            currency={currency}
+            balance={balance}
+            balanceVisible={balanceVisible}
+            setBalanceVisible={setBalanceVisible}
+            acctNumber={acctNumber}
+            acctMasked={acctMasked}
+            onCopy={copyText}
+            fontHeading={theme.typography.heading}
+          />
+        ) : dashboardStyle === "modern" ? (
+          <ModernSummary
+            currency={currency}
+            balance={balance}
+            balanceVisible={balanceVisible}
+            setBalanceVisible={setBalanceVisible}
+            acctNumber={acctNumber}
+            acctMasked={acctMasked}
+            onCopy={copyText}
+            fontHeading={theme.typography.heading}
+          />
+        ) : dashboardStyle === "minimal" ? (
+          <MinimalSummary
             currency={currency}
             balance={balance}
             balanceVisible={balanceVisible}
