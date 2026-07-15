@@ -59,7 +59,14 @@ export type BankIdentity = {
   language: string;
 };
 
-export type DashboardStyle = "classic" | "premium_card";
+export type DashboardStyle = "classic" | "modern" | "minimal" | "premium";
+// Legacy value kept for backwards-compat on drafts saved before v2 of the picker.
+export type DashboardStyleStored = DashboardStyle | "premium_card";
+export function normalizeDashboardStyle(v: unknown): DashboardStyle {
+  if (v === "modern" || v === "minimal" || v === "premium") return v;
+  if (v === "premium_card") return "premium";
+  return "classic";
+}
 
 export type BankBranding = {
   primary_color: string;
