@@ -190,6 +190,14 @@ export function PortalShell({
   const tenantDark = shade(primary, 0.55);
   const tenantDeep = shade(primary, 0.7);
   const variant = manifest.bank.template_variant ?? "modern";
+  const rawStyle = (manifest as unknown as { dashboard_style?: string; brand?: { dashboard_style?: string } })
+    .dashboard_style ??
+    (manifest as unknown as { brand?: { dashboard_style?: string } }).brand?.dashboard_style;
+  const dashboardLayout: "classic" | "modern" | "minimal" | "premium" =
+    rawStyle === "modern" ? "modern" :
+    rawStyle === "minimal" ? "minimal" :
+    rawStyle === "premium" || rawStyle === "premium_card" ? "premium" :
+    "classic";
 
   const slug = manifest.bank.slug;
   const navigate = useNavigate();
