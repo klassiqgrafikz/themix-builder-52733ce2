@@ -141,7 +141,8 @@ export type WebsiteManifest = {
    * Dashboard Layout. Only swaps the account-summary component; every other
    * section renders unchanged.
    */
-  dashboard_style?: "classic" | "premium_card";
+  dashboard_style?: "classic" | "modern" | "minimal" | "premium" | "premium_card";
+
 };
 
 export type BankInstance = {
