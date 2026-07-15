@@ -190,6 +190,14 @@ export function PortalShell({
   const tenantDark = shade(primary, 0.55);
   const tenantDeep = shade(primary, 0.7);
   const variant = manifest.bank.template_variant ?? "modern";
+  const rawStyle = (manifest as unknown as { dashboard_style?: string; brand?: { dashboard_style?: string } })
+    .dashboard_style ??
+    (manifest as unknown as { brand?: { dashboard_style?: string } }).brand?.dashboard_style;
+  const dashboardLayout: "classic" | "modern" | "minimal" | "premium" =
+    rawStyle === "modern" ? "modern" :
+    rawStyle === "minimal" ? "minimal" :
+    rawStyle === "premium" || rawStyle === "premium_card" ? "premium" :
+    "classic";
 
   const slug = manifest.bank.slug;
   const navigate = useNavigate();
@@ -244,7 +252,7 @@ export function PortalShell({
           backgroundColor: "#f1f5f9",
           color: "#0f172a",
         }}
-        className="flex w-full flex-col"
+        className="flex w-full flex-col" data-layout={dashboardLayout}
       >
         <div className="text-white" style={{ backgroundColor: primary }}>
           <div className="mx-auto flex max-w-[1280px] items-center justify-between px-6 py-2 text-xs">
@@ -365,7 +373,7 @@ export function PortalShell({
           backgroundColor: "#0a0a0f",
           color: "#f5f2ea",
         }}
-        className="flex w-full"
+        className="flex w-full" data-layout={dashboardLayout}
       >
         <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r md:flex md:flex-col"
           style={{ borderColor: "rgba(201,168,76,0.25)", backgroundColor: "#0d0d14" }}
@@ -491,7 +499,7 @@ export function PortalShell({
         backgroundColor: "#F8FAFC",
         color: "#0f172a",
       }}
-      className="flex w-full"
+      className="flex w-full" data-layout={dashboardLayout}
     >
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 md:block">
         <SidebarBody
