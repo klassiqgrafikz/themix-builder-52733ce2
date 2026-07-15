@@ -785,6 +785,25 @@ function ShortSlugEditor({
   );
 }
 
+type LayoutKey = "classic" | "modern" | "minimal" | "premium";
+
+function normalizeStyle(v: unknown): LayoutKey {
+  if (v === "modern" || v === "minimal" || v === "premium") return v;
+  if (v === "premium_card") return "premium";
+  return "classic";
+}
+
+const LAYOUT_OPTIONS: {
+  key: LayoutKey;
+  title: string;
+  desc: string;
+}[] = [
+  { key: "classic", title: "Classic", desc: "Original TheMixWeb dashboard. Bordered rows, plain typography — the default for existing banks." },
+  { key: "modern", title: "Modern", desc: "Fintech-inspired: gradient balance card, soft shadows, rounded 2xl surfaces, quick-actions grid." },
+  { key: "minimal", title: "Minimal", desc: "Commercial-bank aesthetic: oversized balance typography, hairline separators, generous whitespace." },
+  { key: "premium", title: "Premium", desc: "Private-banking feel: dark canvas, gold accents, animated gradient, glass panels." },
+];
+
 function DashboardStylePanel({
   draftId,
   current,
@@ -793,14 +812,13 @@ function DashboardStylePanel({
   onSaved,
 }: {
   draftId: string;
-  current: "classic" | "premium_card";
+  current: LayoutKey;
   primaryColor: string;
   secondaryColor: string;
   onSaved: () => void;
 }) {
   const qc = useQueryClient();
-  const [selected, setSelected] = useState<"classic" | "premium_card">(current);
-  const [preview, setPreview] = useState<"classic" | "premium_card" | null>(null);
+  const [selected, setSelected] = useState<LayoutKey>(current);
   const updateFn = useServerFn(updateDraft);
 
   const saveMut = useMutation({
@@ -808,8 +826,6 @@ function DashboardStylePanel({
       const draft = qc.getQueryData<BankDraft>(["bb-draft", draftId]);
       const branding = { ...(draft?.branding ?? {}), dashboard_style: selected };
       const patch: Record<string, unknown> = { branding };
-      // Inject into the current manifest so the live customer portal reflects
-      // the change without requiring a full website re-render.
       if (draft?.manifest && typeof draft.manifest === "object" && "version" in draft.manifest) {
         patch.manifest = { ...draft.manifest, dashboard_style: selected };
       }
@@ -822,8 +838,6 @@ function DashboardStylePanel({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Save failed"),
   });
 
-  const previewStyle = preview ?? selected;
-
   return (
     <Card>
       <CardHeader>
@@ -833,104 +847,107 @@ function DashboardStylePanel({
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
         <p className="text-xs text-muted-foreground">
-          Choose how the customer's account summary is displayed on the dashboard.
-          All other sections (Quick Actions, Recent Transactions, Cards, etc.) render exactly the same.
+          Choose the visual identity for this bank's customer portal. All banking
+          logic — transfers, cards, transactions, receipts — remains the same
+          across every layout.
         </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {(
-            [
-              {
-                key: "classic" as const,
-                title: "Classic Layout",
-                desc: "Current dashboard layout with account number and balance shown as stacked rows.",
-              },
-              {
-                key: "premium_card" as const,
-                title: "Premium Card Layout",
-                desc: "Modern account card with account number and available balance inside one premium card using the bank's primary colour.",
-              },
-            ]
-          ).map((opt) => {
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {LAYOUT_OPTIONS.map((opt) => {
             const active = selected === opt.key;
             return (
               <button
                 type="button"
                 key={opt.key}
                 onClick={() => setSelected(opt.key)}
-                className={`rounded-lg border p-4 text-left transition ${
+                className={`flex flex-col overflow-hidden rounded-xl border text-left transition ${
                   active ? "border-primary ring-2 ring-primary/30" : "hover:border-primary/60"
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">{opt.title}</div>
-                  {active && <Badge variant="default" className="text-[10px]">Selected</Badge>}
+                <LayoutThumb layout={opt.key} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+                <div className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{opt.title}</div>
+                    {active && <Badge variant="default" className="text-[10px]">Selected</Badge>}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">{opt.desc}</div>
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">{opt.desc}</div>
               </button>
             );
           })}
         </div>
 
-        <div className="rounded-lg border bg-muted/30 p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Preview
-            </div>
-            <div className="text-[10px] text-muted-foreground">
-              {previewStyle === "premium_card" ? "Premium Card Layout" : "Classic Layout"}
-            </div>
-          </div>
-          {previewStyle === "premium_card" ? (
-            <div
-              className="rounded-2xl p-5 text-white shadow-md"
-              style={{
-                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-              }}
-            >
-              <div className="flex items-center justify-between text-[10px] uppercase tracking-widest opacity-80">
-                <span>Account Number</span>
-                <span className="rounded-full bg-emerald-400/25 px-2 py-0.5 text-emerald-100">Active</span>
-              </div>
-              <div className="mt-1 font-mono text-sm tracking-[0.14em]">1234 5678 9012 3456</div>
-              <div className="mt-5 text-[10px] uppercase tracking-widest opacity-80">
-                Available Balance · USD
-              </div>
-              <div className="mt-1 text-3xl font-bold">$24,580.00</div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="border-b py-3">
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Account Number</div>
-                <div className="font-mono text-sm tracking-[0.14em]">1234 5678 9012 3456</div>
-              </div>
-              <div className="border-b py-3">
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Available Balance · USD</div>
-                <div className="text-2xl font-bold">$24,580.00</div>
-              </div>
-              <div className="py-2">
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Current Balance</div>
-                <div className="text-lg font-semibold">$24,580.00</div>
-              </div>
-            </div>
-          )}
-        </div>
-
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setPreview((p) => (p === selected ? null : selected))}
-          >
-            {preview === selected ? "Hide Preview" : "Preview"}
-          </Button>
           <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || selected === current}>
             {saveMut.isPending ? "Saving…" : "Save Layout"}
           </Button>
           {selected !== current && (
             <span className="text-xs text-muted-foreground">Unsaved changes</span>
           )}
+          <span className="ml-auto text-[11px] text-muted-foreground">
+            Changes apply instantly to the live customer portal.
+          </span>
         </div>
       </CardContent>
     </Card>
   );
 }
+
+function LayoutThumb({
+  layout,
+  primaryColor,
+  secondaryColor,
+}: {
+  layout: LayoutKey;
+  primaryColor: string;
+  secondaryColor: string;
+}) {
+  if (layout === "premium") {
+    return (
+      <div className="relative h-24 w-full overflow-hidden bg-neutral-950 p-3">
+        <div className="text-[8px] uppercase tracking-[0.3em]" style={{ color: "#c9a84c" }}>Private Banking</div>
+        <div className="mt-1 h-1 w-8" style={{ backgroundColor: "#c9a84c" }} />
+        <div className="mt-2 h-10 w-full rounded" style={{ background: `linear-gradient(135deg, #1a1a22, #0d0d14)`, border: "1px solid rgba(201,168,76,0.35)" }} />
+      </div>
+    );
+  }
+  if (layout === "modern") {
+    return (
+      <div className="h-24 w-full bg-slate-50 p-3">
+        <div
+          className="h-12 w-full rounded-xl"
+          style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}
+        />
+        <div className="mt-2 grid grid-cols-3 gap-1">
+          <div className="h-4 rounded bg-white shadow-sm" />
+          <div className="h-4 rounded bg-white shadow-sm" />
+          <div className="h-4 rounded bg-white shadow-sm" />
+        </div>
+      </div>
+    );
+  }
+  if (layout === "minimal") {
+    return (
+      <div className="h-24 w-full bg-white p-3">
+        <div className="text-[8px] uppercase tracking-widest text-slate-400">Balance</div>
+        <div className="text-lg font-semibold text-slate-900">$24,580</div>
+        <div className="mt-2 border-t border-slate-200" />
+        <div className="mt-1 h-2 w-24 rounded bg-slate-100" />
+      </div>
+    );
+  }
+  return (
+    <div className="h-24 w-full bg-white p-3">
+      <div className="border-b py-1">
+        <div className="text-[8px] uppercase tracking-widest text-slate-400">Account</div>
+        <div className="font-mono text-[10px] text-slate-700">•••• 3456</div>
+      </div>
+      <div className="border-b py-1">
+        <div className="text-[8px] uppercase tracking-widest text-slate-400">Balance</div>
+        <div className="text-sm font-bold text-slate-900">$24,580</div>
+      </div>
+    </div>
+  );
+}
+
 
