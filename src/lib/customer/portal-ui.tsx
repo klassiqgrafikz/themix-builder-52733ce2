@@ -380,7 +380,7 @@ export function PortalShell({
         >
           <div className="border-b px-6 py-6" style={{ borderColor: "rgba(201,168,76,0.2)" }}>
             <div className="text-[10px] uppercase tracking-[0.35em]" style={{ color: "#c9a84c" }}>
-              Private Banking
+              Online Banking
             </div>
             <div
               className="mt-2 text-xl"
