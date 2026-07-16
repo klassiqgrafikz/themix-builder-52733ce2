@@ -13,12 +13,26 @@ export const Route = createFileRoute("/$slug")({
     }
     const m = loaderData.bank.manifest;
     const icon = m.brand.login_logo_url ?? m.brand.dashboard_logo_url;
+    const desc = `Secure online banking for ${m.bank.name} customers.`;
     return {
       meta: [
         { title: m.bank.name },
-        { name: "description", content: m.metadata.description },
+        { name: "description", content: desc },
+        { property: "og:title", content: m.bank.name },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
+        { name: "twitter:title", content: m.bank.name },
+        { name: "twitter:description", content: desc },
+        ...(icon ? [{ property: "og:image" as const, content: icon }] : []),
+        ...(icon ? [{ name: "twitter:image" as const, content: icon }] : []),
       ],
-      links: icon ? [{ rel: "icon", href: icon }] : [],
+      links: icon
+        ? [
+            { rel: "icon", href: icon },
+            { rel: "apple-touch-icon", href: icon },
+          ]
+        : [],
     };
   },
   notFoundComponent: TenantNotFound,

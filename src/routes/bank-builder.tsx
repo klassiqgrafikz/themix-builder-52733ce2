@@ -31,8 +31,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { LOCALES, DEFAULT_LOCALE, findLocale } from "@/lib/i18n/locales";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/bank-builder")({
@@ -211,7 +214,8 @@ function StepIdentity({
   const [country, setCountry] = useState(identity.country_code ?? "");
   const [currency, setCurrency] = useState(identity.currency ?? "");
   const [timezone, setTimezone] = useState(identity.timezone ?? "");
-  const [language, setLanguage] = useState(identity.language ?? "");
+  const [language, setLanguage] = useState(identity.language ?? DEFAULT_LOCALE);
+  const [langOpen, setLangOpen] = useState(false);
 
   useEffect(() => {
     if (bankName && !identity.subdomain) setSubdomain(slugify(bankName));
@@ -221,9 +225,10 @@ function StepIdentity({
   useEffect(() => {
     const c = countries.find((x) => x.code === country);
     if (c) {
+      // Currency and timezone still auto-fill from country; language does NOT
+      // — it always defaults to English and is chosen explicitly.
       if (!currency) setCurrency(c.currency);
       if (!timezone) setTimezone(c.timezone);
-      if (!language) setLanguage(c.default_language);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [country, countries]);
@@ -262,7 +267,53 @@ function StepIdentity({
             <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
           </Field>
           <Field label="Language">
-            <Input value={language} onChange={(e) => setLanguage(e.target.value)} />
+            <Popover open={langOpen} onOpenChange={setLangOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between font-normal"
+                >
+                  {findLocale(language).label}
+                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command
+                  filter={(value, search) => {
+                    const s = search.toLowerCase();
+                    return value.toLowerCase().includes(s) ? 1 : 0;
+                  }}
+                >
+                  <CommandInput placeholder="Search language…" />
+                  <CommandList>
+                    <CommandEmpty>No language found.</CommandEmpty>
+                    <CommandGroup>
+                      {LOCALES.map((l) => (
+                        <CommandItem
+                          key={l.code}
+                          value={`${l.label} ${l.native} ${l.code}`}
+                          onSelect={() => {
+                            setLanguage(l.code);
+                            setLangOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              language === l.code ? "opacity-100" : "opacity-0",
+                            )}
+                          />
+                          <span>{l.label}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">{l.native}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </Field>
           <div className="sm:col-span-2 rounded-lg border bg-muted/50 p-4">
             <div className="text-xs text-muted-foreground">Your bank will live at</div>
