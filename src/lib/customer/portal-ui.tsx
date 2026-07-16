@@ -117,7 +117,7 @@ function SidebarBody({
               {manifest.bank.name}
             </div>
             <div className="text-[11px] uppercase tracking-[0.14em] text-white/50">
-              Premium Banking
+              Online Banking
             </div>
           </div>
         </Link>
@@ -294,7 +294,7 @@ export function PortalShell({
                   {manifest.bank.name}
                 </div>
                 <div className="text-[10px] uppercase tracking-widest text-slate-500">
-                  Client Portal
+                  Online Banking
                 </div>
               </div>
             </Link>
