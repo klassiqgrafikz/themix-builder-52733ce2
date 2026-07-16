@@ -36,8 +36,33 @@ export const NAV_PRODUCT_REQUIREMENTS: Record<string, string[]> = {
   profile: [],
 };
 
+/**
+ * Nav-key → module keys (from bb_modules) that must be enabled for the
+ * nav item to appear. When a nav key maps to at least one module, at
+ * least one of those modules must be enabled in manifest.modules.
+ * Nav keys not listed here are always considered module-enabled.
+ */
+export const NAV_MODULE_REQUIREMENTS: Record<string, string[]> = {
+  accounts: ["accounts"],
+  transfer: ["transfers"],
+  beneficiaries: ["beneficiaries"],
+  cards: ["cards", "virtual_cards"],
+  statements: ["statements"],
+  support: ["contact_support", "live_chat", "help_center"],
+  profile: ["profile"],
+  notifications: ["notifications", "secure_messages"],
+};
+
 export function enabledProductCodes(manifest: WebsiteManifest): Set<string> {
   return new Set(manifest.products.map((p) => p.code));
+}
+
+export function enabledModuleKeys(manifest: WebsiteManifest): Set<string> {
+  return new Set((manifest.modules ?? []).map((m) => m.key));
+}
+
+export function isModuleEnabled(manifest: WebsiteManifest, key: string): boolean {
+  return enabledModuleKeys(manifest).has(key);
 }
 
 export function isProductEnabled(manifest: WebsiteManifest, code: string): boolean {
@@ -51,9 +76,18 @@ export function isAnyProductEnabled(manifest: WebsiteManifest, codes: string[]):
 }
 
 export function isNavEnabled(manifest: WebsiteManifest, navKey: string): boolean {
-  const req = NAV_PRODUCT_REQUIREMENTS[navKey];
-  if (!req) return true;
-  return isAnyProductEnabled(manifest, req);
+  const productReq = NAV_PRODUCT_REQUIREMENTS[navKey];
+  const productOk = productReq ? isAnyProductEnabled(manifest, productReq) : true;
+  const moduleReq = NAV_MODULE_REQUIREMENTS[navKey];
+  if (moduleReq && moduleReq.length > 0) {
+    const modules = enabledModuleKeys(manifest);
+    // If the manifest carries no module info at all (legacy banks),
+    // fall back to product-only gating so we don't hide everything.
+    if (modules.size === 0) return productOk;
+    const moduleOk = moduleReq.some((k) => modules.has(k));
+    return productOk && moduleOk;
+  }
+  return productOk;
 }
 
 export function enabledProductsByCategory(
