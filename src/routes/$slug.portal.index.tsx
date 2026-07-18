@@ -1248,6 +1248,7 @@ function LayoutDrivenDashboard(props: {
       <div className="grid grid-cols-12 gap-6">
         {layout.items
           .filter((it) => it.visible !== false)
+          .filter((it) => isDashboardKindEnabled(manifest, it.kind))
           .map((it) => {
             const width = (it.width ?? "full") as WidthSize;
             const kind = it.kind as DashboardComponentKind;
