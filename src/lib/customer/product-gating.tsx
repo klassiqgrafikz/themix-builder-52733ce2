@@ -5,6 +5,8 @@
 // No queries, no schema, no server calls — pure derivations from the manifest
 // already loaded by the /$slug/portal route loader.
 import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { LockKeyhole } from "lucide-react";
 import type { WebsiteManifest, ResolvedProductRef } from "@/lib/rendering/types";
 import { BrandedCard } from "./portal-ui";
 
