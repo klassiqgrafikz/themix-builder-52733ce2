@@ -139,3 +139,90 @@ export function IfProduct({
 }) {
   return isAnyProductEnabled(manifest, codes) ? <>{children}</> : null;
 }
+
+/**
+ * Portal URL segment (the part after `/$slug/portal`) → nav key. Used by the
+ * PortalShell to gate directly-visited URLs against the enabled modules.
+ * Segment "" is the dashboard (always allowed).
+ */
+export function activePathToNavKey(activePath: string): string | null {
+  const clean = activePath.replace(/^\/+|\/+$/g, "");
+  if (!clean) return "dashboard";
+  const head = clean.split("/")[0];
+  const known = new Set([
+    "dashboard","accounts","transfer","beneficiaries","transactions",
+    "cards","statements","notifications","support","security","profile",
+  ]);
+  return known.has(head) ? head : null;
+}
+
+/** Dashboard widget kind → nav key it depends on (null = always allowed). */
+export const DASHBOARD_KIND_NAV: Record<string, string | null> = {
+  header: null,
+  account_summary: "accounts",
+  quick_actions: null,
+  recent_transactions: "transactions",
+  balance_trend: null,
+  exchange_rates: null,
+  cards: "cards",
+  beneficiaries: "beneficiaries",
+  notifications: "notifications",
+  faq: null,
+  support: "support",
+};
+
+export function isDashboardKindEnabled(manifest: WebsiteManifest, kind: string): boolean {
+  const nav = DASHBOARD_KIND_NAV[kind];
+  if (!nav) return true;
+  return isNavEnabled(manifest, nav);
+}
+
+/**
+ * Full-page "Module Not Enabled" screen rendered when a customer visits a
+ * portal URL whose module has been disabled in the Bank Builder. Keeps the
+ * URL intact (no redirect) so admins can share links safely.
+ */
+export function ModuleNotEnabled({
+  manifest,
+  slug,
+  navKey,
+}: {
+  manifest: WebsiteManifest;
+  slug: string;
+  navKey?: string | null;
+}) {
+  const primary = manifest.theme.colors.primary;
+  const label = navKey
+    ? navKey.charAt(0).toUpperCase() + navKey.slice(1)
+    : "This service";
+  return (
+    <div className="mx-auto max-w-xl py-10">
+      <BrandedCard manifest={manifest}>
+        <div className="py-8 text-center">
+          <div
+            className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full"
+            style={{ backgroundColor: `${primary}18`, color: primary }}
+          >
+            <LockKeyhole className="h-6 w-6" />
+          </div>
+          <h2 className="text-lg font-semibold" style={{ color: primary }}>
+            Module Not Enabled
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-sm opacity-70">
+            {label} is not available for {manifest.bank.name}. If you believe
+            this is a mistake, please contact your bank's support team.
+          </p>
+          <Link
+            to="/$slug/portal"
+            params={{ slug }}
+            className="mt-6 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+            style={{ backgroundColor: primary }}
+          >
+            Back to Dashboard
+          </Link>
+        </div>
+      </BrandedCard>
+    </div>
+  );
+}
+
