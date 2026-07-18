@@ -6,7 +6,7 @@ import type { CustomerRestriction } from "./restrictions.functions";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerProfile } from "./types";
 import { logoutCustomer } from "./customer.functions";
-import { isNavEnabled } from "./product-gating";
+import { isNavEnabled, activePathToNavKey, ModuleNotEnabled } from "./product-gating";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
