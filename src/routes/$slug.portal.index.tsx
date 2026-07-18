@@ -17,7 +17,7 @@ import {
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import { defaultDashboardLayout, type DashboardComponentKind, type DashboardLayout, type WidthSize } from "@/lib/dashboard-layout/types";
 import type { CustomerSession, CustomerAccount } from "@/lib/customer/types";
-import { isNavEnabled } from "@/lib/customer/product-gating";
+import { isNavEnabled, isDashboardKindEnabled } from "@/lib/customer/product-gating";
 import {
   customerListRestrictions,
   customerListTransactions,
