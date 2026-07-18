@@ -234,12 +234,24 @@ export function PortalShell({
   const nav = NAV.filter((n) => isNavEnabled(manifest, n.key));
   const activeLabel = nav.find((n) => n.path === activePath)?.label ?? "Dashboard";
 
+  // Gate directly-visited URLs against the enabled modules. If the current
+  // portal path resolves to a nav key that has been disabled in the Bank
+  // Builder, render a friendly "Module Not Enabled" screen instead of the
+  // route body — the URL stays intact, no redirect, no additional queries.
+  const navKey = activePathToNavKey(activePath);
+  const gated = navKey !== null && !isNavEnabled(manifest, navKey);
+
   const content = (
     <RestrictionsContext.Provider value={restrictions}>
       <RestrictionBanner restrictions={restrictions} />
-      {children}
+      {gated ? (
+        <ModuleNotEnabled manifest={manifest} slug={slug} navKey={navKey} />
+      ) : (
+        children
+      )}
     </RestrictionsContext.Provider>
   );
+
 
   /* ============ CORPORATE: horizontal top-nav shell ============ */
   if (variant === "corporate") {
