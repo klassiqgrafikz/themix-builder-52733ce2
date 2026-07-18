@@ -17,7 +17,7 @@ import {
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import { defaultDashboardLayout, type DashboardComponentKind, type DashboardLayout, type WidthSize } from "@/lib/dashboard-layout/types";
 import type { CustomerSession, CustomerAccount } from "@/lib/customer/types";
-import { isNavEnabled } from "@/lib/customer/product-gating";
+import { isNavEnabled, isDashboardKindEnabled } from "@/lib/customer/product-gating";
 import {
   customerListRestrictions,
   customerListTransactions,
@@ -1248,6 +1248,7 @@ function LayoutDrivenDashboard(props: {
       <div className="grid grid-cols-12 gap-6">
         {layout.items
           .filter((it) => it.visible !== false)
+          .filter((it) => isDashboardKindEnabled(manifest, it.kind))
           .map((it) => {
             const width = (it.width ?? "full") as WidthSize;
             const kind = it.kind as DashboardComponentKind;
