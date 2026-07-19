@@ -237,7 +237,7 @@ function PortalShellInner({
   const logoutMut = useMutation({
     mutationFn: () => doLogout({ data: { slug } }),
     onSuccess: () => {
-      toast.success("Signed out");
+      toast.success(t("shell.signed_out"));
       navigate({ to: "/$slug/login", params: { slug } });
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Logout failed"),
@@ -251,7 +251,7 @@ function PortalShellInner({
   } as CSSProperties;
 
   const nav = NAV.filter((n) => isNavEnabled(manifest, n.key));
-  const activeLabel = nav.find((n) => n.path === activePath)?.label ?? "Dashboard";
+  const activeLabel = (() => { const n = nav.find((x) => x.path === activePath); return n ? t(n.tKey) : t("nav.dashboard"); })();
 
   // Gate directly-visited URLs against the enabled modules. If the current
   // portal path resolves to a nav key that has been disabled in the Bank
@@ -296,7 +296,7 @@ function PortalShellInner({
               className="inline-flex items-center gap-1 opacity-90 hover:opacity-100"
             >
               <LogOut className="h-3.5 w-3.5" />
-              {logoutMut.isPending ? "Signing out…" : "Sign out"}
+              {logoutMut.isPending ? t("shell.logging_out") : t("shell.logout")}
             </button>
           </div>
         </div>
@@ -325,7 +325,7 @@ function PortalShellInner({
                   {manifest.bank.name}
                 </div>
                 <div className="text-[10px] uppercase tracking-widest text-slate-500">
-                  Online Banking
+                  {t("shell.online_banking")}
                 </div>
               </div>
             </Link>
@@ -411,7 +411,7 @@ function PortalShellInner({
         >
           <div className="border-b px-6 py-6" style={{ borderColor: "rgba(201,168,76,0.2)" }}>
             <div className="text-[10px] uppercase tracking-[0.35em]" style={{ color: "#c9a84c" }}>
-              Online Banking
+              {t("shell.online_banking")}
             </div>
             <div
               className="mt-2 text-xl"
@@ -456,7 +456,7 @@ function PortalShellInner({
               className="mt-3 w-full border px-3 py-2 text-[11px] uppercase tracking-[0.25em]"
               style={{ borderColor: "rgba(201,168,76,0.5)", color: "#c9a84c" }}
             >
-              {logoutMut.isPending ? "Signing out…" : "Sign out"}
+              {logoutMut.isPending ? t("shell.logging_out") : t("shell.logout")}
             </button>
           </div>
         </aside>
