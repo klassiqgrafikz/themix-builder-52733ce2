@@ -25,25 +25,27 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { NotificationBell } from "./notification-bell";
+import { I18nProvider, useT } from "@/lib/i18n";
+import type { TranslationKey } from "@/lib/i18n";
 
 type NavEntry = {
   key: string;
-  label: string;
+  tKey: TranslationKey;
   path: string;
   icon: LucideIcon;
 };
 
 const NAV: NavEntry[] = [
-  { key: "dashboard", label: "Dashboard", path: "", icon: LayoutDashboard },
-  { key: "accounts", label: "Accounts", path: "/accounts", icon: Wallet },
-  { key: "transfer", label: "Transfer", path: "/transfer", icon: Send },
-  { key: "beneficiaries", label: "Beneficiaries", path: "/beneficiaries", icon: Users },
-  { key: "transactions", label: "Transactions", path: "/transactions", icon: ListOrdered },
-  { key: "cards", label: "Cards", path: "/cards", icon: CreditCard },
-  { key: "statements", label: "Statements", path: "/statements", icon: FileText },
-  { key: "support", label: "Support", path: "/support", icon: LifeBuoy },
-  { key: "security", label: "Security", path: "/security", icon: ShieldCheck },
-  { key: "profile", label: "Profile", path: "/profile", icon: User },
+  { key: "dashboard", tKey: "nav.dashboard", path: "", icon: LayoutDashboard },
+  { key: "accounts", tKey: "nav.accounts", path: "/accounts", icon: Wallet },
+  { key: "transfer", tKey: "nav.transfer", path: "/transfer", icon: Send },
+  { key: "beneficiaries", tKey: "nav.beneficiaries", path: "/beneficiaries", icon: Users },
+  { key: "transactions", tKey: "nav.transactions", path: "/transactions", icon: ListOrdered },
+  { key: "cards", tKey: "nav.cards", path: "/cards", icon: CreditCard },
+  { key: "statements", tKey: "nav.statements", path: "/statements", icon: FileText },
+  { key: "support", tKey: "nav.support", path: "/support", icon: LifeBuoy },
+  { key: "security", tKey: "nav.security", path: "/security", icon: ShieldCheck },
+  { key: "profile", tKey: "nav.profile", path: "/profile", icon: User },
 ];
 
 function shade(hex: string, amount: number): string {
