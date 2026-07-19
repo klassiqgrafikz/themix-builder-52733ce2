@@ -175,19 +175,35 @@ function SidebarBody({
   );
 }
 
-export function PortalShell({
-  manifest,
-  customer,
-  activePath,
-  restrictions = [],
-  children,
-}: {
+type PortalShellProps = {
   manifest: WebsiteManifest;
   customer: CustomerProfile;
   activePath: string;
   restrictions?: CustomerRestriction[];
   children: ReactNode;
-}) {
+};
+
+export function PortalShell(props: PortalShellProps) {
+  const { manifest } = props;
+  return (
+    <I18nProvider
+      language={manifest.bank.language}
+      currency={manifest.bank.currency}
+      timezone={manifest.bank.timezone}
+    >
+      <PortalShellInner {...props} />
+    </I18nProvider>
+  );
+}
+
+function PortalShellInner({
+  manifest,
+  customer,
+  activePath,
+  restrictions = [],
+  children,
+}: PortalShellProps) {
+  const t = useT();
   const theme = manifest.theme;
   const primary = theme.colors.primary || "#061938";
   const tenantDark = shade(primary, 0.55);
