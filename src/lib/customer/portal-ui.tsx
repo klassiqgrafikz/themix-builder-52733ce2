@@ -146,7 +146,7 @@ function SidebarBody({
               }}
             >
               <Icon className="h-[18px] w-[18px]" />
-              <span>{n.label}</span>
+              <span>{t(n.tKey)}</span>
             </Link>
           );
         })}
@@ -341,7 +341,7 @@ export function PortalShell({
                       fontWeight: active ? 600 : 500,
                     }}
                   >
-                    <Icon className="h-4 w-4" /> {n.label}
+                    <Icon className="h-4 w-4" /> {t(n.tKey)}
                   </Link>
                 );
               })}
@@ -364,7 +364,7 @@ export function PortalShell({
                       backgroundColor: active ? `${primary}0d` : undefined,
                     }}
                   >
-                    <Icon className="h-4 w-4" /> {n.label}
+                    <Icon className="h-4 w-4" /> {t(n.tKey)}
                   </Link>
                 );
               })}
@@ -421,7 +421,7 @@ export function PortalShell({
                     fontWeight: active ? 600 : 500,
                   }}
                 >
-                  <Icon className="h-4 w-4" /> {n.label}
+                  <Icon className="h-4 w-4" /> {t(n.tKey)}
                 </Link>
               );
             })}
@@ -484,7 +484,7 @@ export function PortalShell({
                       color: active ? "#c9a84c" : "rgba(245,242,234,0.65)",
                     }}
                   >
-                    <Icon className="h-4 w-4" /> {n.label}
+                    <Icon className="h-4 w-4" /> {t(n.tKey)}
                   </Link>
                 );
               })}
