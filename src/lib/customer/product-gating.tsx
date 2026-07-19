@@ -9,6 +9,7 @@ import { Link } from "@tanstack/react-router";
 import { LockKeyhole } from "lucide-react";
 import type { WebsiteManifest, ResolvedProductRef } from "@/lib/rendering/types";
 import { BrandedCard } from "./portal-ui";
+import { useT, type TranslationKey } from "@/lib/i18n";
 
 /**
  * Nav-key → product codes that must be enabled for the nav item to appear.
