@@ -79,6 +79,7 @@ function SidebarBody({
   loggingOut: boolean;
 }) {
   const theme = manifest.theme;
+  const t = useT();
   const nav = NAV.filter((n) => isNavEnabled(manifest, n.key));
   return (
     <div
@@ -119,7 +120,7 @@ function SidebarBody({
               {manifest.bank.name}
             </div>
             <div className="text-[11px] uppercase tracking-[0.14em] text-white/50">
-              Online Banking
+              {t("shell.online_banking")}
             </div>
           </div>
         </Link>
@@ -167,7 +168,7 @@ function SidebarBody({
           style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
         >
           <LogOut className="h-4 w-4" />
-          {loggingOut ? "Signing out…" : "Logout"}
+          {loggingOut ? t("shell.logging_out") : t("shell.logout")}
         </button>
       </div>
     </div>
