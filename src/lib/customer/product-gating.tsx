@@ -9,6 +9,7 @@ import { Link } from "@tanstack/react-router";
 import { LockKeyhole } from "lucide-react";
 import type { WebsiteManifest, ResolvedProductRef } from "@/lib/rendering/types";
 import { BrandedCard } from "./portal-ui";
+import { useT, type TranslationKey } from "@/lib/i18n";
 
 /**
  * Nav-key → product codes that must be enabled for the nav item to appear.
@@ -192,9 +193,23 @@ export function ModuleNotEnabled({
   navKey?: string | null;
 }) {
   const primary = manifest.theme.colors.primary;
-  const label = navKey
-    ? navKey.charAt(0).toUpperCase() + navKey.slice(1)
-    : "This service";
+  const t = useT();
+  const NAV_TKEYS: Record<string, TranslationKey> = {
+    dashboard: "nav.dashboard",
+    accounts: "nav.accounts",
+    transfer: "nav.transfer",
+    beneficiaries: "nav.beneficiaries",
+    transactions: "nav.transactions",
+    cards: "nav.cards",
+    statements: "nav.statements",
+    support: "nav.support",
+    security: "nav.security",
+    profile: "nav.profile",
+    notifications: "nav.notifications",
+  };
+  const label = navKey && NAV_TKEYS[navKey]
+    ? t(NAV_TKEYS[navKey])
+    : (navKey ? navKey.charAt(0).toUpperCase() + navKey.slice(1) : "This service");
   return (
     <div className="mx-auto max-w-xl py-10">
       <BrandedCard manifest={manifest}>
@@ -206,11 +221,10 @@ export function ModuleNotEnabled({
             <LockKeyhole className="h-6 w-6" />
           </div>
           <h2 className="text-lg font-semibold" style={{ color: primary }}>
-            Module Not Enabled
+            {t("gate.title")}
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm opacity-70">
-            {label} is not available for {manifest.bank.name}. If you believe
-            this is a mistake, please contact your bank's support team.
+            {t("gate.description", { name: label, bank: manifest.bank.name })}
           </p>
           <Link
             to="/$slug/portal"
@@ -218,7 +232,7 @@ export function ModuleNotEnabled({
             className="mt-6 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
             style={{ backgroundColor: primary }}
           >
-            Back to Dashboard
+            {t("gate.back_to_dashboard")}
           </Link>
         </div>
       </BrandedCard>

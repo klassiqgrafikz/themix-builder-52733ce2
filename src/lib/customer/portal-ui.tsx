@@ -25,25 +25,27 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { NotificationBell } from "./notification-bell";
+import { I18nProvider, useT } from "@/lib/i18n";
+import type { TranslationKey } from "@/lib/i18n";
 
 type NavEntry = {
   key: string;
-  label: string;
+  tKey: TranslationKey;
   path: string;
   icon: LucideIcon;
 };
 
 const NAV: NavEntry[] = [
-  { key: "dashboard", label: "Dashboard", path: "", icon: LayoutDashboard },
-  { key: "accounts", label: "Accounts", path: "/accounts", icon: Wallet },
-  { key: "transfer", label: "Transfer", path: "/transfer", icon: Send },
-  { key: "beneficiaries", label: "Beneficiaries", path: "/beneficiaries", icon: Users },
-  { key: "transactions", label: "Transactions", path: "/transactions", icon: ListOrdered },
-  { key: "cards", label: "Cards", path: "/cards", icon: CreditCard },
-  { key: "statements", label: "Statements", path: "/statements", icon: FileText },
-  { key: "support", label: "Support", path: "/support", icon: LifeBuoy },
-  { key: "security", label: "Security", path: "/security", icon: ShieldCheck },
-  { key: "profile", label: "Profile", path: "/profile", icon: User },
+  { key: "dashboard", tKey: "nav.dashboard", path: "", icon: LayoutDashboard },
+  { key: "accounts", tKey: "nav.accounts", path: "/accounts", icon: Wallet },
+  { key: "transfer", tKey: "nav.transfer", path: "/transfer", icon: Send },
+  { key: "beneficiaries", tKey: "nav.beneficiaries", path: "/beneficiaries", icon: Users },
+  { key: "transactions", tKey: "nav.transactions", path: "/transactions", icon: ListOrdered },
+  { key: "cards", tKey: "nav.cards", path: "/cards", icon: CreditCard },
+  { key: "statements", tKey: "nav.statements", path: "/statements", icon: FileText },
+  { key: "support", tKey: "nav.support", path: "/support", icon: LifeBuoy },
+  { key: "security", tKey: "nav.security", path: "/security", icon: ShieldCheck },
+  { key: "profile", tKey: "nav.profile", path: "/profile", icon: User },
 ];
 
 function shade(hex: string, amount: number): string {
@@ -77,6 +79,7 @@ function SidebarBody({
   loggingOut: boolean;
 }) {
   const theme = manifest.theme;
+  const t = useT();
   const nav = NAV.filter((n) => isNavEnabled(manifest, n.key));
   return (
     <div
@@ -117,7 +120,7 @@ function SidebarBody({
               {manifest.bank.name}
             </div>
             <div className="text-[11px] uppercase tracking-[0.14em] text-white/50">
-              Online Banking
+              {t("shell.online_banking")}
             </div>
           </div>
         </Link>
@@ -144,7 +147,7 @@ function SidebarBody({
               }}
             >
               <Icon className="h-[18px] w-[18px]" />
-              <span>{n.label}</span>
+              <span>{t(n.tKey)}</span>
             </Link>
           );
         })}
@@ -165,26 +168,42 @@ function SidebarBody({
           style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
         >
           <LogOut className="h-4 w-4" />
-          {loggingOut ? "Signing out…" : "Logout"}
+          {loggingOut ? t("shell.logging_out") : t("shell.logout")}
         </button>
       </div>
     </div>
   );
 }
 
-export function PortalShell({
-  manifest,
-  customer,
-  activePath,
-  restrictions = [],
-  children,
-}: {
+type PortalShellProps = {
   manifest: WebsiteManifest;
   customer: CustomerProfile;
   activePath: string;
   restrictions?: CustomerRestriction[];
   children: ReactNode;
-}) {
+};
+
+export function PortalShell(props: PortalShellProps) {
+  const { manifest } = props;
+  return (
+    <I18nProvider
+      language={manifest.bank.language}
+      currency={manifest.bank.currency}
+      timezone={manifest.bank.timezone}
+    >
+      <PortalShellInner {...props} />
+    </I18nProvider>
+  );
+}
+
+function PortalShellInner({
+  manifest,
+  customer,
+  activePath,
+  restrictions = [],
+  children,
+}: PortalShellProps) {
+  const t = useT();
   const theme = manifest.theme;
   const primary = theme.colors.primary || "#061938";
   const tenantDark = shade(primary, 0.55);
@@ -218,7 +237,7 @@ export function PortalShell({
   const logoutMut = useMutation({
     mutationFn: () => doLogout({ data: { slug } }),
     onSuccess: () => {
-      toast.success("Signed out");
+      toast.success(t("shell.signed_out"));
       navigate({ to: "/$slug/login", params: { slug } });
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Logout failed"),
@@ -232,7 +251,7 @@ export function PortalShell({
   } as CSSProperties;
 
   const nav = NAV.filter((n) => isNavEnabled(manifest, n.key));
-  const activeLabel = nav.find((n) => n.path === activePath)?.label ?? "Dashboard";
+  const activeLabel = (() => { const n = nav.find((x) => x.path === activePath); return n ? t(n.tKey) : t("nav.dashboard"); })();
 
   // Gate directly-visited URLs against the enabled modules. If the current
   // portal path resolves to a nav key that has been disabled in the Bank
@@ -277,7 +296,7 @@ export function PortalShell({
               className="inline-flex items-center gap-1 opacity-90 hover:opacity-100"
             >
               <LogOut className="h-3.5 w-3.5" />
-              {logoutMut.isPending ? "Signing out…" : "Sign out"}
+              {logoutMut.isPending ? t("shell.logging_out") : t("shell.logout")}
             </button>
           </div>
         </div>
@@ -306,7 +325,7 @@ export function PortalShell({
                   {manifest.bank.name}
                 </div>
                 <div className="text-[10px] uppercase tracking-widest text-slate-500">
-                  Online Banking
+                  {t("shell.online_banking")}
                 </div>
               </div>
             </Link>
@@ -339,7 +358,7 @@ export function PortalShell({
                       fontWeight: active ? 600 : 500,
                     }}
                   >
-                    <Icon className="h-4 w-4" /> {n.label}
+                    <Icon className="h-4 w-4" /> {t(n.tKey)}
                   </Link>
                 );
               })}
@@ -362,7 +381,7 @@ export function PortalShell({
                       backgroundColor: active ? `${primary}0d` : undefined,
                     }}
                   >
-                    <Icon className="h-4 w-4" /> {n.label}
+                    <Icon className="h-4 w-4" /> {t(n.tKey)}
                   </Link>
                 );
               })}
@@ -392,7 +411,7 @@ export function PortalShell({
         >
           <div className="border-b px-6 py-6" style={{ borderColor: "rgba(201,168,76,0.2)" }}>
             <div className="text-[10px] uppercase tracking-[0.35em]" style={{ color: "#c9a84c" }}>
-              Online Banking
+              {t("shell.online_banking")}
             </div>
             <div
               className="mt-2 text-xl"
@@ -419,7 +438,7 @@ export function PortalShell({
                     fontWeight: active ? 600 : 500,
                   }}
                 >
-                  <Icon className="h-4 w-4" /> {n.label}
+                  <Icon className="h-4 w-4" /> {t(n.tKey)}
                 </Link>
               );
             })}
@@ -437,7 +456,7 @@ export function PortalShell({
               className="mt-3 w-full border px-3 py-2 text-[11px] uppercase tracking-[0.25em]"
               style={{ borderColor: "rgba(201,168,76,0.5)", color: "#c9a84c" }}
             >
-              {logoutMut.isPending ? "Signing out…" : "Sign out"}
+              {logoutMut.isPending ? t("shell.logging_out") : t("shell.logout")}
             </button>
           </div>
         </aside>
@@ -482,7 +501,7 @@ export function PortalShell({
                       color: active ? "#c9a84c" : "rgba(245,242,234,0.65)",
                     }}
                   >
-                    <Icon className="h-4 w-4" /> {n.label}
+                    <Icon className="h-4 w-4" /> {t(n.tKey)}
                   </Link>
                 );
               })}
