@@ -187,9 +187,9 @@ export function PortalShell(props: PortalShellProps) {
   const { manifest } = props;
   return (
     <I18nProvider
-      language={manifest.bank.language}
-      currency={manifest.bank.currency}
-      timezone={manifest.bank.timezone}
+      language={manifest?.bank?.language}
+      currency={manifest?.bank?.currency}
+      timezone={manifest?.bank?.timezone}
     >
       <PortalShellInner {...props} />
     </I18nProvider>
@@ -253,10 +253,6 @@ function PortalShellInner({
   const nav = NAV.filter((n) => isNavEnabled(manifest, n.key));
   const activeLabel = (() => { const n = nav.find((x) => x.path === activePath); return n ? t(n.tKey) : t("nav.dashboard"); })();
 
-  // Gate directly-visited URLs against the enabled modules. If the current
-  // portal path resolves to a nav key that has been disabled in the Bank
-  // Builder, render a friendly "Module Not Enabled" screen instead of the
-  // route body — the URL stays intact, no redirect, no additional queries.
   const navKey = activePathToNavKey(activePath);
   const gated = navKey !== null && !isNavEnabled(manifest, navKey);
 
@@ -271,8 +267,6 @@ function PortalShellInner({
     </RestrictionsContext.Provider>
   );
 
-
-  /* ============ CORPORATE: horizontal top-nav shell ============ */
   if (variant === "corporate") {
     return (
       <div
@@ -393,7 +387,6 @@ function PortalShellInner({
     );
   }
 
-  /* ============ PREMIUM: dark executive shell, gold rail ============ */
   if (variant === "premium") {
     return (
       <div
@@ -520,7 +513,6 @@ function PortalShellInner({
     );
   }
 
-  /* ============ MODERN (default): gradient sidebar shell ============ */
   return (
     <div
       style={{
@@ -535,4 +527,21 @@ function PortalShellInner({
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 md:block">
         <SidebarBody
           manifest={manifest}
-              
+          customer={customer}
+          activePath={activePath}
+          slug={slug}
+          onLogout={() => logoutMut.mutate()}
+          loggingOut={logoutMut.isPending}
+        />
+      </aside>
+
+      <header
+        className="fixed inset-x-0 top-0 z-20 flex items-center justify-between border-b bg-white px-4 py-3 md:hidden"
+        style={{ borderColor: "#e2e8f0" }}
+      >
+        <button
+          type="button"
+          className="rounded-xl p-2 text-slate-600 hover:bg-slate-100"
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Open menu"
+        >
