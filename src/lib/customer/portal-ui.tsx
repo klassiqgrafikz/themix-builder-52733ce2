@@ -544,4 +544,4 @@ function PortalShellInner({
           className="rounded-xl p-2 text-slate-600 hover:bg-slate-100"
           onClick={() => setDrawerOpen(true)}
           aria-label="Open menu"
-        >
+                      
