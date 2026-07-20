@@ -177,8 +177,9 @@ export const getDraft = createServerFn({ method: "GET" })
       .from("bb_bank_drafts")
       .select("*")
       .eq("id", data.id)
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!row) throw new Error("Draft not found");
     return row as BankDraft;
   });
 
@@ -202,13 +203,15 @@ export const updateDraft = createServerFn({ method: "POST" })
   .middleware([withPlatformServiceRole])
   .inputValidator((d: { id: string; patch: Record<string, unknown> }) => updateSchema.parse(d))
   .handler(async ({ context, data }): Promise<BankDraft> => {
-    const { data: row, error } = await anyClient(context.supabase)
+    const sb = anyClient(context.supabase);
+    const { data: row, error } = await sb
       .from("bb_bank_drafts")
       .update(data.patch)
       .eq("id", data.id)
       .select("*")
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!row) throw new Error(`Draft with ID ${data.id} not found. Please restart the bank builder flow.`);
     return row as BankDraft;
   });
 
@@ -339,5 +342,4 @@ export const updateShortSlug = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { short_slug: finalSlug };
-  });
-
+  });     
