@@ -21,12 +21,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useT, useFormatDate } from "@/lib/i18n";
 
 export const Route = createFileRoute("/$slug/portal/security")({
   component: SecurityPage,
 });
 
 function SecurityPage() {
+  const t = useT();
+  const fmtDate = useFormatDate();
   const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
@@ -57,49 +60,49 @@ function SecurityPage() {
 
   const pwMut = useMutation({
     mutationFn: () => pwFn({ data: { slug: bank.slug, current_password: current, new_password: next } }),
-    onSuccess: () => { toast.success("Password changed"); setCurrent(""); setNext(""); },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onSuccess: () => { toast.success(t("security.password_changed")); setCurrent(""); setNext(""); },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : t("toast.failed")),
   });
   const pinMut = useMutation({
     mutationFn: () => pinFn({ data: { slug: bank.slug, new_pin: pin } }),
-    onSuccess: () => { toast.success("PIN saved"); setPin(""); },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onSuccess: () => { toast.success(t("security.pin_saved")); setPin(""); },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : t("toast.failed")),
   });
   const twoMut = useMutation({
     mutationFn: (v: boolean) => twoFn({ data: { slug: bank.slug, enabled: v } }),
-    onSuccess: (_r, v) => { setTwoFA(v); toast.success(v ? "2FA enabled" : "2FA disabled"); },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onSuccess: (_r, v) => { setTwoFA(v); toast.success(v ? t("security.two_factor_on") : t("security.two_factor_off")); },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : t("toast.failed")),
   });
 
   return (
     <div className="space-y-6">
       <BrandedCard manifest={bank.manifest}>
-        <h1 className="text-xl font-semibold" style={{ color: primary }}>Security Center</h1>
-        <p className="mt-1 text-sm opacity-70">Manage credentials, devices and sessions.</p>
+        <h1 className="text-xl font-semibold" style={{ color: primary }}>{t("security.title")}</h1>
+        <p className="mt-1 text-sm opacity-70">{t("security.subtitle")}</p>
       </BrandedCard>
 
       <div className="grid gap-6 md:grid-cols-2">
         <BrandedCard manifest={bank.manifest}>
-          <div className="mb-3 text-sm font-semibold" style={{ color: primary }}>Change password</div>
+          <div className="mb-3 text-sm font-semibold" style={{ color: primary }}>{t("security.change_password")}</div>
           <div className="space-y-3">
-            <div><Label>Current password</Label><Input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} /></div>
-            <div><Label>New password</Label><Input type="password" value={next} onChange={(e) => setNext(e.target.value)} /></div>
+            <div><Label>{t("security.current_password")}</Label><Input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} /></div>
+            <div><Label>{t("security.new_password")}</Label><Input type="password" value={next} onChange={(e) => setNext(e.target.value)} /></div>
             <Button disabled={pwMut.isPending || !current || next.length < 8} onClick={() => pwMut.mutate()} style={{ backgroundColor: primary }}>
-              {pwMut.isPending ? "Saving…" : "Update password"}
+              {pwMut.isPending ? t("action.saving") : t("security.update_password")}
             </Button>
           </div>
         </BrandedCard>
 
         <BrandedCard manifest={bank.manifest}>
-          <div className="mb-3 text-sm font-semibold" style={{ color: primary }}>Transaction PIN</div>
+          <div className="mb-3 text-sm font-semibold" style={{ color: primary }}>{t("security.pin_title")}</div>
           <div className="space-y-3">
-            <div><Label>New PIN (4-8 digits)</Label><Input type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} /></div>
-            <Button disabled={pinMut.isPending || pin.length < 4} onClick={() => pinMut.mutate()} style={{ backgroundColor: primary }}>Save PIN</Button>
+            <div><Label>{t("security.pin_label")}</Label><Input type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} /></div>
+            <Button disabled={pinMut.isPending || pin.length < 4} onClick={() => pinMut.mutate()} style={{ backgroundColor: primary }}>{t("security.save_pin")}</Button>
           </div>
           <div className="mt-6 flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium">Two-factor authentication</div>
-              <div className="text-xs opacity-70">Foundation — challenge codes coming soon.</div>
+              <div className="text-sm font-medium">{t("security.two_factor")}</div>
+              <div className="text-xs opacity-70">{t("security.two_factor_hint")}</div>
             </div>
             <Switch checked={twoFA} onCheckedChange={(v) => twoMut.mutate(v)} />
           </div>
@@ -107,23 +110,23 @@ function SecurityPage() {
 
         <BrandedCard manifest={bank.manifest}>
           <div className="mb-3 flex items-center justify-between text-sm font-semibold" style={{ color: primary }}>
-            <span>Trusted devices</span>
+            <span>{t("security.trusted_devices")}</span>
             <div className="flex gap-2">
-              <Input placeholder="Device name" value={deviceLabel} onChange={(e) => setDeviceLabel(e.target.value)} className="h-8 text-xs" />
-              <Button size="sm" onClick={() => { if (!deviceLabel) return; addDev({ data: { slug: bank.slug, label: deviceLabel } }).then(() => { setDeviceLabel(""); qc.invalidateQueries({ queryKey: ["devices", bank.slug] }); }); }}>Add</Button>
+              <Input placeholder={t("security.device_name")} value={deviceLabel} onChange={(e) => setDeviceLabel(e.target.value)} className="h-8 text-xs" />
+              <Button size="sm" onClick={() => { if (!deviceLabel) return; addDev({ data: { slug: bank.slug, label: deviceLabel } }).then(() => { setDeviceLabel(""); qc.invalidateQueries({ queryKey: ["devices", bank.slug] }); }); }}>{t("action.add")}</Button>
             </div>
           </div>
           {(devQ.data ?? []).length === 0 ? (
-            <p className="text-sm opacity-70">No trusted devices yet.</p>
+            <p className="text-sm opacity-70">{t("security.no_devices")}</p>
           ) : (
             <ul className="divide-y">
               {(devQ.data ?? []).map((d) => (
                 <li key={d.id} className="flex items-center justify-between py-2 text-sm">
                   <div>
                     <div className="font-medium">{d.label}</div>
-                    <div className="text-xs opacity-70">{d.user_agent ?? "Unknown UA"} · last used {new Date(d.last_used_at).toLocaleString()}</div>
+                    <div className="text-xs opacity-70">{d.user_agent ?? "Unknown UA"} · {fmtDate(d.last_used_at, { dateStyle: "medium", timeStyle: "short" })}</div>
                   </div>
-                  <button className="text-xs underline text-red-600" onClick={() => rmDev({ data: { slug: bank.slug, id: d.id } }).then(() => qc.invalidateQueries({ queryKey: ["devices", bank.slug] }))}>Remove</button>
+                  <button className="text-xs underline text-red-600" onClick={() => rmDev({ data: { slug: bank.slug, id: d.id } }).then(() => qc.invalidateQueries({ queryKey: ["devices", bank.slug] }))}>{t("action.remove")}</button>
                 </li>
               ))}
             </ul>
@@ -132,9 +135,9 @@ function SecurityPage() {
 
         <BrandedCard manifest={bank.manifest}>
           <div className="mb-3 flex items-center justify-between text-sm font-semibold" style={{ color: primary }}>
-            <span>Active sessions</span>
-            <Button size="sm" variant="outline" onClick={() => revokeFn({ data: { slug: bank.slug } }).then(() => { toast.success("Other sessions signed out"); qc.invalidateQueries({ queryKey: ["sessions", bank.slug] }); })}>
-              Sign out other sessions
+            <span>{t("security.sessions")}</span>
+            <Button size="sm" variant="outline" onClick={() => revokeFn({ data: { slug: bank.slug } }).then(() => { toast.success(t("security.others_signed_out")); qc.invalidateQueries({ queryKey: ["sessions", bank.slug] }); })}>
+              {t("security.sign_out_others")}
             </Button>
           </div>
           <ul className="divide-y">
@@ -142,9 +145,9 @@ function SecurityPage() {
               <li key={s.token_preview} className="flex items-center justify-between py-2 text-sm">
                 <div>
                   <div className="font-mono">{s.token_preview}</div>
-                  <div className="text-xs opacity-70">Expires {new Date(s.expires_at).toLocaleString()}</div>
+                  <div className="text-xs opacity-70">{t("security.expires", { date: fmtDate(s.expires_at, { dateStyle: "medium", timeStyle: "short" }) })}</div>
                 </div>
-                {s.is_current && <span className="rounded px-2 py-0.5 text-xs" style={{ backgroundColor: `${primary}22`, color: primary }}>current</span>}
+                {s.is_current && <span className="rounded px-2 py-0.5 text-xs" style={{ backgroundColor: `${primary}22`, color: primary }}>{t("security.current_session")}</span>}
               </li>
             ))}
           </ul>
@@ -152,15 +155,15 @@ function SecurityPage() {
       </div>
 
       <BrandedCard manifest={bank.manifest}>
-        <div className="mb-3 text-sm font-semibold" style={{ color: primary }}>Login history</div>
+        <div className="mb-3 text-sm font-semibold" style={{ color: primary }}>{t("security.login_history")}</div>
         <ul className="divide-y text-sm">
           {(histQ.data ?? []).map((h) => (
             <li key={h.id} className="flex items-center justify-between py-2">
               <span>{h.event}</span>
-              <span className="text-xs opacity-70">{new Date(h.at).toLocaleString()}</span>
+              <span className="text-xs opacity-70">{fmtDate(h.at, { dateStyle: "medium", timeStyle: "short" })}</span>
             </li>
           ))}
-          {(histQ.data ?? []).length === 0 && <li className="py-3 text-sm opacity-70">No login events recorded.</li>}
+          {(histQ.data ?? []).length === 0 && <li className="py-3 text-sm opacity-70">{t("security.no_history")}</li>}
         </ul>
       </BrandedCard>
     </div>

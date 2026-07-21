@@ -1,10 +1,18 @@
 // Shared PDF receipt generator — used by transfer success screen,
 // transaction detail page, and the download button in transaction lists.
+//
+// Locale-aware: pass `{ locale, currency }` so the PDF matches the
+// tenant's language/currency settings; falls back to en-US/USD.
 import type { TxDetail } from "./transactions.functions";
 
-function fmt(v: number, c: string) {
+export type ReceiptLocale = {
+  locale?: string;
+  currency?: string;
+};
+
+function fmt(v: number, c: string, locale?: string) {
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: c }).format(v);
+    return new Intl.NumberFormat(locale ?? "en", { style: "currency", currency: c }).format(v);
   } catch {
     return `${c} ${v.toFixed(2)}`;
   }
@@ -14,12 +22,65 @@ function friendlyKind(k: string) {
   return k.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
+/**
+ * Localized field labels. English defaults; caller can pass a translator (t)
+ * from useT() so PDF labels follow the customer's language.
+ */
+export type ReceiptStrings = {
+  transactionReceipt: string;
+  amount: string;
+  status: string;
+  transactionType: string;
+  currency: string;
+  sender: string;
+  senderAccount: string;
+  recipient: string;
+  recipientAccount: string;
+  recipientBank: string;
+  transactionId: string;
+  transactionReference: string;
+  date: string;
+  time: string;
+  channel: string;
+  channelOnline: string;
+  narration: string;
+  balanceBefore: string;
+  balanceAfter: string;
+  footer: string;
+};
+
+const DEFAULT_STRINGS: ReceiptStrings = {
+  transactionReceipt: "Transaction Receipt",
+  amount: "Amount",
+  status: "Status",
+  transactionType: "Transaction Type",
+  currency: "Currency",
+  sender: "Sender",
+  senderAccount: "Sender Account",
+  recipient: "Recipient",
+  recipientAccount: "Recipient Account",
+  recipientBank: "Recipient Bank",
+  transactionId: "Transaction ID",
+  transactionReference: "Transaction Reference",
+  date: "Date",
+  time: "Time",
+  channel: "Channel",
+  channelOnline: "Online Banking",
+  narration: "Narration",
+  balanceBefore: "Balance Before",
+  balanceAfter: "Balance After",
+  footer: "This receipt is system generated and does not require a signature.",
+};
+
 type Beneficiary = { name?: string; account_number?: string; bank_name?: string };
 
 export async function buildReceiptPdf(
   t: TxDetail,
   logoUrl: string | null,
+  opts: ReceiptLocale & { strings?: Partial<ReceiptStrings> } = {},
 ): Promise<{ blob: Blob; filename: string }> {
+  const locale = opts.locale ?? undefined;
+  const s: ReceiptStrings = { ...DEFAULT_STRINGS, ...(opts.strings ?? {}) };
   const jspdfMod = await import("jspdf");
   const JsPDF = jspdfMod.jsPDF ?? jspdfMod.default;
   const doc = new JsPDF({ unit: "pt", format: "a4" });
@@ -48,7 +109,7 @@ export async function buildReceiptPdf(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(120);
-  doc.text("Transaction Receipt", marginX + 56, y + 22);
+  doc.text(s.transactionReceipt, marginX + 56, y + 22);
   doc.setTextColor(0);
   y += 60;
 
@@ -59,11 +120,11 @@ export async function buildReceiptPdf(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
   doc.setTextColor(90);
-  doc.text("Amount", marginX, y);
+  doc.text(s.amount, marginX, y);
   doc.setTextColor(0);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
-  doc.text(fmt(t.amount, t.currency), marginX, y + 26);
+  doc.text(fmt(t.amount, t.currency, locale), marginX, y + 26);
   y += 50;
 
   const d = new Date(t.created_at);
@@ -73,23 +134,32 @@ export async function buildReceiptPdf(
       : t.direction === "debit"
         ? t.balance_after + t.amount
         : t.balance_after;
+
+  const fmtDate = (val: Date, o: Intl.DateTimeFormatOptions) => {
+    try {
+      return new Intl.DateTimeFormat(locale ?? "en", o).format(val);
+    } catch {
+      return val.toISOString();
+    }
+  };
+
   const rows: [string, string][] = [
-    ["Status", (t.status || "successful").toUpperCase()],
-    ["Transaction Type", friendlyKind(t.kind)],
-    ["Currency", t.currency],
-    ["Sender", `${t.customer_name}`],
-    ["Sender Account", t.account_number || "—"],
-    ["Recipient", beneficiary?.name ?? (t.direction === "credit" ? t.customer_name : "—")],
-    ["Recipient Account", beneficiary?.account_number ?? "—"],
-    ["Recipient Bank", beneficiary?.bank_name ?? t.bank_name],
-    ["Transaction ID", t.id],
-    ["Transaction Reference", t.reference ?? "—"],
-    ["Date", d.toLocaleDateString()],
-    ["Time", d.toLocaleTimeString()],
-    ["Channel", "Online Banking"],
-    ["Narration", t.description || "—"],
-    ["Balance Before", fmt(balanceBefore, t.currency)],
-    ["Balance After", fmt(t.balance_after, t.currency)],
+    [s.status, (t.status || "successful").toUpperCase()],
+    [s.transactionType, friendlyKind(t.kind)],
+    [s.currency, t.currency],
+    [s.sender, `${t.customer_name}`],
+    [s.senderAccount, t.account_number || "—"],
+    [s.recipient, beneficiary?.name ?? (t.direction === "credit" ? t.customer_name : "—")],
+    [s.recipientAccount, beneficiary?.account_number ?? "—"],
+    [s.recipientBank, beneficiary?.bank_name ?? t.bank_name],
+    [s.transactionId, t.id],
+    [s.transactionReference, t.reference ?? "—"],
+    [s.date, fmtDate(d, { dateStyle: "medium" })],
+    [s.time, fmtDate(d, { timeStyle: "medium" })],
+    [s.channel, s.channelOnline],
+    [s.narration, t.description || "—"],
+    [s.balanceBefore, fmt(balanceBefore, t.currency, locale)],
+    [s.balanceAfter, fmt(t.balance_after, t.currency, locale)],
   ];
 
   doc.setFontSize(10);
@@ -115,15 +185,19 @@ export async function buildReceiptPdf(
   doc.setFont("helvetica", "italic");
   doc.setFontSize(9);
   doc.setTextColor(120);
-  doc.text("This receipt is system generated and does not require a signature.", marginX, y);
+  doc.text(s.footer, marginX, y);
 
   const blob = doc.output("blob");
   const filename = `receipt-${(t.reference ?? t.id).slice(0, 12)}.pdf`;
   return { blob, filename };
 }
 
-export async function downloadReceiptPdf(t: TxDetail, logoUrl: string | null) {
-  const { blob, filename } = await buildReceiptPdf(t, logoUrl);
+export async function downloadReceiptPdf(
+  t: TxDetail,
+  logoUrl: string | null,
+  opts: ReceiptLocale & { strings?: Partial<ReceiptStrings> } = {},
+) {
+  const { blob, filename } = await buildReceiptPdf(t, logoUrl, opts);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

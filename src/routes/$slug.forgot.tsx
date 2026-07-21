@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { I18nProvider, useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/$slug/forgot")({
   loader: async ({ params }) => {
@@ -30,6 +31,17 @@ export const Route = createFileRoute("/$slug/forgot")({
 function ForgotPage() {
   const { bank } = Route.useLoaderData();
   const m = bank.manifest;
+  return (
+    <I18nProvider language={m.bank.language} currency={m.bank.currency} timezone={m.bank.timezone}>
+      <ForgotPageInner />
+    </I18nProvider>
+  );
+}
+
+function ForgotPageInner() {
+  const t = useT();
+  const { bank } = Route.useLoaderData();
+  const m = bank.manifest;
   const theme = m.theme;
   const doRequest = useServerFn(requestPasswordReset);
   const doReset = useServerFn(resetPassword);
@@ -42,23 +54,23 @@ function ForgotPage() {
     onSuccess: (r) => {
       if (r.token) {
         setToken(r.token);
-        toast.success("Reset link generated. Set your new password below.");
+        toast.success(t("auth.reset_generated"));
       } else {
-        toast.success("If an account exists, a reset link will be sent.");
+        toast.success(t("auth.reset_maybe_sent"));
       }
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Request failed"),
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : t("toast.failed")),
   });
 
   const resetMut = useMutation({
     mutationFn: () =>
       doReset({ data: { slug: bank.slug, token: token ?? "", password: newPassword } }),
     onSuccess: () => {
-      toast.success("Password updated. You can now sign in.");
+      toast.success(t("auth.password_updated"));
       setToken(null);
       setNewPassword("");
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Reset failed"),
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : t("toast.failed")),
   });
 
   return (
@@ -76,12 +88,9 @@ function ForgotPage() {
             <img src={m.brand.login_logo_url} alt="" className="mb-3 h-14 w-14 rounded-xl object-contain" />
           )}
           <CardTitle style={{ fontFamily: theme.typography.heading, color: theme.colors.primary }}>
-            Forgot your password?
+            {t("auth.reset_title")}
           </CardTitle>
-          <CardDescription>
-            We'll generate a reset link for {m.bank.name}. This is a simulation — the token appears
-            below instead of an email.
-          </CardDescription>
+          <CardDescription>{t("auth.reset_desc", { bank: m.bank.name })}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <form
@@ -92,7 +101,7 @@ function ForgotPage() {
             }}
           >
             <div className="space-y-1.5">
-              <Label>Email</Label>
+              <Label>{t("auth.email")}</Label>
               <Input
                 type="email"
                 required
@@ -105,7 +114,7 @@ function ForgotPage() {
               disabled={requestMut.isPending}
               style={{ backgroundColor: theme.colors.accent }}
             >
-              {requestMut.isPending ? "Generating…" : "Send reset link"}
+              {requestMut.isPending ? t("action.generating") : t("auth.send_reset_link")}
             </Button>
           </form>
 
@@ -118,7 +127,7 @@ function ForgotPage() {
               }}
             >
               <div className="space-y-1.5">
-                <Label>New password</Label>
+                <Label>{t("auth.new_password")}</Label>
                 <Input
                   type="password"
                   minLength={8}
@@ -133,7 +142,7 @@ function ForgotPage() {
                 disabled={resetMut.isPending}
                 style={{ backgroundColor: theme.colors.primary }}
               >
-                {resetMut.isPending ? "Updating…" : "Set new password"}
+                {resetMut.isPending ? t("auth.updating") : t("auth.set_new_password")}
               </Button>
             </form>
           )}
@@ -144,7 +153,7 @@ function ForgotPage() {
             className="block text-sm underline"
             style={{ color: theme.colors.primary }}
           >
-            ← Back to sign in
+            ← {t("auth.back_to_sign_in")}
           </Link>
         </CardContent>
       </Card>

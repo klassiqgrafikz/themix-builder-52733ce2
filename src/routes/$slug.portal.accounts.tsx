@@ -17,29 +17,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useT, useFormatCurrency } from "@/lib/i18n";
 
 export const Route = createFileRoute("/$slug/portal/accounts")({
   component: AccountsPage,
 });
 
-function fmt(v: number, currency: string) {
-  try { return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(v); }
-  catch { return `${currency} ${v.toFixed(2)}`; }
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  checking: "Checking",
-  savings: "Savings",
-  current: "Current",
-  business: "Business",
-  foreign_currency: "Foreign currency",
-  corporate: "Corporate",
-  joint: "Joint",
-  student: "Student",
-  fixed_deposit_acct: "Fixed deposit",
-};
-
 function AccountsPage() {
+  const t = useT();
+  const fmt = useFormatCurrency();
   const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
@@ -49,10 +35,23 @@ function AccountsPage() {
   const theme = manifest.theme;
   const primary = theme.colors.primary;
   const qc = useQueryClient();
+
+  const TYPE_LABELS: Record<string, string> = {
+    checking: t("accounts.current"),
+    savings: t("accounts.current"),
+    current: t("accounts.current"),
+    business: t("accounts.type"),
+    foreign_currency: t("accounts.currency"),
+    corporate: t("accounts.type"),
+    joint: t("accounts.type"),
+    student: t("accounts.type"),
+    fixed_deposit_acct: t("accounts.type"),
+  };
+
   const accountProducts = enabledProductsByCategory(manifest, "accounts");
   const types = accountProducts
-    .map((p) => ({ v: p.code, l: TYPE_LABELS[p.code] ?? p.name }))
-    .filter((t) => t.l);
+    .map((p) => ({ v: p.code, l: p.name || TYPE_LABELS[p.code] || p.code }))
+    .filter((x) => x.l);
   const [type, setType] = useState(types[0]?.v ?? "savings");
   const [currency, setCurrency] = useState(manifest.bank.currency ?? "USD");
   const [nickname, setNickname] = useState("");
@@ -61,19 +60,19 @@ function AccountsPage() {
     mutationFn: () =>
       doOpen({ data: { slug: bank.slug, account_type: type as "savings", currency, nickname: nickname || undefined } }),
     onSuccess: () => {
-      toast.success("New account opened");
+      toast.success(t("accounts.opened"));
       setNickname("");
       qc.invalidateQueries();
       window.location.reload();
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : t("toast.failed")),
   });
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold" style={{ fontFamily: theme.typography.heading, color: primary }}>Accounts</h1>
-        <p className="mt-1 text-sm opacity-80">You can open multiple accounts across products and currencies.</p>
+        <h1 className="text-2xl font-bold" style={{ fontFamily: theme.typography.heading, color: primary }}>{t("accounts.title")}</h1>
+        <p className="mt-1 text-sm opacity-80">{t("accounts.subtitle")}</p>
       </div>
 
       <div className="space-y-3">
@@ -86,12 +85,12 @@ function AccountsPage() {
                 <CountryIdentifierList account={a} country={manifest.bank.country_code ?? ""} />
               </div>
               <div className="text-right">
-                <div className="text-xs uppercase opacity-70">Available</div>
-                <div className="text-xl font-bold" style={{ color: primary }}>{fmt(a.available_balance, a.currency)}</div>
-                <div className="text-xs opacity-70">Current {fmt(a.current_balance, a.currency)}</div>
+                <div className="text-xs uppercase opacity-70">{t("accounts.available")}</div>
+                <div className="text-xl font-bold" style={{ color: primary }}>{fmt(a.available_balance, { currency: a.currency })}</div>
+                <div className="text-xs opacity-70">{t("accounts.current")} {fmt(a.current_balance, { currency: a.currency })}</div>
                 <div className="mt-2 flex gap-2">
-                  <Link to="/$slug/portal/statements" params={{ slug: bank.slug }} className="text-xs underline" style={{ color: primary }}>Statement</Link>
-                  <Link to="/$slug/portal/transactions" params={{ slug: bank.slug }} search={{}} className="text-xs underline" style={{ color: primary }}>History</Link>
+                  <Link to="/$slug/portal/statements" params={{ slug: bank.slug }} className="text-xs underline" style={{ color: primary }}>{t("accounts.statement")}</Link>
+                  <Link to="/$slug/portal/transactions" params={{ slug: bank.slug }} search={{}} className="text-xs underline" style={{ color: primary }}>{t("accounts.history")}</Link>
                 </div>
               </div>
             </div>
@@ -100,21 +99,21 @@ function AccountsPage() {
       </div>
 
       <BrandedCard manifest={manifest}>
-        <div className="mb-3 text-sm font-semibold" style={{ color: primary }}>Open a new account</div>
+        <div className="mb-3 text-sm font-semibold" style={{ color: primary }}>{t("accounts.open_new")}</div>
         <div className="grid gap-3 md:grid-cols-4">
           <div>
-            <Label>Type</Label>
+            <Label>{t("accounts.type")}</Label>
             <Select value={type} onValueChange={setType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{types.map((t) => <SelectItem key={t.v} value={t.v}>{t.l}</SelectItem>)}</SelectContent>
+              <SelectContent>{types.map((x) => <SelectItem key={x.v} value={x.v}>{x.l}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div><Label>Currency</Label><Input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} /></div>
-          <div className="md:col-span-2"><Label>Nickname</Label><Input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="e.g. Rainy day savings" /></div>
+          <div><Label>{t("accounts.currency")}</Label><Input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} /></div>
+          <div className="md:col-span-2"><Label>{t("accounts.nickname")}</Label><Input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder={t("accounts.nickname_placeholder")} /></div>
         </div>
         <div className="mt-4 flex justify-end">
           <Button onClick={() => mut.mutate()} disabled={mut.isPending} style={{ backgroundColor: primary }}>
-            {mut.isPending ? "Opening…" : "Open account"}
+            {mut.isPending ? t("accounts.opening") : t("accounts.open")}
           </Button>
         </div>
       </BrandedCard>
