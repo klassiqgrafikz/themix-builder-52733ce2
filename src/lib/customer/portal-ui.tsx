@@ -543,5 +543,45 @@ function PortalShellInner({
           type="button"
           className="rounded-xl p-2 text-slate-600 hover:bg-slate-100"
           onClick={() => setDrawerOpen(true)}
-          aria-label="Open menu"
+          aria-label={t("shell.menu")}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="flex-1 truncate text-center text-sm font-semibold text-slate-900">
+          {activeLabel}
+        </div>
+        <NotificationBell slug={slug} tone="light" />
+      </header>
+
+      {drawerOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-72 bg-white p-4 shadow-xl">
+            <button
+              onClick={() => setDrawerOpen(false)}
+              className="absolute right-2 top-2 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+              aria-label={t("shell.close")}
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <SidebarBody
+              manifest={manifest}
+              customer={customer}
+              activePath={activePath}
+              slug={slug}
+              onNavigate={() => setDrawerOpen(false)}
+              onLogout={() => logoutMut.mutate()}
+              loggingOut={logoutMut.isPending}
+            />
+          </div>
+        </div>
+      )}
+
+      <main className="min-w-0 flex-1 pt-16 md:ml-72 md:pt-0">
+        <div className="mx-auto max-w-[1200px] px-6 py-8 md:px-10 md:py-10">{content}</div>
+      </main>
+    </div>
+  );
+}
+
                       
