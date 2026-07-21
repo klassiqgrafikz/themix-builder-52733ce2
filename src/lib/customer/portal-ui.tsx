@@ -189,30 +189,31 @@ export function isFeatureRestricted(
 ): boolean {
   if (!restrictions?.length) return false;
   const now = Date.now();
+  const f = feature.toLowerCase();
   return restrictions.some((r) => {
-    if (r.status !== "active") return false;
-    if (r.expires_at && new Date(r.expires_at).getTime() < now) return false;
-    const scope = (r.scope ?? "all").toLowerCase();
-    return scope === "all" || scope === feature.toLowerCase();
+    if (!r.active) return false;
+    if (r.end_at && new Date(r.end_at).getTime() < now) return false;
+    if (r.start_at && new Date(r.start_at).getTime() > now) return false;
+    const types = (r.types ?? []).map((t) => t.toLowerCase());
+    return types.length === 0 || types.includes("all") || types.includes(f);
   });
 }
 
 function RestrictionBanner({ restrictions }: { restrictions: CustomerRestriction[] }) {
-  const active = restrictions.filter((r) => r.status === "active");
+  const active = restrictions.filter((r) => r.active);
   if (!active.length) return null;
   return (
     <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
       <div className="font-semibold">Account restricted</div>
       <ul className="mt-1 list-disc space-y-0.5 pl-5 text-amber-800/90">
         {active.map((r) => (
-          <li key={r.id}>
-            {r.reason ?? r.scope ?? "Restricted"}
-          </li>
+          <li key={r.id}>{r.reason || (r.types?.join(", ") ?? "Restricted")}</li>
         ))}
       </ul>
     </div>
   );
 }
+
 
 // ---------- Branded card wrapper ----------
 
