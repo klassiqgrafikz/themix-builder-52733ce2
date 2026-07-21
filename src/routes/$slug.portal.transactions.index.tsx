@@ -13,17 +13,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { useT, useLocale, useFormatCurrency, useFormatDate } from "@/lib/i18n";
 
 export const Route = createFileRoute("/$slug/portal/transactions/")({
   component: TransactionsPage,
 });
 
-function fmt(v: number, c: string) {
-  try { return new Intl.NumberFormat(undefined, { style: "currency", currency: c }).format(v); }
-  catch { return `${c} ${v.toFixed(2)}`; }
-}
-
 function TransactionsPage() {
+  const t = useT();
+  const locale = useLocale();
+  const fmt = useFormatCurrency();
+  const fmtDate = useFormatDate();
   const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
     session: CustomerSession;
@@ -39,7 +39,6 @@ function TransactionsPage() {
   const [max, setMax] = useState("");
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
-
 
   const listFn = useServerFn(listTransactions);
   const doGetTx = useServerFn(getTransactionDetail);
@@ -68,19 +67,19 @@ function TransactionsPage() {
   return (
     <div className="space-y-6">
       <BrandedCard manifest={bank.manifest}>
-        <h1 className="text-xl font-semibold" style={{ color: primary }}>Transactions</h1>
-        <p className="mt-1 text-sm opacity-70">Full history across all your accounts.</p>
+        <h1 className="text-xl font-semibold" style={{ color: primary }}>{t("tx.title")}</h1>
+        <p className="mt-1 text-sm opacity-70">{t("tx.subtitle")}</p>
       </BrandedCard>
 
       <BrandedCard manifest={bank.manifest}>
         <div className="grid gap-3 md:grid-cols-4">
-          <div><Label>Search</Label><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Description / reference" /></div>
+          <div><Label>{t("action.search")}</Label><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("tx.description") + " / " + t("tx.reference")} /></div>
           <div>
-            <Label>Account</Label>
+            <Label>{t("nav.accounts")}</Label>
             <Select value={account || "__all"} onValueChange={(v) => setAccount(v === "__all" ? "" : v)}>
-              <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all">All accounts</SelectItem>
+                <SelectItem value="__all">{t("nav.accounts")}</SelectItem>
                 {session.accounts.map((a) => (
                   <SelectItem key={a.id} value={a.id}>{a.account_name}</SelectItem>
                 ))}
@@ -88,41 +87,41 @@ function TransactionsPage() {
             </Select>
           </div>
           <div>
-            <Label>Direction</Label>
+            <Label>{t("tx.direction")}</Label>
             <Select value={dir || "__all"} onValueChange={(v) => setDir(v === "__all" ? "" : v)}>
-              <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all">All</SelectItem>
-                <SelectItem value="credit">Credit</SelectItem>
-                <SelectItem value="debit">Debit</SelectItem>
+                <SelectItem value="__all">{t("tx.direction")}</SelectItem>
+                <SelectItem value="credit">{t("tx.credit")}</SelectItem>
+                <SelectItem value="debit">{t("tx.debit")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-end gap-2">
-            <div className="flex-1"><Label>Min</Label><Input type="number" value={min} onChange={(e) => setMin(e.target.value)} /></div>
-            <div className="flex-1"><Label>Max</Label><Input type="number" value={max} onChange={(e) => setMax(e.target.value)} /></div>
+            <div className="flex-1"><Label>{t("tx.min")}</Label><Input type="number" value={min} onChange={(e) => setMin(e.target.value)} /></div>
+            <div className="flex-1"><Label>{t("tx.max")}</Label><Input type="number" value={max} onChange={(e) => setMax(e.target.value)} /></div>
           </div>
-          <div><Label>From</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
-          <div><Label>To</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
+          <div><Label>{t("tx.from")}</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
+          <div><Label>{t("tx.to")}</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
         </div>
       </BrandedCard>
 
       <BrandedCard manifest={bank.manifest}>
         {rows.length === 0 ? (
           <div className="rounded-md border border-dashed p-6 text-center text-sm opacity-70">
-            {qy.isLoading ? "Loading…" : "No transactions match your filters."}
+            {qy.isLoading ? t("action.loading") : t("tx.no_match")}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-xs uppercase opacity-60">
-                  <th className="py-2">Date</th>
-                  <th>Description</th>
-                  <th>Ref</th>
-                  <th>Status</th>
-                  <th className="text-right">Amount</th>
-                  <th className="text-right">Balance</th>
+                  <th className="py-2">{t("tx.date")}</th>
+                  <th>{t("tx.description")}</th>
+                  <th>{t("tx.reference")}</th>
+                  <th>{t("tx.status")}</th>
+                  <th className="text-right">{t("tx.amount")}</th>
+                  <th className="text-right">{t("tx.balance")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -133,31 +132,31 @@ function TransactionsPage() {
                     className="border-b cursor-pointer transition hover:bg-slate-50"
                     onClick={() => navigate({ to: "/$slug/portal/transactions/$id", params: { slug: bank.slug, id: r.id } })}
                   >
-                    <td className="py-2 text-xs">{new Date(r.created_at).toLocaleString()}</td>
+                    <td className="py-2 text-xs">{fmtDate(r.created_at, { dateStyle: "medium", timeStyle: "short" })}</td>
                     <td>{r.description}</td>
                     <td className="text-xs opacity-70">{r.reference ?? "—"}</td>
                     <td className="text-xs">{r.status}</td>
                     <td className="text-right font-mono" style={{ color: r.direction === "credit" ? "#16a34a" : r.direction === "debit" ? "#dc2626" : undefined }}>
-                      {r.direction === "debit" ? "-" : r.direction === "credit" ? "+" : ""}{fmt(r.amount, r.currency)}
+                      {r.direction === "debit" ? "-" : r.direction === "credit" ? "+" : ""}{fmt(r.amount, { currency: r.currency })}
                     </td>
-                    <td className="text-right font-mono text-xs">{fmt(r.balance_after, r.currency)}</td>
+                    <td className="text-right font-mono text-xs">{fmt(r.balance_after, { currency: r.currency })}</td>
                     <td onClick={(e) => e.stopPropagation()} className="text-right">
                       <Button
                         variant="ghost"
                         size="icon"
-                        title="Download receipt"
-                        aria-label="Download receipt"
+                        title={t("tx.download_receipt")}
+                        aria-label={t("tx.download_receipt")}
                         onClick={async () => {
                           try {
                             const tx = await doGetTx({ data: { slug: bank.slug, id: r.id } });
-                            if (!tx) { toast.error("Receipt not available"); return; }
+                            if (!tx) { toast.error(t("tx.receipt_not_available")); return; }
                             const logoUrl =
                               bank.manifest.brand.dashboard_logo_url ??
                               bank.manifest.brand.login_logo_url ??
                               null;
-                            await downloadReceiptPdf(tx, logoUrl);
+                            await downloadReceiptPdf(tx, logoUrl, { locale: locale.code, currency: tx.currency });
                           } catch {
-                            toast.error("Failed to download receipt");
+                            toast.error(t("tx.receipt_failed"));
                           }
                         }}
                         style={{ color: primary }}
@@ -168,16 +167,15 @@ function TransactionsPage() {
                   </tr>
                 ))}
               </tbody>
-
             </table>
           </div>
         )}
         <div className="mt-3 flex items-center justify-between text-xs">
-          <span>{total} results</span>
+          <span>{t("tx.results", { n: total })}</span>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</Button>
-            <span>Page {page} / {pages}</span>
-            <Button variant="ghost" size="sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</Button>
+            <Button variant="ghost" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>{t("action.prev")}</Button>
+            <span>{t("tx.page_of", { page, pages })}</span>
+            <Button variant="ghost" size="sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>{t("action.next")}</Button>
           </div>
         </div>
       </BrandedCard>

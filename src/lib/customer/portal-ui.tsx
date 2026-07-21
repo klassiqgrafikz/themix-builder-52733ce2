@@ -175,7 +175,68 @@ function SidebarBody({
   );
 }
 
+// ---------- Restriction helpers ----------
+
+const RestrictionsContext = createContext<CustomerRestriction[]>([]);
+
+export function useRestrictions(): CustomerRestriction[] {
+  return useContext(RestrictionsContext);
+}
+
+export function isFeatureRestricted(
+  restrictions: CustomerRestriction[] | undefined | null,
+  feature: string,
+): boolean {
+  if (!restrictions?.length) return false;
+  const now = Date.now();
+  const f = feature.toLowerCase();
+  return restrictions.some((r) => {
+    if (!r.active) return false;
+    if (r.end_at && new Date(r.end_at).getTime() < now) return false;
+    if (r.start_at && new Date(r.start_at).getTime() > now) return false;
+    const types = (r.types ?? []).map((t) => t.toLowerCase());
+    return types.length === 0 || types.includes("all") || types.includes(f);
+  });
+}
+
+function RestrictionBanner({ restrictions }: { restrictions: CustomerRestriction[] }) {
+  const active = restrictions.filter((r) => r.active);
+  if (!active.length) return null;
+  return (
+    <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <div className="font-semibold">Account restricted</div>
+      <ul className="mt-1 list-disc space-y-0.5 pl-5 text-amber-800/90">
+        {active.map((r) => (
+          <li key={r.id}>{r.reason || (r.types?.join(", ") ?? "Restricted")}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+
+// ---------- Branded card wrapper ----------
+
+export function BrandedCard({
+  manifest: _manifest,
+  className = "",
+  children,
+}: {
+  manifest: WebsiteManifest;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 type PortalShellProps = {
+
   manifest: WebsiteManifest;
   customer: CustomerProfile;
   activePath: string;
@@ -543,5 +604,45 @@ function PortalShellInner({
           type="button"
           className="rounded-xl p-2 text-slate-600 hover:bg-slate-100"
           onClick={() => setDrawerOpen(true)}
-          aria-label="Open menu"
+          aria-label={t("shell.menu")}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="flex-1 truncate text-center text-sm font-semibold text-slate-900">
+          {activeLabel}
+        </div>
+        <NotificationBell slug={slug} tone="light" />
+      </header>
+
+      {drawerOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-72 bg-white p-4 shadow-xl">
+            <button
+              onClick={() => setDrawerOpen(false)}
+              className="absolute right-2 top-2 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+              aria-label={t("shell.close")}
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <SidebarBody
+              manifest={manifest}
+              customer={customer}
+              activePath={activePath}
+              slug={slug}
+              onNavigate={() => setDrawerOpen(false)}
+              onLogout={() => logoutMut.mutate()}
+              loggingOut={logoutMut.isPending}
+            />
+          </div>
+        </div>
+      )}
+
+      <main className="min-w-0 flex-1 pt-16 md:ml-72 md:pt-0">
+        <div className="mx-auto max-w-[1200px] px-6 py-8 md:px-10 md:py-10">{content}</div>
+      </main>
+    </div>
+  );
+}
+
                       

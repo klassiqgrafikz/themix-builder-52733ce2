@@ -10,22 +10,24 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { I18nProvider, useT, type TranslationKey } from "@/lib/i18n";
 
-// Map raw server / network errors to friendly customer-facing wording.
-function humanizeLoginError(err: unknown): string {
+// Map raw server / network errors to translation keys.
+function loginErrorKey(err: unknown): TranslationKey {
   const msg = err instanceof Error ? err.message : String(err ?? "");
   const m = msg.toLowerCase();
-  if (!msg) return "We couldn't sign you in. Please try again.";
-  if (m.includes("network") || m.includes("failed to fetch")) return "Network error — check your connection and try again.";
-  if (m.includes("password")) return "Incorrect password. Please try again.";
-  if (m.includes("no such") || m.includes("not found") || m.includes("unknown")) return "We don't recognise this email at this bank.";
-  if (m.includes("frozen")) return "Your account is frozen. Contact support to unlock it.";
-  if (m.includes("restrict")) return "Your account is restricted. Contact support for details.";
-  if (m.includes("too many") || m.includes("rate")) return "Too many attempts. Please wait a minute and try again.";
-  if (m.includes("expired")) return "Your session expired. Please sign in again.";
-  if (m.includes("unavailable") || m.includes("500") || m.includes("server")) return "Our servers are temporarily unavailable. Please try again shortly.";
-  return msg;
+  if (!msg) return "auth.err_generic";
+  if (m.includes("network") || m.includes("failed to fetch")) return "auth.err_network";
+  if (m.includes("password")) return "auth.err_password";
+  if (m.includes("no such") || m.includes("not found") || m.includes("unknown")) return "auth.err_no_user";
+  if (m.includes("frozen")) return "auth.err_frozen";
+  if (m.includes("restrict")) return "auth.err_restricted";
+  if (m.includes("too many") || m.includes("rate")) return "auth.err_rate";
+  if (m.includes("expired")) return "auth.err_expired";
+  if (m.includes("unavailable") || m.includes("500") || m.includes("server")) return "auth.err_server";
+  return "auth.err_generic";
 }
+
 
 export const Route = createFileRoute("/$slug/login")({
   loader: async ({ params }) => {

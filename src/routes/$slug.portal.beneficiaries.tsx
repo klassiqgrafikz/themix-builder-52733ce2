@@ -17,22 +17,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Star, StarOff, Trash2 } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/$slug/portal/beneficiaries")({
   component: BeneficiariesGate,
 });
 
 function BeneficiariesGate() {
+  const t = useT();
   const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
   };
   if (!isNavEnabled(parent.bank.manifest, "beneficiaries")) {
-    return <ProductUnavailable manifest={parent.bank.manifest} title="Beneficiaries unavailable" />;
+    return <ProductUnavailable manifest={parent.bank.manifest} title={t("beneficiaries.unavailable")} />;
   }
   return <BeneficiariesPage />;
 }
 
 function BeneficiariesPage() {
+  const t = useT();
   const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
   };
@@ -61,52 +64,52 @@ function BeneficiariesPage() {
   const addMut = useMutation({
     mutationFn: () => addFn({ data: { slug: bank.slug, ...form } }),
     onSuccess: () => {
-      toast.success("Beneficiary added");
+      toast.success(t("beneficiaries.added"));
       setForm({ ...form, beneficiary_name: "", account_number: "", bank_name: "", nickname: "" });
       qc.invalidateQueries({ queryKey: ["beneficiaries", bank.slug] });
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : t("toast.failed")),
   });
 
   return (
     <div className="space-y-6">
       <BrandedCard manifest={bank.manifest}>
-        <h1 className="text-xl font-semibold" style={{ color: primary }}>Beneficiaries</h1>
-        <p className="mt-1 text-sm opacity-70">Manage the recipients you send money to.</p>
+        <h1 className="text-xl font-semibold" style={{ color: primary }}>{t("beneficiaries.title")}</h1>
+        <p className="mt-1 text-sm opacity-70">{t("beneficiaries.subtitle")}</p>
       </BrandedCard>
 
       <BrandedCard manifest={bank.manifest}>
-        <div className="mb-3 text-sm font-semibold" style={{ color: primary }}>Add new beneficiary</div>
+        <div className="mb-3 text-sm font-semibold" style={{ color: primary }}>{t("beneficiaries.add_new")}</div>
         <div className="grid gap-3 md:grid-cols-3">
           <div>
-            <Label>Type</Label>
+            <Label>{t("beneficiaries.type")}</Label>
             <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v as typeof form.kind })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="internal">Same bank</SelectItem>
-                <SelectItem value="external">Other bank</SelectItem>
-                <SelectItem value="own">My account</SelectItem>
+                <SelectItem value="internal">{t("beneficiaries.same_bank")}</SelectItem>
+                <SelectItem value="external">{t("beneficiaries.other_bank")}</SelectItem>
+                <SelectItem value="own">{t("beneficiaries.my_account")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div><Label>Name</Label><Input value={form.beneficiary_name} onChange={(e) => setForm({ ...form, beneficiary_name: e.target.value })} /></div>
-          <div><Label>Account number</Label><Input value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} /></div>
-          <div><Label>Bank name</Label><Input value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} /></div>
-          <div><Label>Nickname</Label><Input value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} /></div>
-          <div><Label>Currency</Label><Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} /></div>
+          <div><Label>{t("beneficiaries.name")}</Label><Input value={form.beneficiary_name} onChange={(e) => setForm({ ...form, beneficiary_name: e.target.value })} /></div>
+          <div><Label>{t("beneficiaries.account_number")}</Label><Input value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} /></div>
+          <div><Label>{t("beneficiaries.bank_name")}</Label><Input value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} /></div>
+          <div><Label>{t("beneficiaries.nickname")}</Label><Input value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} /></div>
+          <div><Label>{t("beneficiaries.currency")}</Label><Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} /></div>
         </div>
         <div className="mt-4 flex justify-end">
           <Button disabled={addMut.isPending || !form.beneficiary_name || !form.account_number}
             onClick={() => addMut.mutate()} style={{ backgroundColor: primary }}>
-            {addMut.isPending ? "Adding…" : "Add beneficiary"}
+            {addMut.isPending ? t("beneficiaries.adding") : t("beneficiaries.add")}
           </Button>
         </div>
       </BrandedCard>
 
       <BrandedCard manifest={bank.manifest}>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="text-sm font-semibold" style={{ color: primary }}>Saved beneficiaries</div>
-          <Input placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
+          <div className="text-sm font-semibold" style={{ color: primary }}>{t("beneficiaries.saved")}</div>
+          <Input placeholder={t("beneficiaries.search")} value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
         </div>
         {listQ.data && listQ.data.length > 0 ? (
           <ul className="divide-y">
@@ -125,7 +128,7 @@ function BeneficiariesPage() {
                   <button type="button" onClick={() => favFn({ data: { slug: bank.slug, id: b.id, is_favorite: !b.is_favorite } }).then(() => qc.invalidateQueries({ queryKey: ["beneficiaries", bank.slug] }))}>
                     {b.is_favorite ? <Star className="h-4 w-4" style={{ color: primary }} /> : <StarOff className="h-4 w-4 opacity-60" />}
                   </button>
-                  <button type="button" onClick={() => delFn({ data: { slug: bank.slug, id: b.id } }).then(() => { toast.success("Removed"); qc.invalidateQueries({ queryKey: ["beneficiaries", bank.slug] }); })}>
+                  <button type="button" onClick={() => delFn({ data: { slug: bank.slug, id: b.id } }).then(() => { toast.success(t("beneficiaries.removed")); qc.invalidateQueries({ queryKey: ["beneficiaries", bank.slug] }); })}>
                     <Trash2 className="h-4 w-4 opacity-70" />
                   </button>
                 </div>
@@ -134,7 +137,7 @@ function BeneficiariesPage() {
           </ul>
         ) : (
           <div className="rounded-md border border-dashed p-6 text-center text-sm opacity-70">
-            No beneficiaries yet.
+            {t("beneficiaries.empty")}
           </div>
         )}
       </BrandedCard>

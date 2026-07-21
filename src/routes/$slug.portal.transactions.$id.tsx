@@ -4,9 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
-import { getTransactionDetail, type TxDetail } from "@/lib/customer/transactions.functions";
+import { getTransactionDetail } from "@/lib/customer/transactions.functions";
+import { buildReceiptPdf, downloadReceiptPdf } from "@/lib/customer/receipt-pdf";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Download, Printer, Share2, Mail, Home } from "lucide-react";
+import { useT, useLocale, useFormatCurrency, useFormatDate } from "@/lib/i18n";
 
 const searchSchema = z.object({
   success: z
@@ -20,117 +22,17 @@ export const Route = createFileRoute("/$slug/portal/transactions/$id")({
   component: ReceiptPage,
 });
 
-function fmt(v: number, c: string) {
-  try { return new Intl.NumberFormat(undefined, { style: "currency", currency: c }).format(v); }
-  catch { return `${c} ${v.toFixed(2)}`; }
-}
-
 function friendlyKind(k: string) {
   return k.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
 type Beneficiary = { name?: string; account_number?: string; bank_name?: string };
 
-async function buildReceiptPdf(
-  t: TxDetail,
-  logoUrl: string | null,
-): Promise<{ blob: Blob; filename: string }> {
-  const jspdfMod = await import("jspdf");
-  const JsPDF = jspdfMod.jsPDF ?? jspdfMod.default;
-  const doc = new JsPDF({ unit: "pt", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const marginX = 48;
-  let y = 56;
-
-  const beneficiary = ((t.metadata as Record<string, unknown>).beneficiary ??
-    (t.metadata as Record<string, unknown>).external_beneficiary) as Beneficiary | undefined;
-
-  if (logoUrl) {
-    try {
-      const res = await fetch(logoUrl);
-      const buf = await res.arrayBuffer();
-      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-      const mime = res.headers.get("content-type") ?? "image/png";
-      const fmtType = /png/i.test(mime) ? "PNG" : "JPEG";
-      doc.addImage(`data:${mime};base64,${b64}`, fmtType, marginX, y - 12, 44, 44);
-    } catch {
-      // ignore logo failures — receipt still generates
-    }
-  }
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(t.bank_name, marginX + 56, y + 6);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(120);
-  doc.text("Transaction Receipt", marginX + 56, y + 22);
-  doc.setTextColor(0);
-  y += 60;
-
-  doc.setDrawColor(220);
-  doc.line(marginX, y, pageWidth - marginX, y);
-  y += 20;
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.setTextColor(90);
-  doc.text("Amount", marginX, y);
-  doc.setTextColor(0);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.text(fmt(t.amount, t.currency), marginX, y + 26);
-  y += 50;
-
-  const d = new Date(t.created_at);
-  const rows: [string, string][] = [
-    ["Status", (t.status || "successful").toUpperCase()],
-    ["Transaction Type", friendlyKind(t.kind)],
-    ["Currency", t.currency],
-    ["Sender", `${t.customer_name}`],
-    ["Sender Account", t.account_number || "—"],
-    ["Recipient", beneficiary?.name ?? (t.direction === "credit" ? t.customer_name : "—")],
-    ["Recipient Account", beneficiary?.account_number ?? "—"],
-    ["Recipient Bank", beneficiary?.bank_name ?? t.bank_name],
-    ["Transaction ID", t.id],
-    ["Transaction Reference", t.reference ?? "—"],
-    ["Date", d.toLocaleDateString()],
-    ["Time", d.toLocaleTimeString()],
-    ["Channel", "Online Banking"],
-    ["Narration", t.description || "—"],
-    ["Available Balance", fmt(t.balance_after, t.currency)],
-  ];
-
-  doc.setFontSize(10);
-  const labelX = marginX;
-  const valueX = marginX + 150;
-  const rowH = 20;
-  for (const [k, v] of rows) {
-    if (y > 760) { doc.addPage(); y = 56; }
-    doc.setTextColor(110);
-    doc.setFont("helvetica", "normal");
-    doc.text(k, labelX, y);
-    doc.setTextColor(0);
-    doc.setFont("helvetica", "bold");
-    const wrapped = doc.splitTextToSize(String(v), pageWidth - valueX - marginX);
-    doc.text(wrapped, valueX, y);
-    y += rowH * Math.max(1, wrapped.length);
-  }
-
-  y += 10;
-  doc.setDrawColor(220);
-  doc.line(marginX, y, pageWidth - marginX, y);
-  y += 18;
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(9);
-  doc.setTextColor(120);
-  doc.text("This receipt is system generated and does not require a signature.", marginX, y);
-
-  const blob = doc.output("blob");
-  const filename = `receipt-${(t.reference ?? t.id).slice(0, 12)}.pdf`;
-  return { blob, filename };
-}
-
 function ReceiptPage() {
+  const t = useT();
+  const locale = useLocale();
+  const fmt = useFormatCurrency();
+  const fmtDate = useFormatDate();
   const { slug, id } = Route.useParams();
   const { success } = Route.useSearch();
   const navigate = useNavigate();
@@ -146,52 +48,68 @@ function ReceiptPage() {
     queryFn: () => doGet({ data: { slug, id } }),
   });
 
-  if (qy.isLoading) return <div className="text-sm opacity-70">Loading…</div>;
-  const t = qy.data;
-  if (!t) throw notFound();
-  const meta = t.metadata as Record<string, unknown>;
+  if (qy.isLoading) return <div className="text-sm opacity-70">{t("action.loading")}</div>;
+  const tx = qy.data;
+  if (!tx) throw notFound();
+  const meta = tx.metadata as Record<string, unknown>;
   const beneficiary = (meta.beneficiary ?? meta.external_beneficiary) as Beneficiary | undefined;
-  const d = new Date(t.created_at);
+  const d = new Date(tx.created_at);
 
-  const downloadPdf = async () => {
-    const { blob, filename } = await buildReceiptPdf(t, logoUrl);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  const pdfOpts = {
+    locale: locale.code,
+    currency: tx.currency,
+    strings: {
+      transactionReceipt: t("tx.transaction_receipt"),
+      amount: t("transfer.amount"),
+      status: t("tx.status"),
+      transactionType: t("tx.type"),
+      currency: t("transfer.currency"),
+      sender: t("tx.sender"),
+      senderAccount: t("tx.sender_account"),
+      recipient: t("tx.recipient"),
+      recipientAccount: t("tx.recipient_account"),
+      recipientBank: t("tx.recipient_bank"),
+      transactionId: t("tx.transaction_id"),
+      transactionReference: t("tx.transaction_ref"),
+      date: t("tx.date"),
+      time: t("tx.time"),
+      channel: t("tx.channel"),
+      channelOnline: t("tx.channel_online"),
+      narration: t("transfer.narration"),
+      balanceBefore: t("tx.balance_before"),
+      balanceAfter: t("tx.balance_after"),
+      footer: t("tx.receipt_footer"),
+    },
   };
 
+  const downloadPdf = () => downloadReceiptPdf(tx, logoUrl, pdfOpts);
   const printReceipt = () => window.print();
 
   const shareText = () => [
-    `${t.bank_name} — Transaction Receipt`,
-    `Amount: ${fmt(t.amount, t.currency)}`,
-    `Status: ${t.status}`,
-    `Reference: ${t.reference ?? t.id}`,
-    `Date: ${d.toLocaleString()}`,
-    beneficiary?.name ? `Recipient: ${beneficiary.name}` : "",
+    `${tx.bank_name} — ${t("tx.transaction_receipt")}`,
+    `${t("transfer.amount")}: ${fmt(tx.amount, { currency: tx.currency })}`,
+    `${t("tx.status")}: ${tx.status}`,
+    `${t("tx.reference")}: ${tx.reference ?? tx.id}`,
+    `${t("tx.date")}: ${fmtDate(d, { dateStyle: "medium", timeStyle: "short" })}`,
+    beneficiary?.name ? `${t("tx.recipient")}: ${beneficiary.name}` : "",
   ].filter(Boolean).join("\n");
 
   const share = async () => {
-    const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
+    const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void>; canShare?: (d: ShareData) => boolean };
     try {
-      const { blob, filename } = await buildReceiptPdf(t, logoUrl);
+      const { blob, filename } = await buildReceiptPdf(tx, logoUrl, pdfOpts);
       const file = new File([blob], filename, { type: "application/pdf" });
-      const withFiles = nav as Navigator & { canShare?: (d: ShareData) => boolean };
-      if (nav.share && withFiles.canShare?.({ files: [file] })) {
-        await nav.share({ files: [file], title: "Transaction Receipt", text: shareText() });
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        await nav.share({ files: [file], title: t("tx.transaction_receipt"), text: shareText() });
         return;
       }
       if (nav.share) {
-        await nav.share({ title: "Transaction Receipt", text: shareText() });
+        await nav.share({ title: t("tx.transaction_receipt"), text: shareText() });
         return;
       }
     } catch { /* fall through */ }
     await navigator.clipboard.writeText(shareText());
   };
-
-  // Email receipt delivery is not implemented server-side yet; button is disabled below.
-
 
   const goDashboard = () => navigate({ to: "/$slug/portal", params: { slug } });
 
@@ -203,53 +121,53 @@ function ReceiptPage() {
             <div className="grid h-20 w-20 place-items-center rounded-full bg-emerald-100">
               <CheckCircle2 className="h-14 w-14 text-emerald-600" />
             </div>
-            <h1 className="mt-4 text-3xl font-bold text-emerald-700">Transfer Successful</h1>
+            <h1 className="mt-4 text-3xl font-bold text-emerald-700">{t("transfer.success")}</h1>
             <div className="mt-1 text-xs uppercase tracking-wide opacity-60">
-              {friendlyKind(t.kind)}
+              {friendlyKind(tx.kind)}
             </div>
             <div className="mt-4 text-5xl font-bold" style={{ color: primary }}>
-              {fmt(t.amount, t.currency)}
+              {fmt(tx.amount, { currency: tx.currency })}
             </div>
             <div className="mt-2 text-sm capitalize text-emerald-700 font-medium">
-              Status: {t.status}
+              {t("tx.status")}: {tx.status}
             </div>
           </div>
 
           <dl className="mt-8 grid gap-3 border-t pt-6 text-sm md:grid-cols-2">
-            <Field label="Sender">{t.customer_name}</Field>
-            <Field label="Sender Account">{t.account_number || "—"}</Field>
-            <Field label="Recipient">{beneficiary?.name ?? (t.direction === "credit" ? t.customer_name : "—")}</Field>
-            <Field label="Recipient Bank">{beneficiary?.bank_name ?? t.bank_name}</Field>
-            <Field label="Account Number">{beneficiary?.account_number ?? "—"}</Field>
-            <Field label="Date">{d.toLocaleDateString()}</Field>
-            <Field label="Time">{d.toLocaleTimeString()}</Field>
-            <Field label="Transaction Reference">
-              <span className="break-all font-mono text-xs">{t.reference ?? "—"}</span>
+            <Field label={t("tx.sender")}>{tx.customer_name}</Field>
+            <Field label={t("tx.sender_account")}>{tx.account_number || "—"}</Field>
+            <Field label={t("tx.recipient")}>{beneficiary?.name ?? (tx.direction === "credit" ? tx.customer_name : "—")}</Field>
+            <Field label={t("tx.recipient_bank")}>{beneficiary?.bank_name ?? tx.bank_name}</Field>
+            <Field label={t("tx.recipient_account")}>{beneficiary?.account_number ?? "—"}</Field>
+            <Field label={t("tx.date")}>{fmtDate(d, { dateStyle: "medium" })}</Field>
+            <Field label={t("tx.time")}>{fmtDate(d, { timeStyle: "medium" })}</Field>
+            <Field label={t("tx.transaction_ref")}>
+              <span className="break-all font-mono text-xs">{tx.reference ?? "—"}</span>
             </Field>
-            <Field label="Transaction ID">
-              <span className="break-all font-mono text-xs">{t.id}</span>
+            <Field label={t("tx.transaction_id")}>
+              <span className="break-all font-mono text-xs">{tx.id}</span>
             </Field>
             <div className="md:col-span-2">
-              <dt className="text-xs uppercase opacity-70">Narration</dt>
-              <dd>{t.description}</dd>
+              <dt className="text-xs uppercase opacity-70">{t("transfer.narration")}</dt>
+              <dd>{tx.description}</dd>
             </div>
           </dl>
 
           <div className="mt-8 flex flex-wrap justify-center gap-2 print:hidden">
             <Button variant="outline" onClick={downloadPdf}>
-              <Download className="mr-1 h-4 w-4" />Download PDF
+              <Download className="mr-1 h-4 w-4" />{t("action.download")}
             </Button>
             <Button variant="outline" onClick={printReceipt}>
-              <Printer className="mr-1 h-4 w-4" />Print
+              <Printer className="mr-1 h-4 w-4" />{t("action.print")}
             </Button>
             <Button variant="outline" onClick={share}>
-              <Share2 className="mr-1 h-4 w-4" />Share
+              <Share2 className="mr-1 h-4 w-4" />{t("action.share")}
             </Button>
           </div>
 
           <div className="mt-4 flex justify-center print:hidden">
             <Button size="lg" onClick={goDashboard} style={{ backgroundColor: primary }}>
-              <Home className="mr-2 h-4 w-4" />Done — Return to Dashboard
+              <Home className="mr-2 h-4 w-4" />{t("transfer.done_return")}
             </Button>
           </div>
         </BrandedCard>
@@ -266,20 +184,20 @@ function ReceiptPage() {
           className="text-sm underline"
           style={{ color: primary }}
         >
-          ← Back to transactions
+          {t("tx.back_to_transactions")}
         </Link>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={printReceipt}>
-            <Printer className="mr-1 h-4 w-4" />Print
+            <Printer className="mr-1 h-4 w-4" />{t("action.print")}
           </Button>
           <Button variant="outline" size="sm" onClick={share}>
-            <Share2 className="mr-1 h-4 w-4" />Share
+            <Share2 className="mr-1 h-4 w-4" />{t("action.share")}
           </Button>
-          <Button variant="outline" size="sm" disabled title="Email delivery coming soon">
-            <Mail className="mr-1 h-4 w-4" />Email
+          <Button variant="outline" size="sm" disabled title={t("tx.email_soon")}>
+            <Mail className="mr-1 h-4 w-4" />{t("action.email")}
           </Button>
           <Button size="sm" onClick={downloadPdf} style={{ backgroundColor: primary }}>
-            <Download className="mr-1 h-4 w-4" />Download PDF
+            <Download className="mr-1 h-4 w-4" />{t("action.download")}
           </Button>
         </div>
       </div>
@@ -293,57 +211,57 @@ function ReceiptPage() {
               className="grid h-10 w-10 place-items-center rounded text-white text-sm font-bold"
               style={{ backgroundColor: primary }}
             >
-              {t.bank_name.slice(0, 1)}
+              {tx.bank_name.slice(0, 1)}
             </div>
           )}
           <div>
-            <div className="text-xs uppercase opacity-70">Transaction Receipt</div>
+            <div className="text-xs uppercase opacity-70">{t("tx.transaction_receipt")}</div>
             <div className="text-lg font-semibold" style={{ color: primary }}>
-              {t.bank_name}
+              {tx.bank_name}
             </div>
           </div>
           <div className="ml-auto text-right">
-            <div className="text-xs uppercase opacity-70">Status</div>
-            <div className="font-semibold capitalize text-emerald-700">{t.status}</div>
+            <div className="text-xs uppercase opacity-70">{t("tx.status")}</div>
+            <div className="font-semibold capitalize text-emerald-700">{tx.status}</div>
           </div>
         </div>
 
         {(() => {
           const balanceBefore =
-            t.direction === "credit"
-              ? t.balance_after - t.amount
-              : t.direction === "debit"
-                ? t.balance_after + t.amount
-                : t.balance_after;
+            tx.direction === "credit"
+              ? tx.balance_after - tx.amount
+              : tx.direction === "debit"
+                ? tx.balance_after + tx.amount
+                : tx.balance_after;
           return (
             <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-              <Field label="Transaction Type">{friendlyKind(t.kind)}</Field>
-              <Field label="Amount"><span className="font-semibold">{fmt(t.amount, t.currency)}</span></Field>
-              <Field label="Currency">{t.currency}</Field>
-              <Field label="Direction"><span className="capitalize">{t.direction}</span></Field>
-              <Field label="Sender">{t.customer_name}</Field>
-              <Field label="Sender Account">{t.account_number || "—"}</Field>
-              <Field label="Recipient">{beneficiary?.name ?? (t.direction === "credit" ? t.customer_name : "—")}</Field>
-              <Field label="Recipient Account">{beneficiary?.account_number ?? "—"}</Field>
-              <Field label="Recipient Bank">{beneficiary?.bank_name ?? t.bank_name}</Field>
-              <Field label="Channel">Online Banking</Field>
-              <Field label="Date">{d.toLocaleDateString()}</Field>
-              <Field label="Time">{d.toLocaleTimeString()}</Field>
-              <Field label="Transaction ID"><span className="break-all font-mono text-xs">{t.id}</span></Field>
-              <Field label="Transaction Reference"><span className="break-all font-mono text-xs">{t.reference ?? "—"}</span></Field>
-              <Field label="Balance Before">{fmt(balanceBefore, t.currency)}</Field>
-              <Field label="Balance After">{fmt(t.balance_after, t.currency)}</Field>
-              <Field label="Charges">{fmt(0, t.currency)}</Field>
+              <Field label={t("tx.type")}>{friendlyKind(tx.kind)}</Field>
+              <Field label={t("transfer.amount")}><span className="font-semibold">{fmt(tx.amount, { currency: tx.currency })}</span></Field>
+              <Field label={t("transfer.currency")}>{tx.currency}</Field>
+              <Field label={t("tx.direction")}><span className="capitalize">{tx.direction}</span></Field>
+              <Field label={t("tx.sender")}>{tx.customer_name}</Field>
+              <Field label={t("tx.sender_account")}>{tx.account_number || "—"}</Field>
+              <Field label={t("tx.recipient")}>{beneficiary?.name ?? (tx.direction === "credit" ? tx.customer_name : "—")}</Field>
+              <Field label={t("tx.recipient_account")}>{beneficiary?.account_number ?? "—"}</Field>
+              <Field label={t("tx.recipient_bank")}>{beneficiary?.bank_name ?? tx.bank_name}</Field>
+              <Field label={t("tx.channel")}>{t("tx.channel_online")}</Field>
+              <Field label={t("tx.date")}>{fmtDate(d, { dateStyle: "medium" })}</Field>
+              <Field label={t("tx.time")}>{fmtDate(d, { timeStyle: "medium" })}</Field>
+              <Field label={t("tx.transaction_id")}><span className="break-all font-mono text-xs">{tx.id}</span></Field>
+              <Field label={t("tx.transaction_ref")}><span className="break-all font-mono text-xs">{tx.reference ?? "—"}</span></Field>
+              <Field label={t("tx.balance_before")}>{fmt(balanceBefore, { currency: tx.currency })}</Field>
+              <Field label={t("tx.balance_after")}>{fmt(tx.balance_after, { currency: tx.currency })}</Field>
+              <Field label={t("tx.charges")}>{fmt(0, { currency: tx.currency })}</Field>
               <div className="md:col-span-2">
-                <dt className="text-xs uppercase opacity-70">Narration</dt>
-                <dd>{t.description}</dd>
+                <dt className="text-xs uppercase opacity-70">{t("transfer.narration")}</dt>
+                <dd>{tx.description}</dd>
               </div>
             </dl>
           );
         })()}
 
         <div className="mt-6 border-t pt-3 text-xs italic opacity-70">
-          This receipt is system generated and does not require a signature.
+          {t("tx.receipt_footer")}
         </div>
       </BrandedCard>
     </div>
