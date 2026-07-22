@@ -63,7 +63,10 @@ function LoginPage() {
         navigate({ to: "/$slug/portal", params: { slug: bank.slug } });
       }, 350);
     },
-    onError: (e: unknown) => toast.error(humanizeLoginError(e)),
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e ?? "");
+      toast.error(msg || "We couldn't sign you in. Please try again.");
+    },
   });
 
   const form = (
