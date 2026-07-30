@@ -931,3 +931,45 @@ export const removeBankDomain = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+// --- Force Connect (bypass DNS verification) --------------------------------
+export const forceConnectBankDomain = createServerFn({ method: "POST" })
+  .middleware([withPlatformServiceRole])
+  .inputValidator((d: { bank_id: string }) => bankIdSchema.parse(d))
+  .handler(async ({ context, data }): Promise<BankDomain> => {
+    const { data: existing } = await context.supabase
+      .from("bank_custom_domains")
+      .select("*")
+      .eq("bank_id", data.bank_id)
+      .maybeSingle();
+    const row = existing as DomainRow | null;
+    if (!row || !row.domain) throw new Error("Save a domain before connecting.");
+
+    const now = new Date().toISOString();
+    const { data: updated, error } = await context.supabase
+      .from("bank_custom_domains")
+      .update({
+        status: "connected",
+        dns_status: "verified",
+        ssl_status: "pending",
+        last_verified_at: now,
+        connected_since: row.connected_since ?? now,
+      })
+      .eq("bank_id", data.bank_id)
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+
+    const slug = await fetchSlug(context.supabase as never, data.bank_id);
+
+    await logActivity(context.supabase, {
+      bank_id: data.bank_id,
+      domain: row.domain,
+      action: "verification_passed",
+      result: "success",
+      message: `Domain ${row.domain} manually marked as connected.`,
+      actor_id: context.userId,
+    });
+
+    return shape(updated as DomainRow, slug);
+  });
