@@ -27,33 +27,33 @@ export function generateCountryAccountFields(countryCode: string): CountryAccoun
   const c = (countryCode ?? "").toUpperCase();
   switch (c) {
     case "NG":
-      return { account_number: rand(10) };
+      return { account_number: rand(12) };
     case "US":
-      return { account_number: rand(10), routing_number: rand(9) };
+      return { account_number: rand(12), routing_number: rand(9) };
     case "GB":
     case "UK":
       return {
-        account_number: rand(8),
+        account_number: rand(12),
         sort_code: `${rand(2)}-${rand(2)}-${rand(2)}`,
       };
     case "AU":
-      return { account_number: rand(9), bsb: `${rand(3)}-${rand(3)}` };
+      return { account_number: rand(12), bsb: `${rand(3)}-${rand(3)}` };
     case "CA":
       return {
-        account_number: rand(7),
+        account_number: rand(12),
         institution_number: rand(3),
         transit_number: rand(5),
       };
     case "DE":
-      return { account_number: rand(10), iban: iban("DE", "10010010", 18), swift_bic: "PBNKDEFF" };
+      return { account_number: rand(12), iban: iban("DE", "10010010", 18), swift_bic: "PBNKDEFF" };
     case "FR":
-      return { account_number: rand(11), iban: iban("FR", "20041010", 21), swift_bic: "PSSTFRPP" };
+      return { account_number: rand(12), iban: iban("FR", "20041010", 21), swift_bic: "PSSTFRPP" };
     case "ES":
-      return { account_number: rand(10), iban: iban("ES", "21000418", 20), swift_bic: "CAIXESBB" };
+      return { account_number: rand(12), iban: iban("ES", "21000418", 20), swift_bic: "CAIXESBB" };
     case "IT":
       return { account_number: rand(12), iban: iban("IT", "X0300203280", 22), swift_bic: "BCITITMM" };
     default:
-      return { account_number: rand(10) };
+      return { account_number: rand(12) };
   }
 }
 
