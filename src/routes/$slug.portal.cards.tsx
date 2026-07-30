@@ -341,105 +341,68 @@ function BankCard({
   const expiry = `${String(card.expiry_month).padStart(2, "0")}/${String(card.expiry_year).slice(-2)}`;
 
   return (
-    <div
-      className="relative aspect-[1.586/1] w-full [perspective:1200px]"
-    >
+    <div className="relative aspect-[1.586/1] w-full">
       <div
-        className="relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d]"
-        style={{ transform: revealed ? "rotateY(180deg)" : "rotateY(0deg)" }}
+        className="relative flex h-full flex-col justify-between overflow-hidden rounded-2xl p-5 text-white shadow-xl"
+        style={{
+          background: `linear-gradient(135deg, ${primary} 0%, color-mix(in oklab, ${secondary} 70%, black) 100%)`,
+        }}
       >
-        {/* FRONT */}
-        <div
-          className="absolute inset-0 flex flex-col justify-between overflow-hidden rounded-2xl p-5 text-white shadow-xl [backface-visibility:hidden]"
-          style={{
-            background: `linear-gradient(135deg, ${primary} 0%, color-mix(in oklab, ${secondary} 70%, black) 100%)`,
-          }}
-        >
-          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/10" />
-          <div className="pointer-events-none absolute -bottom-20 -left-10 h-52 w-52 rounded-full bg-white/5" />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/10" />
+        <div className="pointer-events-none absolute -bottom-20 -left-10 h-52 w-52 rounded-full bg-white/5" />
 
-          <div className="relative flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              {logo ? (
-                <img
-                  src={logo}
-                  alt=""
-                  className="h-8 w-8 rounded-md bg-white/95 object-contain p-1"
-                />
-              ) : (
-                <div className="grid h-8 w-8 place-items-center rounded-md bg-white/20">
-                  <CreditCard className="h-4 w-4" />
-                </div>
-              )}
-              <div className="text-[11px] font-semibold uppercase tracking-wider opacity-90">
-                {manifest.bank.name}
+        <div className="relative flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            {logo ? (
+              <img
+                src={logo}
+                alt=""
+                className="h-8 w-8 rounded-md bg-white/95 object-contain p-1"
+              />
+            ) : (
+              <div className="grid h-8 w-8 place-items-center rounded-md bg-white/20">
+                <CreditCard className="h-4 w-4" />
               </div>
-            </div>
+            )}
             <div className="text-[11px] font-semibold uppercase tracking-wider opacity-90">
-              {card.card_type === "physical" ? "Debit" : "Virtual"}
+              {manifest.bank.name}
             </div>
           </div>
-
-          <div className="relative">
-            <div className="font-mono text-lg tracking-[0.18em] md:text-xl">
-              {displayNumber}
-            </div>
-            <div className="mt-3 flex items-end justify-between gap-3">
-              <div>
-                <div className="text-[9px] uppercase tracking-widest opacity-70">Card holder</div>
-                <div className="text-xs font-semibold uppercase tracking-wide">
-                  {card.card_holder}
-                </div>
-              </div>
-              <div>
-                <div className="text-[9px] uppercase tracking-widest opacity-70">Valid thru</div>
-                <div className="font-mono text-xs">{expiry}</div>
-              </div>
-              <div>
-                <div className="text-[9px] uppercase tracking-widest opacity-70">CVV</div>
-                <div className="font-mono text-xs">{displayCvv}</div>
-              </div>
-              <BrandMark brand={card.brand} className="h-6" />
-            </div>
-          </div>
-
-          {frozen && (
-            <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-900/55 backdrop-blur-sm animate-fade-in">
-              <div className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-slate-800">
-                <Snowflake className="h-4 w-4 text-sky-500" /> Card frozen
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* BACK */}
-        <div
-          className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl text-white shadow-xl [backface-visibility:hidden] [transform:rotateY(180deg)]"
-          style={{
-            background: `linear-gradient(135deg, color-mix(in oklab, ${secondary} 80%, black) 0%, ${primary} 100%)`,
-          }}
-        >
-          <div className="mt-6 h-10 w-full bg-slate-900/70" />
-          <div className="p-5">
-            <div className="text-[10px] uppercase tracking-widest opacity-80">Card number</div>
-            <div className="mt-1 font-mono text-base tracking-[0.18em] md:text-lg">
-              {displayNumber}
-            </div>
-            <div className="mt-4 flex items-end justify-between gap-3">
-              <div>
-                <div className="text-[9px] uppercase tracking-widest opacity-70">Valid thru</div>
-                <div className="font-mono text-sm">{expiry}</div>
-              </div>
-              <div>
-                <div className="text-[9px] uppercase tracking-widest opacity-70">CVV</div>
-                <div className="rounded bg-white/95 px-2 py-0.5 font-mono text-sm text-slate-900">
-                  {displayCvv}
-                </div>
-              </div>
-              <BrandMark brand={card.brand} className="h-6" />
-            </div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider opacity-90">
+            {card.card_type === "physical" ? "Debit" : "Virtual"}
           </div>
         </div>
+
+        <div className="relative">
+          <div className="font-mono text-lg tracking-[0.18em] md:text-xl">
+            {displayNumber}
+          </div>
+          <div className="mt-3 flex items-end justify-between gap-3">
+            <div>
+              <div className="text-[9px] uppercase tracking-widest opacity-70">Card holder</div>
+              <div className="text-xs font-semibold uppercase tracking-wide">
+                {card.card_holder}
+              </div>
+            </div>
+            <div>
+              <div className="text-[9px] uppercase tracking-widest opacity-70">Valid thru</div>
+              <div className="font-mono text-xs">{expiry}</div>
+            </div>
+            <div>
+              <div className="text-[9px] uppercase tracking-widest opacity-70">CVV</div>
+              <div className="font-mono text-xs">{displayCvv}</div>
+            </div>
+            <BrandMark brand={card.brand} className="h-6" />
+          </div>
+        </div>
+
+        {frozen && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-900/55 backdrop-blur-sm animate-fade-in">
+            <div className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-slate-800">
+              <Snowflake className="h-4 w-4 text-sky-500" /> Card frozen
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
