@@ -10,6 +10,7 @@ import type {
   WebsiteManifest,
 } from "./types";
 import { variantFromConfig } from "./template-variant";
+import { defaultDashboardLayout } from "@/lib/dashboard-layout/types";
 
 
 export function buildManifest(args: {
@@ -50,6 +51,7 @@ export function buildManifest(args: {
     navigation,
     products,
     dashboard_style: cfg.branding.dashboard_style ?? "classic",
+    dashboard_layout: defaultDashboardLayout(),
     metadata: {
       title: name,
       description: `${name} — powered by TheMixWeb`,
