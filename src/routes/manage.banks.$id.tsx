@@ -465,16 +465,6 @@ function BankOverview() {
             <Button
               variant="outline"
               className="justify-start"
-              asChild
-            >
-              <Link to="/manage/banks/$id/dashboard-designer" params={{ id }}>
-                <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard Layout Designer
-                <span className="ml-1">⭐</span>
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              className="justify-start"
               onClick={() => navigate({ to: "/admin/$section", params: { section: "customers" } })}
             >
               <Users className="mr-2 h-4 w-4" /> Manage Customers
