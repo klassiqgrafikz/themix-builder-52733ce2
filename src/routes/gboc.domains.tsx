@@ -32,6 +32,7 @@ import {
   type DnsProvider,
   type DomainActivityEntry,
 } from "@/lib/gboc/domain-activity.functions";
+import { DomainRegisterWizard } from "@/routes/gboc.domains.register";
 import {
   deriveStage,
   stageIsTerminal,
@@ -130,33 +131,61 @@ function DomainManagerPage() {
   const banks = banksQ.data ?? [];
   const selectedBank = banks.find((b) => b.id === bank) ?? null;
 
+  const [mode, setMode] = useState<"register" | "connect">("register");
+
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold">Domain Setup Wizard</h1>
+        <h1 className="text-2xl font-bold">Domain Manager</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Guided, enterprise-grade custom domain onboarding for every generated
-          bank. Auto-detects apex vs subdomain and your DNS provider, then walks
-          you through verification, SSL and routing.
+          Register a new domain or connect one you already own to any generated bank.
         </p>
       </div>
 
-      {!selectedBank ? (
-        <BankPickerStep
-          banks={banks}
-          loading={banksQ.isLoading}
-          onPick={(id) =>
-            navigate({ to: "/gboc/domains", search: { bank: id || undefined } })
-          }
+      {/* Mode toggle */}
+      <div className="flex gap-2">
+        <Button
+          variant={mode === "register" ? "default" : "outline"}
+          onClick={() => setMode("register")}
+          size="sm"
+        >
+          <Globe className="mr-1.5 h-4 w-4" /> Register a Domain
+        </Button>
+        <Button
+          variant={mode === "connect" ? "default" : "outline"}
+          onClick={() => setMode("connect")}
+          size="sm"
+        >
+          <ExternalLink className="mr-1.5 h-4 w-4" /> Connect My Domain
+        </Button>
+      </div>
+
+      {mode === "register" ? (
+        <DomainRegisterWizard
+          onBack={() => {
+            navigate({ to: "/gboc/domains", search: { bank: undefined } });
+          }}
         />
       ) : (
-        <Wizard
-          bankId={selectedBank.id}
-          bankName={selectedBank.bank_name}
-          onChangeBank={() =>
-            navigate({ to: "/gboc/domains", search: { bank: undefined } })
-          }
-        />
+        <>
+          {!selectedBank ? (
+            <BankPickerStep
+              banks={banks}
+              loading={banksQ.isLoading}
+              onPick={(id) =>
+                navigate({ to: "/gboc/domains", search: { bank: id || undefined } })
+              }
+            />
+          ) : (
+            <Wizard
+              bankId={selectedBank.id}
+              bankName={selectedBank.bank_name}
+              onChangeBank={() =>
+                navigate({ to: "/gboc/domains", search: { bank: undefined } })
+              }
+            />
+          )}
+        </>
       )}
     </div>
   );
