@@ -382,7 +382,7 @@ function BankCard({
 
           <div className="relative">
             <div className="font-mono text-lg tracking-[0.18em] md:text-xl">
-              {card.masked_number}
+              {displayNumber}
             </div>
             <div className="mt-3 flex items-end justify-between gap-3">
               <div>
@@ -397,7 +397,7 @@ function BankCard({
               </div>
               <div>
                 <div className="text-[9px] uppercase tracking-widest opacity-70">CVV</div>
-                <div className="font-mono text-xs">•••</div>
+                <div className="font-mono text-xs">{displayCvv}</div>
               </div>
               <BrandMark brand={card.brand} className="h-6" />
             </div>
@@ -532,13 +532,13 @@ function CardOptionsSheet({
                 <ActionRow
                   icon={Copy}
                   label="Copy card number"
-                  disabled={frozen}
+                  disabled={frozen || !revealed}
                   onClick={() => copy(fullPan(card).replace(/\s/g, ""), "Card number")}
                 />
                 <ActionRow
                   icon={Copy}
                   label="Copy CVV"
-                  disabled={frozen}
+                  disabled={frozen || !revealed}
                   onClick={() => copy(fullCvv(card), "CVV")}
                 />
                 {frozen ? (
