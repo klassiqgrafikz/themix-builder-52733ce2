@@ -15,6 +15,8 @@ import { updateDraft } from "@/lib/bank-builder.functions";
 import { publishDraft, unpublishDraft, deleteBank, clearRenderingHistory } from "@/lib/website/registry.functions";
 import { Input } from "@/components/ui/input";
 import { sanitizeShortSlug, validateShortSlug } from "@/lib/website/reserved-slugs";
+import { TenantGateway } from "@/lib/website/tenant-gateway";
+import { TenantSite } from "@/lib/website/tenant-site";
 import {
   deleteBankProduct,
   listBankProducts,
@@ -52,6 +54,9 @@ import {
   Trash2,
   History,
   LayoutDashboard,
+  Monitor,
+  Smartphone,
+  Tablet,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -64,6 +69,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 
 export const Route = createFileRoute("/manage/banks/$id")({
@@ -171,6 +188,10 @@ function BankOverview() {
   const isReady = renderStatus === "ready";
   const busy = rerenderMut.isPending || publishMut.isPending || unpublishMut.isPending;
 
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [previewPage, setPreviewPage] = useState<"gateway" | "site">("site");
+  const previewFrameW = previewDevice === "desktop" ? "100%" : previewDevice === "tablet" ? 768 : 375;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -427,6 +448,15 @@ function BankOverview() {
               <ExternalLink className="mr-2 h-4 w-4" />
               {isPublished ? "Open Public Site" : "Public site unavailable"}
             </Button>
+            <Button
+              variant="outline"
+              className="justify-start"
+              disabled={!manifest}
+              onClick={() => setPreviewOpen(true)}
+            >
+              <Monitor className="mr-2 h-4 w-4" />
+              Preview Homepage
+            </Button>
             {isReady && (
               <Button
                 className="justify-start"
@@ -523,6 +553,52 @@ function BankOverview() {
           </CardContent>
         </Card>
       </main>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Homepage Preview — {identity.bank_name}</DialogTitle>
+            <DialogDescription>
+              See how your landing page looks across devices.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-wrap items-center gap-3 border-b pb-3">
+            <Tabs value={previewPage} onValueChange={(v) => setPreviewPage(v as typeof previewPage)}>
+              <TabsList>
+                <TabsTrigger value="gateway">Gateway</TabsTrigger>
+                <TabsTrigger value="site">Landing Page</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Tabs value={previewDevice} onValueChange={(v) => setPreviewDevice(v as typeof previewDevice)} className="ml-auto">
+              <TabsList>
+                <TabsTrigger value="desktop"><Monitor className="mr-1 h-4 w-4" />Desktop</TabsTrigger>
+                <TabsTrigger value="tablet"><Tablet className="mr-1 h-4 w-4" />Tablet</TabsTrigger>
+                <TabsTrigger value="mobile"><Smartphone className="mr-1 h-4 w-4" />Mobile</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          <div className="flex-1 overflow-hidden rounded-lg border bg-muted/40 p-4 min-h-0">
+            <div
+              className="mx-auto overflow-auto rounded-md border bg-background shadow-sm transition-all"
+              style={{ width: previewFrameW, maxWidth: "100%", maxHeight: "600px" }}
+            >
+              <div className="pointer-events-none">
+                {manifest && previewPage === "gateway" && (
+                  <TenantGateway manifest={manifest} />
+                )}
+                {manifest && previewPage === "site" && (
+                  <TenantSite
+                    manifest={manifest}
+                    page={manifest.pages[0] ?? { slug: "home", path: "/home", title: "Home", module_key: null, system: false }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
