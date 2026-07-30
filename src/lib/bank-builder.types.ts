@@ -161,12 +161,7 @@ export const ADMIN_OPTIONS = [
 ] as const;
 
 export const CATEGORY_OPTIONS = [
-  "Retail Banking",
-  "Commercial Banking",
-  "Corporate Banking",
-  "Private Banking",
-  "Digital Banking",
-  "Investment Banking",
+  "Online Banking",
 ] as const;
 
 export const ADMIN_SECTIONS: {

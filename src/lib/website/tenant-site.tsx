@@ -412,7 +412,7 @@ function PremiumGateway({ manifest }: { manifest: WebsiteManifest }) {
               {bank.name}
             </div>
             <div className="text-[10px] uppercase tracking-[0.35em] text-[#c9a84c]">
-              Private Banking
+              Online Banking
             </div>
           </div>
         </Link>
@@ -497,7 +497,7 @@ function PremiumGateway({ manifest }: { manifest: WebsiteManifest }) {
 
       <footer className="border-t border-white/10">
         <div className="mx-auto max-w-6xl px-8 py-6 text-[11px] uppercase tracking-[0.25em] text-white/40">
-          © {new Date().getFullYear()} {bank.name} · Private Banking
+          © {new Date().getFullYear()} {bank.name} · Online Banking
         </div>
       </footer>
     </div>

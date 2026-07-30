@@ -895,7 +895,7 @@ function LayoutThumb({
   if (layout === "premium") {
     return (
       <div className="relative h-24 w-full overflow-hidden bg-neutral-950 p-3">
-        <div className="text-[8px] uppercase tracking-[0.3em]" style={{ color: "#c9a84c" }}>Private Banking</div>
+        <div className="text-[8px] uppercase tracking-[0.3em]" style={{ color: "#c9a84c" }}>Online Banking</div>
         <div className="mt-1 h-1 w-8" style={{ backgroundColor: "#c9a84c" }} />
         <div className="mt-2 h-10 w-full rounded" style={{ background: `linear-gradient(135deg, #1a1a22, #0d0d14)`, border: "1px solid rgba(201,168,76,0.35)" }} />
       </div>

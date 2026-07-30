@@ -184,7 +184,7 @@ function LoginPage() {
               <img src={m.brand.login_logo_url} alt="" className="mx-auto mb-4 h-14 w-14 rounded object-contain" />
             )}
             <div className="text-xs uppercase tracking-[0.35em]" style={{ color: "#c9a84c" }}>
-              Private Banking
+              Online Banking
             </div>
             <div
               className="mt-3 text-3xl"
