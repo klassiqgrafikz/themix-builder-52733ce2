@@ -12,7 +12,6 @@ import {
   forceConnectBankDomain,
   type BankDomain,
 } from "@/lib/gboc/domains.functions";
-import { DomainRegisterWizard } from "@/routes/gboc.domains.register";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,8 +30,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Globe,
-  ExternalLink,
   CheckCircle2,
   Trash2,
   Loader2,
@@ -66,46 +63,21 @@ function DomainManagerPage() {
   const banksQ = useQuery({ queryKey: ["gboc", "banks"], queryFn: () => banksFn() });
   const banks = banksQ.data ?? [];
 
-  const [mode, setMode] = useState<"register" | "connect">("register");
-
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold">Domain Manager</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Register a new domain or connect one you already own to any generated bank.
+          Connect a domain you already own to any generated bank.
         </p>
       </div>
 
-      <div className="flex gap-2">
-        <Button
-          variant={mode === "register" ? "default" : "outline"}
-          onClick={() => setMode("register")}
-          size="sm"
-        >
-          <Globe className="mr-1.5 h-4 w-4" /> Register a Domain
-        </Button>
-        <Button
-          variant={mode === "connect" ? "default" : "outline"}
-          onClick={() => setMode("connect")}
-          size="sm"
-        >
-          <ExternalLink className="mr-1.5 h-4 w-4" /> Connect My Domain
-        </Button>
-      </div>
-
-      {mode === "register" ? (
-        <DomainRegisterWizard
-          onBack={() => navigate({ to: "/gboc/domains", search: { bank: undefined } })}
-        />
-      ) : (
-        <ConnectFlow
-          bankParam={bank}
-          banks={banks}
-          banksLoading={banksQ.isLoading}
-          onSelectBank={(id) => navigate({ to: "/gboc/domains", search: { bank: id || undefined } })}
-        />
-      )}
+      <ConnectFlow
+        bankParam={bank}
+        banks={banks}
+        banksLoading={banksQ.isLoading}
+        onSelectBank={(id) => navigate({ to: "/gboc/domains", search: { bank: id || undefined } })}
+      />
     </div>
   );
 }
