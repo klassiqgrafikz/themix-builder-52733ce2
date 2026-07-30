@@ -11,6 +11,7 @@ import type {
 } from "./types";
 import { variantFromConfig } from "./template-variant";
 import { getDashboardLayoutForKey } from "@/lib/dashboard-layout/types";
+import { defaultHomepageContent, defaultCatalogContent } from "./default-content";
 
 
 export function buildManifest(args: {
@@ -52,6 +53,8 @@ export function buildManifest(args: {
     products,
     portal_layout_key: cfg.branding.portal_layout_key ?? "sidebar",
     dashboard_layout: getDashboardLayoutForKey(cfg.branding.portal_layout_key ?? "sidebar"),
+    homepage_content: cfg.branding.homepage_content ?? defaultHomepageContent(cfg),
+    catalog_content: cfg.branding.catalog_content ?? defaultCatalogContent(cfg),
     metadata: {
       title: name,
       description: `${name} — powered by TheMixWeb`,

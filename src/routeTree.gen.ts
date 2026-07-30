@@ -56,6 +56,7 @@ import { Route as SlugPortalNotificationsRouteImport } from './routes/$slug.port
 import { Route as SlugPortalCardsRouteImport } from './routes/$slug.portal.cards'
 import { Route as SlugPortalBeneficiariesRouteImport } from './routes/$slug.portal.beneficiaries'
 import { Route as SlugPortalAccountsRouteImport } from './routes/$slug.portal.accounts'
+import { Route as SlugPortalCatalogRouteImport } from './routes/$slug.portal.catalog'
 import { Route as SlugPortalTransactionsIndexRouteImport } from './routes/$slug.portal.transactions.index'
 import { Route as ApiPublicCustomerAvatarCustomerIdRouteImport } from './routes/api/public/customer-avatar.$customerId'
 import { Route as SlugPortalTransactionsIdRouteImport } from './routes/$slug.portal.transactions.$id'
@@ -296,6 +297,11 @@ const SlugPortalAccountsRoute = SlugPortalAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => SlugPortalRoute,
 } as any)
+const SlugPortalCatalogRoute = SlugPortalCatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => SlugPortalRoute,
+} as any)
 const SlugPortalTransactionsIndexRoute =
   SlugPortalTransactionsIndexRouteImport.update({
     id: '/',
@@ -353,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/gboc/': typeof GbocIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/$slug/portal/accounts': typeof SlugPortalAccountsRoute
+  '/$slug/portal/catalog': typeof SlugPortalCatalogRoute
   '/$slug/portal/beneficiaries': typeof SlugPortalBeneficiariesRoute
   '/$slug/portal/cards': typeof SlugPortalCardsRoute
   '/$slug/portal/notifications': typeof SlugPortalNotificationsRoute
@@ -399,6 +406,7 @@ export interface FileRoutesByTo {
   '/gboc': typeof GbocIndexRoute
   '/launch': typeof LaunchIndexRoute
   '/$slug/portal/accounts': typeof SlugPortalAccountsRoute
+  '/$slug/portal/catalog': typeof SlugPortalCatalogRoute
   '/$slug/portal/beneficiaries': typeof SlugPortalBeneficiariesRoute
   '/$slug/portal/cards': typeof SlugPortalCardsRoute
   '/$slug/portal/notifications': typeof SlugPortalNotificationsRoute
@@ -452,6 +460,7 @@ export interface FileRoutesById {
   '/gboc/': typeof GbocIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/$slug/portal/accounts': typeof SlugPortalAccountsRoute
+  '/$slug/portal/catalog': typeof SlugPortalCatalogRoute
   '/$slug/portal/beneficiaries': typeof SlugPortalBeneficiariesRoute
   '/$slug/portal/cards': typeof SlugPortalCardsRoute
   '/$slug/portal/notifications': typeof SlugPortalNotificationsRoute
@@ -506,6 +515,7 @@ export interface FileRouteTypes {
     | '/gboc/'
     | '/launch/'
     | '/$slug/portal/accounts'
+    | '/$slug/portal/catalog'
     | '/$slug/portal/beneficiaries'
     | '/$slug/portal/cards'
     | '/$slug/portal/notifications'
@@ -552,6 +562,7 @@ export interface FileRouteTypes {
     | '/gboc'
     | '/launch'
     | '/$slug/portal/accounts'
+    | '/$slug/portal/catalog'
     | '/$slug/portal/beneficiaries'
     | '/$slug/portal/cards'
     | '/$slug/portal/notifications'
@@ -604,6 +615,7 @@ export interface FileRouteTypes {
     | '/gboc/'
     | '/launch/'
     | '/$slug/portal/accounts'
+    | '/$slug/portal/catalog'
     | '/$slug/portal/beneficiaries'
     | '/$slug/portal/cards'
     | '/$slug/portal/notifications'
@@ -965,6 +977,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SlugPortalBeneficiariesRouteImport
       parentRoute: typeof SlugPortalRoute
     }
+    '/$slug/portal/catalog': {
+      id: '/$slug/portal/catalog'
+      path: '/catalog'
+      fullPath: '/$slug/portal/catalog'
+      preLoaderRoute: typeof SlugPortalCatalogRouteImport
+      parentRoute: typeof SlugPortalRoute
+    }
     '/$slug/portal/accounts': {
       id: '/$slug/portal/accounts'
       path: '/accounts'
@@ -1021,6 +1040,7 @@ const SlugPortalTransactionsRouteWithChildren =
 
 interface SlugPortalRouteChildren {
   SlugPortalAccountsRoute: typeof SlugPortalAccountsRoute
+  SlugPortalCatalogRoute: typeof SlugPortalCatalogRoute
   SlugPortalBeneficiariesRoute: typeof SlugPortalBeneficiariesRoute
   SlugPortalCardsRoute: typeof SlugPortalCardsRoute
   SlugPortalNotificationsRoute: typeof SlugPortalNotificationsRoute
@@ -1035,6 +1055,7 @@ interface SlugPortalRouteChildren {
 
 const SlugPortalRouteChildren: SlugPortalRouteChildren = {
   SlugPortalAccountsRoute: SlugPortalAccountsRoute,
+  SlugPortalCatalogRoute: SlugPortalCatalogRoute,
   SlugPortalBeneficiariesRoute: SlugPortalBeneficiariesRoute,
   SlugPortalCardsRoute: SlugPortalCardsRoute,
   SlugPortalNotificationsRoute: SlugPortalNotificationsRoute,

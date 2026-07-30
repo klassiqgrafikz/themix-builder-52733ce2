@@ -90,6 +90,46 @@ export type ResolvedProductRef = {
   sort_order: number;
 };
 
+export type ResponsiveText = {
+  desktop: string;
+  mobile: string;
+};
+
+export type HomepageFeatureCard = {
+  id: string;
+  icon_key: string;
+  title: ResponsiveText;
+  description: ResponsiveText;
+  visible_desktop: boolean;
+  visible_mobile: boolean;
+};
+
+export type GatewayContent = {
+  heading: ResponsiveText;
+  subtitle: ResponsiveText;
+};
+
+export type VariantContent = {
+  badge: ResponsiveText;
+  hero_title: ResponsiveText;
+  hero_subtitle: ResponsiveText;
+  cta_primary: ResponsiveText;
+  cta_secondary: ResponsiveText;
+  features: HomepageFeatureCard[];
+  show_balance_card: boolean;
+};
+
+export type HomepageContent = {
+  gateway: GatewayContent;
+  modern: VariantContent;
+  corporate: VariantContent;
+  premium: VariantContent;
+};
+
+export type CatalogContent = {
+  heading: ResponsiveText;
+  subtitle: ResponsiveText;
+};
 
 export type WebsiteManifest = {
   version: 1;
@@ -144,6 +184,8 @@ export type WebsiteManifest = {
   /** @deprecated Replaced by portal_layout_key. Kept for backward compat. */
   dashboard_style?: "classic" | "modern" | "minimal" | "premium" | "premium_card";
 
+  homepage_content?: HomepageContent;
+  catalog_content?: CatalogContent;
 };
 
 export type BankInstance = {
@@ -199,6 +241,8 @@ export type BankConfigurationInput = {
     template_variant?: "modern" | "corporate" | "premium";
     portal_layout_key?: "sidebar" | "topnav" | "premium" | "minimal" | "floating";
     dashboard_style?: "classic" | "modern" | "minimal" | "premium" | "premium_card";
+    homepage_content?: HomepageContent;
+    catalog_content?: CatalogContent;
   };
 
   features: Record<string, boolean>;

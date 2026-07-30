@@ -1,15 +1,26 @@
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import { Link } from "@tanstack/react-router";
 
-/**
- * Minimal public landing gateway for a generated tenant bank.
- *
- * Shows only the uploaded Login Page Logo, the two primary actions
- * (Customer Login / Open Account), and a short welcome message that
- * automatically inserts the generated bank's name.
- */
+function rt(
+  field: { desktop: string; mobile: string } | undefined,
+  fallback: string,
+): { desktop: string; mobile: string } {
+  return field ?? { desktop: fallback, mobile: fallback };
+}
+
+function Rtf({ field, fallback }: { field: { desktop: string; mobile: string } | undefined; fallback: string }) {
+  const f = rt(field, fallback);
+  return (
+    <>
+      <span className="hidden md:inline" style={{ whiteSpace: "pre-line" }}>{f.desktop}</span>
+      <span className="inline md:hidden" style={{ whiteSpace: "pre-line" }}>{f.mobile}</span>
+    </>
+  );
+}
+
 export function TenantGateway({ manifest }: { manifest: WebsiteManifest }) {
   const { theme, bank, brand } = manifest;
+  const hc = manifest.homepage_content?.gateway;
 
   const background = theme.dark_mode ? "#0b1120" : "#f8fafc";
   const foreground = theme.dark_mode ? "#f1f5f9" : "#0f172a";
@@ -71,12 +82,14 @@ export function TenantGateway({ manifest }: { manifest: WebsiteManifest }) {
             color: theme.colors.primary,
           }}
         >
-          Banking that keeps up with your day.
+          <Rtf field={hc?.heading} fallback="Banking that keeps up with your day." />
         </h1>
 
         <p className="mt-5 max-w-sm text-base opacity-80">
-          Open a {bank.name} account in minutes. Instant transfers, real-time
-          notifications and a portal designed around your money — not paperwork.
+          <Rtf
+            field={hc?.subtitle}
+            fallback={`Open a ${bank.name} account in minutes. Instant transfers, real-time notifications and a portal designed around your money — not paperwork.`}
+          />
         </p>
       </div>
     </div>

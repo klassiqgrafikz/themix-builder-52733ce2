@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { sanitizeShortSlug, validateShortSlug } from "@/lib/website/reserved-slugs";
 import { TenantGateway } from "@/lib/website/tenant-gateway";
 import { TenantSite } from "@/lib/website/tenant-site";
+import { HomepageEditor } from "@/routes/manage.banks.homepage-editor";
 import {
   deleteBankProduct,
   listBankProducts,
@@ -552,6 +553,12 @@ function BankOverview() {
             </AlertDialog>
           </CardContent>
         </Card>
+
+        <HomepageEditor
+          manifest={manifest}
+          draftId={id}
+          onSaved={() => qc.invalidateQueries({ queryKey: ["bb-draft", id] })}
+        />
       </main>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>

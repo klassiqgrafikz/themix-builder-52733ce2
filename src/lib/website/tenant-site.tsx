@@ -1,8 +1,36 @@
-import type { GeneratedPage, WebsiteManifest } from "@/lib/rendering/types";
+import type { GeneratedPage, WebsiteManifest, HomepageFeatureCard } from "@/lib/rendering/types";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { ShieldCheck, Sparkles, ArrowRight, Landmark, Building2, Crown } from "lucide-react";
+import {
+  ShieldCheck, Sparkles, ArrowRight, Landmark, Building2, Crown,
+  Wallet, Globe, Lock, Zap, Users, BarChart3, PiggyBank, CreditCard, Repeat,
+} from "lucide-react";
+
+const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  Sparkles, ShieldCheck, Landmark, Building2, Crown,
+  Wallet, Globe, Lock, Zap, Users, BarChart3, PiggyBank, CreditCard, Repeat, ArrowRight,
+};
+
+function IconByKey({ k, className }: { k: string; className?: string }) {
+  const C = ICONS[k];
+  if (!C) return <div className={className} />;
+  return <C className={className} />;
+}
+
+function rf(field: { desktop: string; mobile: string } | undefined, fallback: string): { desktop: string; mobile: string } {
+  return field ?? { desktop: fallback, mobile: fallback };
+}
+
+function Rtf({ field, fallback, className }: { field: { desktop: string; mobile: string } | undefined; fallback: string; className?: string }) {
+  const f = rf(field, fallback);
+  return (
+    <span className={className}>
+      <span className="hidden md:inline" style={{ whiteSpace: "pre-line" }}>{f.desktop}</span>
+      <span className="inline md:hidden" style={{ whiteSpace: "pre-line" }}>{f.mobile}</span>
+    </span>
+  );
+}
 
 function useHasSession(slug: string): boolean {
   const [has, setHas] = useState(false);
@@ -79,6 +107,8 @@ function ModernGateway({ manifest }: { manifest: WebsiteManifest }) {
   const bg = theme.dark_mode ? "#0b1120" : "#f8fafc";
   const text = theme.dark_mode ? "#f1f5f9" : "#0f172a";
   const surface = theme.dark_mode ? "#111827" : "#ffffff";
+  const mc = manifest.homepage_content?.modern;
+  const balCard = mc?.show_balance_card ?? true;
 
   return (
     <div
@@ -112,7 +142,7 @@ function ModernGateway({ manifest }: { manifest: WebsiteManifest }) {
             className="inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium text-white"
             style={{ backgroundColor: theme.colors.accent }}
           >
-            Open account <ArrowRight className="h-3.5 w-3.5" />
+            <Rtf field={mc?.cta_primary} fallback="Open account" /> <ArrowRight className="h-3.5 w-3.5" />
           </a>
         </div>
       </header>
@@ -123,19 +153,19 @@ function ModernGateway({ manifest }: { manifest: WebsiteManifest }) {
             className="inline-flex w-fit items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
             style={{ backgroundColor: `${theme.colors.accent}22`, color: theme.colors.accent }}
           >
-            <Sparkles className="h-3 w-3" /> Digital-first banking
+            <Sparkles className="h-3 w-3" /> <Rtf field={mc?.badge} fallback="Digital-first banking" />
           </span>
           <h1
             className="mt-5 text-4xl font-bold leading-tight sm:text-5xl"
             style={{ fontFamily: theme.typography.heading, color: theme.colors.primary }}
           >
-            Banking that keeps up
-            <br />
-            with your day.
+            <Rtf field={mc?.hero_title} fallback="Banking that keeps up\nwith your day." />
           </h1>
           <p className="mt-5 max-w-md text-base opacity-80">
-            Open a {bank.name} account in minutes. Instant transfers, real-time notifications and a
-            portal designed around your money — not paperwork.
+            <Rtf
+              field={mc?.hero_subtitle}
+              fallback={`Open a ${bank.name} account in minutes. Instant transfers, real-time notifications and a portal designed around your money — not paperwork.`}
+            />
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a
@@ -143,7 +173,7 @@ function ModernGateway({ manifest }: { manifest: WebsiteManifest }) {
               className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white"
               style={{ backgroundColor: theme.colors.accent }}
             >
-              Open an account <ArrowRight className="h-4 w-4" />
+              <Rtf field={mc?.cta_primary} fallback="Open an account" /> <ArrowRight className="h-4 w-4" />
             </a>
             <a
               href={actions.portalHref}
@@ -158,62 +188,65 @@ function ModernGateway({ manifest }: { manifest: WebsiteManifest }) {
           </div>
         </div>
 
-        {/* Big balance card mock */}
-        <div className="flex items-center justify-center">
-          <div
-            className="w-full max-w-sm overflow-hidden rounded-3xl p-6 text-white shadow-2xl"
-            style={{
-              background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.accent})`,
-            }}
-          >
-            <div className="flex items-center justify-between text-xs opacity-80">
-              <span>Available balance</span>
-              <span>{bank.currency ?? "USD"}</span>
-            </div>
+        {balCard && (
+          <div className="flex items-center justify-center">
             <div
-              className="mt-3 text-4xl font-bold"
-              style={{ fontFamily: theme.typography.heading }}
+              className="w-full max-w-sm overflow-hidden rounded-3xl p-6 text-white shadow-2xl"
+              style={{
+                background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.accent})`,
+              }}
             >
-              {(12480.55).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </div>
-            <div className="mt-6 grid grid-cols-3 gap-2 text-center text-xs">
-              {["Send", "Request", "Top up"].map((a) => (
-                <div key={a} className="rounded-2xl bg-white/15 py-3 backdrop-blur">
-                  {a}
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 space-y-2">
-              {["Salary", "Coffee shop", "Subscription"].map((t, i) => (
-                <div key={t} className="flex items-center justify-between text-xs">
-                  <span className="opacity-80">{t}</span>
-                  <span>{i === 0 ? "+1,240.00" : i === 1 ? "-4.20" : "-9.99"}</span>
-                </div>
-              ))}
+              <div className="flex items-center justify-between text-xs opacity-80">
+                <span>Available balance</span>
+                <span>{bank.currency ?? "USD"}</span>
+              </div>
+              <div
+                className="mt-3 text-4xl font-bold"
+                style={{ fontFamily: theme.typography.heading }}
+              >
+                {(12480.55).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+              <div className="mt-6 grid grid-cols-3 gap-2 text-center text-xs">
+                {["Send", "Request", "Top up"].map((a) => (
+                  <div key={a} className="rounded-2xl bg-white/15 py-3 backdrop-blur">
+                    {a}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 space-y-2">
+                {["Salary", "Coffee shop", "Subscription"].map((t, i) => (
+                  <div key={t} className="flex items-center justify-between text-xs">
+                    <span className="opacity-80">{t}</span>
+                    <span>{i === 0 ? "+1,240.00" : i === 1 ? "-4.20" : "-9.99"}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
 
       <section className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-6 pb-16 md:grid-cols-3">
-        {[
-          { icon: Sparkles, t: "Instant onboarding", d: "Sign up online, no branch visit." },
-          { icon: ShieldCheck, t: "Bank-grade security", d: "Encrypted end-to-end, 24/7 monitored." },
-          { icon: Landmark, t: "Real accounts", d: "Full domestic and international rails." },
-        ].map(({ icon: Icon, t, d }) => (
+        {(mc?.features ?? []).filter((f) => f.visible_desktop || f.visible_mobile).map((f) => (
           <div
-            key={t}
-            className="rounded-3xl p-6"
+            key={f.id}
+            className={cn(
+              "rounded-3xl p-6",
+              !f.visible_desktop && "hidden md:hidden",
+              !f.visible_mobile && "hidden",
+            )}
             style={{ backgroundColor: surface, border: `1px solid ${theme.colors.primary}11` }}
           >
-            <Icon className="h-6 w-6" style={{ color: theme.colors.accent }} />
+            <IconByKey k={f.icon_key} className="h-6 w-6" style={{ color: theme.colors.accent } as CSSProperties} />
             <div
               className="mt-3 text-base font-semibold"
               style={{ fontFamily: theme.typography.heading }}
             >
-              {t}
+              <Rtf field={f.title} fallback="" />
             </div>
-            <div className="mt-1 text-sm opacity-70">{d}</div>
+            <div className="mt-1 text-sm opacity-70">
+              <Rtf field={f.description} fallback="" />
+            </div>
           </div>
         ))}
       </section>
@@ -227,8 +260,7 @@ function ModernGateway({ manifest }: { manifest: WebsiteManifest }) {
 function CorporateGateway({ manifest }: { manifest: WebsiteManifest }) {
   const { theme, bank } = manifest;
   const actions = useActions(bank);
-
-  const navLinks = ["Personal", "Business", "Corporate", "Wealth", "About", "Contact"];
+  const cc = manifest.homepage_content?.corporate;
 
   return (
     <div
@@ -274,7 +306,7 @@ function CorporateGateway({ manifest }: { manifest: WebsiteManifest }) {
             </div>
           </Link>
           <nav className="ml-auto hidden items-center gap-6 text-sm font-medium text-slate-700 md:flex">
-            {navLinks.map((l) => (
+            {["Personal", "Business", "Corporate", "Wealth", "About", "Contact"].map((l) => (
               <span key={l} className="hover:text-slate-900">
                 {l}
               </span>
@@ -285,7 +317,7 @@ function CorporateGateway({ manifest }: { manifest: WebsiteManifest }) {
             className="rounded px-4 py-2 text-sm font-semibold text-white"
             style={{ backgroundColor: theme.colors.accent }}
           >
-            Open account
+            <Rtf field={cc?.cta_primary} fallback="Open account" />
           </a>
         </div>
       </header>
@@ -300,17 +332,19 @@ function CorporateGateway({ manifest }: { manifest: WebsiteManifest }) {
         <div className="mx-auto grid max-w-6xl gap-8 px-6 py-12 md:grid-cols-3">
           <div className="md:col-span-2">
             <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-              A trusted banking partner since day one
+              <Rtf field={cc?.badge} fallback="A trusted banking partner since day one" />
             </div>
             <h1
               className="mt-3 text-4xl font-semibold leading-tight text-slate-900"
               style={{ fontFamily: theme.typography.heading }}
             >
-              Enterprise banking, delivered with precision.
+              <Rtf field={cc?.hero_title} fallback="Enterprise banking, delivered with precision." />
             </h1>
             <p className="mt-4 max-w-2xl text-slate-600">
-              {bank.name} provides commercial, corporate and institutional clients with the
-              transaction banking, lending and treasury infrastructure they rely on.
+              <Rtf
+                field={cc?.hero_subtitle}
+                fallback={`${bank.name} provides commercial, corporate and institutional clients with the transaction banking, lending and treasury infrastructure they rely on.`}
+              />
             </p>
             <div className="mt-6 flex gap-3">
               <a
@@ -318,7 +352,7 @@ function CorporateGateway({ manifest }: { manifest: WebsiteManifest }) {
                 className="rounded px-5 py-2.5 text-sm font-semibold text-white"
                 style={{ backgroundColor: theme.colors.primary }}
               >
-                Open a corporate account
+                <Rtf field={cc?.cta_primary} fallback="Open a corporate account" />
               </a>
               <a
                 href={actions.portalHref}
@@ -354,20 +388,16 @@ function CorporateGateway({ manifest }: { manifest: WebsiteManifest }) {
       </section>
 
       <section className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-6 py-12 md:grid-cols-4">
-        {[
-          "Transaction Banking",
-          "Corporate Lending",
-          "Treasury &amp; FX",
-          "Trade Finance",
-        ].map((t) => (
-          <div key={t} className="border-l-2 bg-white p-5 shadow-sm" style={{ borderColor: theme.colors.accent }}>
+        {(cc?.features ?? []).filter((f) => f.visible_desktop || f.visible_mobile).map((f) => (
+          <div key={f.id} className={cn("border-l-2 bg-white p-5 shadow-sm", !f.visible_desktop && "hidden md:hidden", !f.visible_mobile && "hidden")} style={{ borderColor: theme.colors.accent }}>
             <div
               className="text-sm font-semibold text-slate-900"
               style={{ fontFamily: theme.typography.heading }}
-              dangerouslySetInnerHTML={{ __html: t }}
-            />
+            >
+              <Rtf field={f.title} fallback="" />
+            </div>
             <div className="mt-1 text-xs text-slate-600">
-              Purpose-built services for enterprise clients operating across multiple jurisdictions.
+              <Rtf field={f.description} fallback="" />
             </div>
           </div>
         ))}
@@ -388,6 +418,7 @@ function CorporateGateway({ manifest }: { manifest: WebsiteManifest }) {
 function PremiumGateway({ manifest }: { manifest: WebsiteManifest }) {
   const { theme, bank } = manifest;
   const actions = useActions(bank);
+  const pc = manifest.homepage_content?.premium;
   const heading: CSSProperties = {
     fontFamily: `'Cormorant Garamond', 'Playfair Display', ${theme.typography.heading}, serif`,
     letterSpacing: "-0.01em",
@@ -429,23 +460,23 @@ function PremiumGateway({ manifest }: { manifest: WebsiteManifest }) {
           className="ml-6 border px-5 py-2.5 text-xs uppercase tracking-[0.2em]"
           style={{ borderColor: "#c9a84c", color: "#c9a84c" }}
         >
-          Request an invitation
+          <Rtf field={pc?.cta_primary} fallback="Request an invitation" />
         </a>
       </header>
 
       <main className="mx-auto max-w-6xl px-8 pb-16 pt-8 md:pt-16">
         <div className="max-w-3xl">
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.35em] text-[#c9a84c]">
-            <Crown className="h-3.5 w-3.5" /> By invitation
+            <Crown className="h-3.5 w-3.5" /> <Rtf field={pc?.badge} fallback="By invitation" />
           </div>
           <h1 className="mt-6 text-5xl leading-[1.05] md:text-6xl" style={heading}>
-            Discreet wealth,
-            <br />
-            attended personally.
+            <Rtf field={pc?.hero_title} fallback="Discreet wealth,\nattended personally." />
           </h1>
           <p className="mt-6 max-w-xl text-white/70">
-            {bank.name} serves a limited number of principal families and institutions worldwide.
-            Every relationship is anchored by a dedicated private banker and a house of advisors.
+            <Rtf
+              field={pc?.hero_subtitle}
+              fallback={`${bank.name} serves a limited number of principal families and institutions worldwide. Every relationship is anchored by a dedicated private banker and a house of advisors.`}
+            />
           </p>
           <div className="mt-10 flex gap-4">
             <a
@@ -453,7 +484,7 @@ function PremiumGateway({ manifest }: { manifest: WebsiteManifest }) {
               className="px-8 py-3.5 text-xs uppercase tracking-[0.25em] text-black"
               style={{ backgroundColor: "#c9a84c" }}
             >
-              Begin an introduction
+              <Rtf field={pc?.cta_primary} fallback="Begin an introduction" />
             </a>
             <a
               href={actions.portalHref}
@@ -465,16 +496,11 @@ function PremiumGateway({ manifest }: { manifest: WebsiteManifest }) {
           </div>
         </div>
 
-        {/* Luxury card row */}
         <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {[
-            { t: "Private Reserve", d: "A discretionary mandate, actively managed by our house." },
-            { t: "Global Custody", d: "Multi-jurisdiction custody with cross-border reporting." },
-            { t: "Concierge Desk", d: "Travel, aviation, art and lifestyle at every hour." },
-          ].map((c) => (
+          {(pc?.features ?? []).filter((f) => f.visible_desktop || f.visible_mobile).map((f) => (
             <div
-              key={c.t}
-              className="relative overflow-hidden border p-8"
+              key={f.id}
+              className={cn("relative overflow-hidden border p-8", !f.visible_desktop && "hidden md:hidden", !f.visible_mobile && "hidden")}
               style={{
                 borderColor: "rgba(201,168,76,0.35)",
                 background:
@@ -483,9 +509,11 @@ function PremiumGateway({ manifest }: { manifest: WebsiteManifest }) {
             >
               <div className="text-xs uppercase tracking-[0.3em] text-[#c9a84c]">Service</div>
               <div className="mt-4 text-2xl" style={heading}>
-                {c.t}
+                <Rtf field={f.title} fallback="" />
               </div>
-              <div className="mt-3 text-sm text-white/70">{c.d}</div>
+              <div className="mt-3 text-sm text-white/70">
+                <Rtf field={f.description} fallback="" />
+              </div>
               <div
                 className="absolute -bottom-6 -right-6 h-24 w-24 rounded-full opacity-30 blur-2xl"
                 style={{ backgroundColor: "#c9a84c" }}
