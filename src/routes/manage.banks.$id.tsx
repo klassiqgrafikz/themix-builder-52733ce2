@@ -34,6 +34,7 @@ import type {
   RenderStatus,
   WebsiteManifest,
 } from "@/lib/bank-builder.types";
+import { getDashboardLayoutForKey } from "@/lib/dashboard-layout/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -385,7 +386,7 @@ function BankOverview() {
 
         <DashboardStylePanel
           draftId={id}
-          current={normalizeStyle(branding.dashboard_style)}
+          current={normalizeStyle((draft?.manifest as Record<string, unknown> | undefined)?.portal_layout_key ?? branding.portal_layout_key)}
           primaryColor={branding.primary_color ?? "#0a2540"}
           secondaryColor={branding.secondary_color ?? "#1e88e5"}
           onSaved={invalidate}
@@ -775,12 +776,12 @@ function ShortSlugEditor({
   );
 }
 
-type LayoutKey = "classic" | "modern" | "minimal" | "premium";
+type LayoutKey = "sidebar" | "topnav" | "premium" | "minimal" | "floating";
 
 function normalizeStyle(v: unknown): LayoutKey {
-  if (v === "modern" || v === "minimal" || v === "premium") return v;
-  if (v === "premium_card") return "premium";
-  return "classic";
+  const s = String(v ?? "").toLowerCase();
+  if (s === "sidebar" || s === "topnav" || s === "premium" || s === "minimal" || s === "floating") return s as LayoutKey;
+  return "sidebar";
 }
 
 const LAYOUT_OPTIONS: {
@@ -788,10 +789,11 @@ const LAYOUT_OPTIONS: {
   title: string;
   desc: string;
 }[] = [
-  { key: "classic", title: "Classic", desc: "Original TheMixWeb dashboard. Bordered rows, plain typography — the default for existing banks." },
-  { key: "modern", title: "Modern", desc: "Fintech-inspired: gradient balance card, soft shadows, rounded 2xl surfaces, quick-actions grid." },
-  { key: "minimal", title: "Minimal", desc: "Commercial-bank aesthetic: oversized balance typography, hairline separators, generous whitespace." },
-  { key: "premium", title: "Premium", desc: "Private-banking feel: dark canvas, gold accents, animated gradient, glass panels." },
+  { key: "sidebar", title: "Sidebar", desc: "Standard left sidebar with full navigation. Classic banking layout with all dashboard sections in a balanced grid." },
+  { key: "topnav", title: "Top Nav", desc: "Horizontal navigation bar, no sidebar. Focused dashboard: account summary, quick actions and recent transactions." },
+  { key: "premium", title: "Premium", desc: "Dark sidebar with gold accents. Full dashboard with balance trend, cards and beneficiaries sections." },
+  { key: "minimal", title: "Minimal", desc: "Thin header only — no persistent sidebar. Executive account summary and a large balance trend chart. Kiosk-friendly." },
+  { key: "floating", title: "Floating", desc: "Minimal header with a floating bottom nav bar. Compact account summary, quick actions and cards. Mobile-first fintech feel." },
 ];
 
 function DashboardStylePanel({
@@ -814,10 +816,14 @@ function DashboardStylePanel({
   const saveMut = useMutation({
     mutationFn: async () => {
       const draft = qc.getQueryData<BankDraft>(["bb-draft", draftId]);
-      const branding = { ...(draft?.branding ?? {}), dashboard_style: selected };
+      const branding = { ...(draft?.branding ?? {}), portal_layout_key: selected };
       const patch: Record<string, unknown> = { branding };
       if (draft?.manifest && typeof draft.manifest === "object" && "version" in draft.manifest) {
-        patch.manifest = { ...draft.manifest, dashboard_style: selected };
+        patch.manifest = {
+          ...draft.manifest,
+          portal_layout_key: selected,
+          dashboard_layout: getDashboardLayoutForKey(selected),
+        };
       }
       return updateFn({ data: { id: draftId, patch } });
     },
@@ -837,9 +843,9 @@ function DashboardStylePanel({
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
         <p className="text-xs text-muted-foreground">
-          Choose the visual identity for this bank's customer portal. All banking
-          logic — transfers, cards, transactions, receipts — remains the same
-          across every layout.
+          Choose the portal layout for this bank's customer dashboard.
+          Each layout changes the sidebar style, navigation order, and the
+          sections shown on the dashboard.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -901,17 +907,21 @@ function LayoutThumb({
       </div>
     );
   }
-  if (layout === "modern") {
+  if (layout === "topnav") {
     return (
-      <div className="h-24 w-full bg-slate-50 p-3">
-        <div
-          className="h-12 w-full rounded-xl"
-          style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}
-        />
-        <div className="mt-2 grid grid-cols-3 gap-1">
-          <div className="h-4 rounded bg-white shadow-sm" />
-          <div className="h-4 rounded bg-white shadow-sm" />
-          <div className="h-4 rounded bg-white shadow-sm" />
+      <div className="h-24 w-full bg-white p-3">
+        <div className="flex items-center gap-2 border-b pb-2">
+          <div className="h-4 w-4 rounded" style={{ backgroundColor: primaryColor }} />
+          <div className="h-2 flex-1 rounded bg-slate-200" />
+        </div>
+        <div className="mt-2 flex gap-1">
+          {[1,2,3,4,5].map((i) => (
+            <div key={i} className="h-3 flex-1 rounded bg-slate-100" />
+          ))}
+        </div>
+        <div className="mt-3 h-10 rounded-lg bg-gradient-to-r p-2" style={{ background: `linear-gradient(135deg, ${primaryColor}22, ${secondaryColor}11)` }}>
+          <div className="h-2 w-16 rounded bg-slate-300" />
+          <div className="mt-1 h-3 w-24 rounded bg-slate-400" />
         </div>
       </div>
     );
@@ -919,22 +929,52 @@ function LayoutThumb({
   if (layout === "minimal") {
     return (
       <div className="h-24 w-full bg-white p-3">
-        <div className="text-[8px] uppercase tracking-widest text-slate-400">Balance</div>
-        <div className="text-lg font-semibold text-slate-900">$24,580</div>
-        <div className="mt-2 border-t border-slate-200" />
-        <div className="mt-1 h-2 w-24 rounded bg-slate-100" />
+        <div className="flex items-center justify-between border-b pb-2">
+          <div className="h-3 w-16 rounded bg-slate-200" />
+          <div className="h-3 w-3 rounded-full bg-slate-200" />
+        </div>
+        <div className="mt-4 text-center">
+          <div className="text-[8px] uppercase tracking-widest text-slate-400">Balance</div>
+          <div className="mt-1 text-lg font-bold text-slate-900">$52,400</div>
+        </div>
+        <div className="mt-2 h-12 w-full rounded bg-slate-50" />
       </div>
     );
   }
-  return (
-    <div className="h-24 w-full bg-white p-3">
-      <div className="border-b py-1">
-        <div className="text-[8px] uppercase tracking-widest text-slate-400">Account</div>
-        <div className="font-mono text-[10px] text-slate-700">•••• 3456</div>
+  if (layout === "floating") {
+    return (
+      <div className="relative h-24 w-full bg-white p-3">
+        <div className="flex items-center justify-between border-b pb-2">
+          <div className="h-3 w-12 rounded bg-slate-200" />
+          <div className="h-3 w-3 rounded-full bg-slate-200" />
+        </div>
+        <div className="mt-3 h-8 rounded-lg p-1" style={{ backgroundColor: `${primaryColor}15` }}>
+          <div className="h-2 w-20 rounded bg-slate-300" />
+        </div>
+        <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-2 rounded-full border bg-white px-3 py-1.5 shadow-sm">
+          {[1,2,3,4].map((i) => (
+            <div key={i} className="h-4 w-4 rounded-full" style={{ backgroundColor: i === 1 ? primaryColor : "#e2e8f0" }} />
+          ))}
+        </div>
       </div>
-      <div className="border-b py-1">
-        <div className="text-[8px] uppercase tracking-widest text-slate-400">Balance</div>
-        <div className="text-sm font-bold text-slate-900">$24,580</div>
+    );
+  }
+  // sidebar (default)
+  return (
+    <div className="flex h-24 w-full bg-white">
+      <div className="flex w-1/3 flex-col gap-1 border-r bg-slate-50 p-2">
+        <div className="h-2 w-10 rounded" style={{ backgroundColor: primaryColor }} />
+        <div className="h-2 rounded bg-slate-200" />
+        <div className="h-2 rounded bg-slate-200" />
+        <div className="h-2 rounded bg-slate-200" />
+      </div>
+      <div className="flex-1 p-2">
+        <div className="h-2 w-16 rounded bg-slate-200" />
+        <div className="mt-2 h-4 w-24 rounded bg-slate-300" />
+        <div className="mt-2 flex gap-1">
+          <div className="h-6 flex-1 rounded bg-slate-100" />
+          <div className="h-6 flex-1 rounded bg-slate-100" />
+        </div>
       </div>
     </div>
   );

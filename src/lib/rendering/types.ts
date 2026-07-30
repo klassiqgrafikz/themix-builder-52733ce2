@@ -137,10 +137,11 @@ export type WebsiteManifest = {
     updated_at: string;
   };
   /**
-   * Simple customer-dashboard style switch controlled from Manage Bank →
-   * Dashboard Layout. Only swaps the account-summary component; every other
-   * section renders unchanged.
+   * Which of the 5 portal layouts is active. Controls both the sidebar/nav
+   * shell and the dashboard section composition.
    */
+  portal_layout_key?: "sidebar" | "topnav" | "premium" | "minimal" | "floating";
+  /** @deprecated Replaced by portal_layout_key. Kept for backward compat. */
   dashboard_style?: "classic" | "modern" | "minimal" | "premium" | "premium_card";
 
 };
@@ -196,6 +197,7 @@ export type BankConfigurationInput = {
     border_radius?: number;
     dark_mode?: boolean;
     template_variant?: "modern" | "corporate" | "premium";
+    portal_layout_key?: "sidebar" | "topnav" | "premium" | "minimal" | "floating";
     dashboard_style?: "classic" | "modern" | "minimal" | "premium" | "premium_card";
   };
 

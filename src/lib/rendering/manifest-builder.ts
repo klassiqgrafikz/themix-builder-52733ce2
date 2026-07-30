@@ -10,7 +10,7 @@ import type {
   WebsiteManifest,
 } from "./types";
 import { variantFromConfig } from "./template-variant";
-import { defaultDashboardLayout } from "@/lib/dashboard-layout/types";
+import { getDashboardLayoutForKey } from "@/lib/dashboard-layout/types";
 
 
 export function buildManifest(args: {
@@ -50,8 +50,8 @@ export function buildManifest(args: {
     pages,
     navigation,
     products,
-    dashboard_style: cfg.branding.dashboard_style ?? "classic",
-    dashboard_layout: defaultDashboardLayout(),
+    portal_layout_key: cfg.branding.portal_layout_key ?? "sidebar",
+    dashboard_layout: getDashboardLayoutForKey(cfg.branding.portal_layout_key ?? "sidebar"),
     metadata: {
       title: name,
       description: `${name} — powered by TheMixWeb`,
