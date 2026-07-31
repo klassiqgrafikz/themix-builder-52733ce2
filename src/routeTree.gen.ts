@@ -53,10 +53,10 @@ import { Route as SlugPortalStatementsRouteImport } from './routes/$slug.portal.
 import { Route as SlugPortalSecurityRouteImport } from './routes/$slug.portal.security'
 import { Route as SlugPortalProfileRouteImport } from './routes/$slug.portal.profile'
 import { Route as SlugPortalNotificationsRouteImport } from './routes/$slug.portal.notifications'
+import { Route as SlugPortalCatalogRouteImport } from './routes/$slug.portal.catalog'
 import { Route as SlugPortalCardsRouteImport } from './routes/$slug.portal.cards'
 import { Route as SlugPortalBeneficiariesRouteImport } from './routes/$slug.portal.beneficiaries'
 import { Route as SlugPortalAccountsRouteImport } from './routes/$slug.portal.accounts'
-import { Route as SlugPortalCatalogRouteImport } from './routes/$slug.portal.catalog'
 import { Route as SlugPortalTransactionsIndexRouteImport } from './routes/$slug.portal.transactions.index'
 import { Route as ApiPublicCustomerAvatarCustomerIdRouteImport } from './routes/api/public/customer-avatar.$customerId'
 import { Route as SlugPortalTransactionsIdRouteImport } from './routes/$slug.portal.transactions.$id'
@@ -282,6 +282,11 @@ const SlugPortalNotificationsRoute = SlugPortalNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => SlugPortalRoute,
 } as any)
+const SlugPortalCatalogRoute = SlugPortalCatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => SlugPortalRoute,
+} as any)
 const SlugPortalCardsRoute = SlugPortalCardsRouteImport.update({
   id: '/cards',
   path: '/cards',
@@ -295,11 +300,6 @@ const SlugPortalBeneficiariesRoute = SlugPortalBeneficiariesRouteImport.update({
 const SlugPortalAccountsRoute = SlugPortalAccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
-  getParentRoute: () => SlugPortalRoute,
-} as any)
-const SlugPortalCatalogRoute = SlugPortalCatalogRouteImport.update({
-  id: '/catalog',
-  path: '/catalog',
   getParentRoute: () => SlugPortalRoute,
 } as any)
 const SlugPortalTransactionsIndexRoute =
@@ -359,9 +359,9 @@ export interface FileRoutesByFullPath {
   '/gboc/': typeof GbocIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/$slug/portal/accounts': typeof SlugPortalAccountsRoute
-  '/$slug/portal/catalog': typeof SlugPortalCatalogRoute
   '/$slug/portal/beneficiaries': typeof SlugPortalBeneficiariesRoute
   '/$slug/portal/cards': typeof SlugPortalCardsRoute
+  '/$slug/portal/catalog': typeof SlugPortalCatalogRoute
   '/$slug/portal/notifications': typeof SlugPortalNotificationsRoute
   '/$slug/portal/profile': typeof SlugPortalProfileRoute
   '/$slug/portal/security': typeof SlugPortalSecurityRoute
@@ -406,9 +406,9 @@ export interface FileRoutesByTo {
   '/gboc': typeof GbocIndexRoute
   '/launch': typeof LaunchIndexRoute
   '/$slug/portal/accounts': typeof SlugPortalAccountsRoute
-  '/$slug/portal/catalog': typeof SlugPortalCatalogRoute
   '/$slug/portal/beneficiaries': typeof SlugPortalBeneficiariesRoute
   '/$slug/portal/cards': typeof SlugPortalCardsRoute
+  '/$slug/portal/catalog': typeof SlugPortalCatalogRoute
   '/$slug/portal/notifications': typeof SlugPortalNotificationsRoute
   '/$slug/portal/profile': typeof SlugPortalProfileRoute
   '/$slug/portal/security': typeof SlugPortalSecurityRoute
@@ -460,9 +460,9 @@ export interface FileRoutesById {
   '/gboc/': typeof GbocIndexRoute
   '/launch/': typeof LaunchIndexRoute
   '/$slug/portal/accounts': typeof SlugPortalAccountsRoute
-  '/$slug/portal/catalog': typeof SlugPortalCatalogRoute
   '/$slug/portal/beneficiaries': typeof SlugPortalBeneficiariesRoute
   '/$slug/portal/cards': typeof SlugPortalCardsRoute
+  '/$slug/portal/catalog': typeof SlugPortalCatalogRoute
   '/$slug/portal/notifications': typeof SlugPortalNotificationsRoute
   '/$slug/portal/profile': typeof SlugPortalProfileRoute
   '/$slug/portal/security': typeof SlugPortalSecurityRoute
@@ -480,6 +480,7 @@ export interface FileRoutesById {
   '/$slug/portal/transactions/$id': typeof SlugPortalTransactionsIdRoute
   '/api/public/customer-avatar/$customerId': typeof ApiPublicCustomerAvatarCustomerIdRoute
   '/$slug/portal/transactions/': typeof SlugPortalTransactionsIndexRoute
+  '/api/public/branding/$draftId/$kind': typeof ApiPublicBrandingDraftIdKindRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -515,9 +516,9 @@ export interface FileRouteTypes {
     | '/gboc/'
     | '/launch/'
     | '/$slug/portal/accounts'
-    | '/$slug/portal/catalog'
     | '/$slug/portal/beneficiaries'
     | '/$slug/portal/cards'
+    | '/$slug/portal/catalog'
     | '/$slug/portal/notifications'
     | '/$slug/portal/profile'
     | '/$slug/portal/security'
@@ -562,9 +563,9 @@ export interface FileRouteTypes {
     | '/gboc'
     | '/launch'
     | '/$slug/portal/accounts'
-    | '/$slug/portal/catalog'
     | '/$slug/portal/beneficiaries'
     | '/$slug/portal/cards'
+    | '/$slug/portal/catalog'
     | '/$slug/portal/notifications'
     | '/$slug/portal/profile'
     | '/$slug/portal/security'
@@ -615,9 +616,9 @@ export interface FileRouteTypes {
     | '/gboc/'
     | '/launch/'
     | '/$slug/portal/accounts'
-    | '/$slug/portal/catalog'
     | '/$slug/portal/beneficiaries'
     | '/$slug/portal/cards'
+    | '/$slug/portal/catalog'
     | '/$slug/portal/notifications'
     | '/$slug/portal/profile'
     | '/$slug/portal/security'
@@ -963,6 +964,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SlugPortalNotificationsRouteImport
       parentRoute: typeof SlugPortalRoute
     }
+    '/$slug/portal/catalog': {
+      id: '/$slug/portal/catalog'
+      path: '/catalog'
+      fullPath: '/$slug/portal/catalog'
+      preLoaderRoute: typeof SlugPortalCatalogRouteImport
+      parentRoute: typeof SlugPortalRoute
+    }
     '/$slug/portal/cards': {
       id: '/$slug/portal/cards'
       path: '/cards'
@@ -975,13 +983,6 @@ declare module '@tanstack/react-router' {
       path: '/beneficiaries'
       fullPath: '/$slug/portal/beneficiaries'
       preLoaderRoute: typeof SlugPortalBeneficiariesRouteImport
-      parentRoute: typeof SlugPortalRoute
-    }
-    '/$slug/portal/catalog': {
-      id: '/$slug/portal/catalog'
-      path: '/catalog'
-      fullPath: '/$slug/portal/catalog'
-      preLoaderRoute: typeof SlugPortalCatalogRouteImport
       parentRoute: typeof SlugPortalRoute
     }
     '/$slug/portal/accounts': {
@@ -1040,9 +1041,9 @@ const SlugPortalTransactionsRouteWithChildren =
 
 interface SlugPortalRouteChildren {
   SlugPortalAccountsRoute: typeof SlugPortalAccountsRoute
-  SlugPortalCatalogRoute: typeof SlugPortalCatalogRoute
   SlugPortalBeneficiariesRoute: typeof SlugPortalBeneficiariesRoute
   SlugPortalCardsRoute: typeof SlugPortalCardsRoute
+  SlugPortalCatalogRoute: typeof SlugPortalCatalogRoute
   SlugPortalNotificationsRoute: typeof SlugPortalNotificationsRoute
   SlugPortalProfileRoute: typeof SlugPortalProfileRoute
   SlugPortalSecurityRoute: typeof SlugPortalSecurityRoute
@@ -1055,9 +1056,9 @@ interface SlugPortalRouteChildren {
 
 const SlugPortalRouteChildren: SlugPortalRouteChildren = {
   SlugPortalAccountsRoute: SlugPortalAccountsRoute,
-  SlugPortalCatalogRoute: SlugPortalCatalogRoute,
   SlugPortalBeneficiariesRoute: SlugPortalBeneficiariesRoute,
   SlugPortalCardsRoute: SlugPortalCardsRoute,
+  SlugPortalCatalogRoute: SlugPortalCatalogRoute,
   SlugPortalNotificationsRoute: SlugPortalNotificationsRoute,
   SlugPortalProfileRoute: SlugPortalProfileRoute,
   SlugPortalSecurityRoute: SlugPortalSecurityRoute,
@@ -1205,3 +1206,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

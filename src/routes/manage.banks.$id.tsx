@@ -408,7 +408,9 @@ function BankOverview() {
 
         <DashboardStylePanel
           draftId={id}
-          current={normalizeStyle((draft?.manifest as Record<string, unknown> | undefined)?.portal_layout_key ?? branding.portal_layout_key)}
+          manifest={manifest}
+          branding={(draft.branding ?? {}) as Record<string, unknown> | null}
+          current={normalizeStyle((draft?.manifest as Record<string, unknown> | undefined)?.portal_layout_key ?? (branding as Record<string, unknown>).portal_layout_key)}
           primaryColor={branding.primary_color ?? "#0a2540"}
           secondaryColor={branding.secondary_color ?? "#1e88e5"}
           onSaved={invalidate}
@@ -860,11 +862,11 @@ function ShortSlugEditor({
   );
 }
 
-type LayoutKey = "sidebar" | "topnav" | "premium" | "minimal" | "floating";
+type LayoutKey = "sidebar" | "topnav" | "premium" | "minimal" | "floating" | "console" | "ledger" | "card_deck";
 
 function normalizeStyle(v: unknown): LayoutKey {
   const s = String(v ?? "").toLowerCase();
-  if (s === "sidebar" || s === "topnav" || s === "premium" || s === "minimal" || s === "floating") return s as LayoutKey;
+  if (s === "sidebar" || s === "topnav" || s === "premium" || s === "minimal" || s === "floating" || s === "console" || s === "ledger" || s === "card_deck") return s as LayoutKey;
   return "sidebar";
 }
 
@@ -878,33 +880,42 @@ const LAYOUT_OPTIONS: {
   { key: "premium", title: "Premium", desc: "Dark sidebar with gold accents. Full dashboard with balance trend, cards and beneficiaries sections." },
   { key: "minimal", title: "Minimal", desc: "Thin header only — no persistent sidebar. Executive account summary and a large balance trend chart. Kiosk-friendly." },
   { key: "floating", title: "Floating", desc: "Minimal header with a floating bottom nav bar. Compact account summary, quick actions and cards. Mobile-first fintech feel." },
+  { key: "console", title: "Console", desc: "Dense desktop banking console: status bar header, account list table, compact quick actions and a full transaction table." },
+  { key: "ledger", title: "Ledger", desc: "Corporate web banking feel: account boxes grid, full-width transaction ledger and rates side by side." },
+  { key: "card_deck", title: "Card Deck", desc: "Mobile-app feel with bottom nav: tabbed account card stack, big action tiles and card visuals." },
 ];
 
 function DashboardStylePanel({
   draftId,
+  manifest,
+  branding,
   current,
   primaryColor,
   secondaryColor,
   onSaved,
 }: {
   draftId: string;
+  manifest: WebsiteManifest | null;
+  branding: Record<string, unknown> | null;
   current: LayoutKey;
   primaryColor: string;
   secondaryColor: string;
   onSaved: () => void;
 }) {
-  const qc = useQueryClient();
   const [selected, setSelected] = useState<LayoutKey>(current);
   const updateFn = useServerFn(updateDraft);
 
   const saveMut = useMutation({
     mutationFn: async () => {
-      const draft = qc.getQueryData<BankDraft>(["bb-draft", draftId]);
-      const branding = { ...(draft?.branding ?? {}), portal_layout_key: selected };
-      const patch: Record<string, unknown> = { branding };
-      if (draft?.manifest && typeof draft.manifest === "object" && "version" in draft.manifest) {
+      const patch: Record<string, unknown> = {
+        branding: {
+          ...(branding ?? {}),
+          portal_layout_key: selected,
+        },
+      };
+      if (manifest) {
         patch.manifest = {
-          ...draft.manifest,
+          ...manifest,
           portal_layout_key: selected,
           dashboard_layout: getDashboardLayoutForKey(selected),
         };
@@ -1037,6 +1048,82 @@ function LayoutThumb({
         </div>
         <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-2 rounded-full border bg-white px-3 py-1.5 shadow-sm">
           {[1,2,3,4].map((i) => (
+            <div key={i} className="h-4 w-4 rounded-full" style={{ backgroundColor: i === 1 ? primaryColor : "#e2e8f0" }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (layout === "console") {
+    return (
+      <div className="flex h-24 w-full bg-white">
+        <div className="flex w-1/3 flex-col gap-1 border-r bg-slate-50 p-2">
+          <div className="h-2 w-10 rounded" style={{ backgroundColor: primaryColor }} />
+          <div className="h-2 rounded bg-slate-200" />
+          <div className="h-2 rounded bg-slate-200" />
+        </div>
+        <div className="flex-1 p-2">
+          <div className="flex items-center justify-between rounded bg-slate-50 px-2 py-1">
+            <div className="h-1.5 w-10 rounded bg-slate-300" />
+            <div className="h-2 w-8 rounded" style={{ backgroundColor: primaryColor }} />
+          </div>
+          <div className="mt-1.5 space-y-1">
+            <div className="flex items-center justify-between rounded bg-slate-50 px-2 py-1">
+              <div className="h-1.5 w-12 rounded bg-slate-300" />
+              <div className="h-1.5 w-6 rounded bg-slate-300" />
+            </div>
+            <div className="flex items-center justify-between rounded bg-slate-50 px-2 py-1">
+              <div className="h-1.5 w-12 rounded bg-slate-300" />
+              <div className="h-1.5 w-6 rounded bg-slate-300" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (layout === "ledger") {
+    return (
+      <div className="h-24 w-full bg-white p-3">
+        <div className="flex items-center gap-2 border-b pb-2">
+          <div className="h-3 w-3 rounded" style={{ backgroundColor: primaryColor }} />
+          <div className="h-1.5 flex-1 rounded bg-slate-200" />
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
+          <div className="rounded border p-1.5">
+            <div className="h-1 w-8 rounded bg-slate-200" />
+            <div className="mt-1 h-2 w-10 rounded bg-slate-300" />
+          </div>
+          <div className="rounded border p-1.5">
+            <div className="h-1 w-8 rounded bg-slate-200" />
+            <div className="mt-1 h-2 w-10 rounded bg-slate-300" />
+          </div>
+        </div>
+        <div className="mt-1.5 space-y-0.5">
+          <div className="h-1.5 w-full rounded bg-slate-100" />
+          <div className="h-1.5 w-full rounded bg-slate-100" />
+          <div className="h-1.5 w-2/3 rounded bg-slate-100" />
+        </div>
+      </div>
+    );
+  }
+  if (layout === "card_deck") {
+    return (
+      <div className="relative h-24 w-full bg-white p-3">
+        <div className="mx-auto w-4/5 rounded-lg p-2 text-white" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
+          <div className="flex items-center justify-between">
+            <div className="h-1.5 w-8 rounded bg-white/70" />
+            <div className="h-2 w-3 rounded-sm bg-yellow-300/90" />
+          </div>
+          <div className="mt-1.5 h-1.5 w-3/4 rounded bg-white/50" />
+          <div className="mt-1.5 h-1.5 w-6 rounded bg-white/40" />
+        </div>
+        <div className="mt-1.5 flex justify-center gap-1">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-1 w-4 rounded-full" style={{ backgroundColor: i === 1 ? primaryColor : "#e2e8f0" }} />
+          ))}
+        </div>
+        <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-2 rounded-full border bg-white px-3 py-1.5 shadow-sm">
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-4 w-4 rounded-full" style={{ backgroundColor: i === 1 ? primaryColor : "#e2e8f0" }} />
           ))}
         </div>

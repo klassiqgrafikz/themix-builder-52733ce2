@@ -330,6 +330,7 @@ function PortalShellInner({
   );
 
   switch (portalLayoutKey) {
+    case "ledger":
     case "topnav":
       return (
         <div
@@ -660,6 +661,7 @@ function PortalShellInner({
         </div>
       );
 
+    case "card_deck":
     case "floating":
       return (
         <div
@@ -759,6 +761,7 @@ function PortalShellInner({
         </div>
       );
 
+    case "console":
     default: // sidebar
       return (
         <div

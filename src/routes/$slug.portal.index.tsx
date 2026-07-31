@@ -31,11 +31,13 @@ import {
 import {
   ArrowDownToLine,
   Banknote,
+  ChevronRight,
   CreditCard,
   Copy,
   Eye,
   EyeOff,
   FileText,
+  Landmark,
   ListOrdered,
   Send,
   ShieldAlert,
@@ -264,7 +266,7 @@ const WIDTH_SPAN: Record<WidthSize, string> = {
 type Restr = { id: string; types: string[]; reason: string | null; end_at: string | null };
 type Tx = { id: string; created_at: string; balance_after: number; amount: number; currency: string; direction: string; kind: string; description: string | null };
 type Bene = { id: string; name?: string; account_number?: string; nickname?: string | null };
-type Card = { id: string; masked_number?: string | null; card_type?: string | null };
+type Card = { id: string; masked_number?: string | null; card_type?: string | null; expiry_month?: number | null; expiry_year?: number | null };
 
 function LayoutDrivenDashboard(props: {
   layout: DashboardLayout;
@@ -295,6 +297,7 @@ function LayoutDrivenDashboard(props: {
   const primaryAccount = session.accounts[0];
   const dividerColor = { borderColor: "color-mix(in oklab, var(--tenant-primary) 55%, transparent)" };
   const labelText = "text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400";
+  const [deckIndex, setDeckIndex] = useState(0);
 
   const readStr = (p: DashboardLayout["items"][number]["props"], k: string, fb: string): string => {
     const v = p?.[k]; return typeof v === "string" ? v : fb;
@@ -308,6 +311,29 @@ function LayoutDrivenDashboard(props: {
       case "header": {
         const style = readStr(p, "style", "welcome");
         const align = ({ left: "text-left", center: "text-center", right: "text-right" } as Record<string, string>)[readStr(p, "alignment", "left")] || "text-left";
+        if (style === "bar") {
+          const initials = `${session.customer.first_name?.[0] ?? ""}${session.customer.last_name?.[0] ?? ""}`;
+          const total = session.accounts.reduce((s, a) => s + Number(a.available_balance ?? 0), 0);
+          return (
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="grid h-9 w-9 place-items-center rounded-full text-sm font-bold text-white" style={{ background: "var(--tenant-primary)" }}>{initials}</div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {session.customer.first_name} {session.customer.last_name}
+                  </p>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Verified</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span>Total balance</span>
+                <span className="rounded-lg px-2.5 py-1 font-mono text-sm font-bold text-white" style={{ background: "var(--tenant-primary)" }}>
+                  {balanceVisible ? fmt(total, currency) : "••••••"}
+                </span>
+              </div>
+            </section>
+          );
+        }
         if (style === "minimal") {
           return (
             <section className={align}>
@@ -385,6 +411,120 @@ function LayoutDrivenDashboard(props: {
             </section>
           );
         }
+        if (style === "list") {
+          const accts = session.accounts;
+          return (
+            <section className="overflow-hidden rounded-xl border">
+              <div className="flex items-center justify-between px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <span>Accounts</span>
+                <span>Balance</span>
+              </div>
+              {accts.length === 0 ? (
+                <p className="p-4 text-xs text-slate-500">No accounts yet.</p>
+              ) : (
+                accts.map((a, idx) => (
+                  <div key={a.id} className={`flex items-center justify-between px-4 py-3 ${idx > 0 ? "border-t" : ""}`} style={idx > 0 ? dividerColor : undefined}>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span
+                        className="grid h-8 w-8 flex-none place-items-center rounded-lg text-white"
+                        style={idx === 0 ? { background: "var(--tenant-primary)" } : { background: "var(--tenant-dark, #cbd5e1)" }}
+                      >
+                        <Landmark className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-800">{a.account_name}</p>
+                        <p className="font-mono text-xs text-slate-500">{formatAccountNumber(a.account_number ?? "")}</p>
+                      </div>
+                    </div>
+                    <div className="ml-3 flex items-center gap-2">
+                      <p className="whitespace-nowrap font-mono text-sm font-semibold text-slate-900">
+                        {balanceVisible ? fmt(a.available_balance ?? 0, a.currency ?? currency) : "••••••"}
+                      </p>
+                      <ChevronRight className="h-4 w-4 text-slate-300" />
+                    </div>
+                  </div>
+                ))
+              )}
+            </section>
+          );
+        }
+        if (style === "boxes") {
+          const accts = session.accounts;
+          return (
+            <section className="grid gap-3 sm:grid-cols-2">
+              {accts.length === 0 ? (
+                <p className="text-xs text-slate-500">No accounts yet.</p>
+              ) : (
+                accts.map((a) => (
+                  <div key={a.id} className="rounded-xl border p-4" style={dividerColor}>
+                    <p className={labelText}>{a.account_name}</p>
+                    <p className="mt-1 font-mono text-sm text-slate-500">{formatAccountNumber(a.account_number ?? "")}</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-900" style={{ fontFamily: theme.typography.heading }}>
+                      {balanceVisible ? fmt(a.available_balance ?? 0, a.currency ?? currency) : "••••••"}
+                    </p>
+                  </div>
+                ))
+              )}
+            </section>
+          );
+        }
+        if (style === "card_stack") {
+          const accts = session.accounts;
+          const idx = Math.min(deckIndex, Math.max(accts.length - 1, 0));
+          const a = accts[idx];
+          const holderName = `${session.customer.first_name} ${session.customer.last_name}`.trim().toUpperCase() || "CARD HOLDER";
+          const primaryCard = cards[0];
+          const expiry =
+            primaryCard?.expiry_month && primaryCard?.expiry_year
+              ? `${String(primaryCard.expiry_month).padStart(2, "0")}/${String(primaryCard.expiry_year).slice(-2)}`
+              : "••/••";
+          return (
+            <section className="flex flex-col items-center gap-3">
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {accts.map((acct, i) => (
+                  <button
+                    key={acct.id}
+                    type="button"
+                    onClick={() => setDeckIndex(i)}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${i === idx ? "text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                    style={i === idx ? { background: "var(--tenant-primary)" } : undefined}
+                  >
+                    {acct.account_name ?? `Account ${i + 1}`}
+                  </button>
+                ))}
+              </div>
+              <div
+                className="w-full max-w-sm overflow-hidden rounded-2xl text-white shadow-xl"
+                style={{ background: "linear-gradient(135deg, var(--tenant-primary), var(--tenant-dark, var(--tenant-primary)))" }}
+              >
+                <div className="flex items-center justify-between p-5">
+                  <span className="text-sm font-semibold tracking-wide opacity-90">{manifest.bank.name}</span>
+                  <CreditCard className="h-5 w-5 opacity-80" />
+                </div>
+                <div className="px-5 pb-5">
+                  <div className="h-8 w-11 rounded-md" style={{ background: "linear-gradient(135deg, #d4af37, #b8860b)" }} />
+                  <div className="mt-4 font-mono text-lg tracking-[0.18em]">{a ? formatAccountNumber(a.account_number ?? "") : "—"}</div>
+                  <div className="mt-4 flex items-end justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-widest opacity-70">Card holder</p>
+                      <p className="truncate text-xs font-semibold">{holderName}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest opacity-70">Expires</p>
+                      <p className="text-xs font-semibold">{expiry}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase tracking-widest opacity-70">Balance</p>
+                      <button type="button" onClick={() => setBalanceVisible((v) => !v)} className="text-base font-bold hover:opacity-80">
+                        {balanceVisible && a ? fmt(a.available_balance ?? 0, a.currency ?? currency) : "••••••"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          );
+        }
         // minimal (divider-based)
         return (
           <section>
@@ -426,6 +566,29 @@ function LayoutDrivenDashboard(props: {
         const items: QA[] = raw.filter((x): x is QA => x !== null);
         const colClass = ({ 2: "grid-cols-2", 3: "grid-cols-2 sm:grid-cols-3", 4: "grid-cols-2 sm:grid-cols-4" } as Record<number, string>)[columns] ?? "grid-cols-2 sm:grid-cols-3";
         const wrap = orientation === "horizontal" ? "flex flex-wrap gap-3" : `grid gap-4 ${colClass}`;
+        if (orientation === "tiles") {
+          return (
+            <section>
+              <h2 className="text-base font-semibold text-slate-900 md:text-lg">Quick actions</h2>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {items.map((a) => (
+                  <Link
+                    key={a.title}
+                    to={a.to}
+                    params={{ slug }}
+                    className="group flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition hover:-translate-y-0.5 hover:shadow-md"
+                    style={dividerColor}
+                  >
+                    <span className="grid h-12 w-12 place-items-center rounded-full text-white" style={{ background: "var(--tenant-primary)" }}>
+                      <a.icon className="h-5 w-5" />
+                    </span>
+                    <span className="text-sm font-semibold text-slate-800">{a.title}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          );
+        }
         return (
           <section>
             <h2 className="text-base font-semibold text-slate-900 md:text-lg">Quick actions</h2>
@@ -497,7 +660,61 @@ function LayoutDrivenDashboard(props: {
             )}
           </section>
         );
-      case "recent_transactions":
+      case "recent_transactions": {
+        const tStyle = readStr(p, "style", "list");
+        if (tStyle === "table") {
+          return (
+            <section>
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-slate-900 md:text-lg">Recent transactions</h2>
+                <Link to="/$slug/portal/transactions" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
+                  <ListOrdered className="h-3.5 w-3.5" /> View all
+                </Link>
+              </div>
+              {transactions.length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-500">No transactions yet.</p>
+              ) : (
+                <div className="mt-3 overflow-x-auto rounded-xl border">
+                  <table className="w-full min-w-[560px] text-left text-sm">
+                    <thead>
+                      <tr className="text-[11px] uppercase tracking-wider text-slate-400">
+                        <th className="px-4 py-2.5 font-semibold">Date</th>
+                        <th className="px-4 py-2.5 font-semibold">Description</th>
+                        <th className="px-4 py-2.5 font-semibold">Type</th>
+                        <th className="px-4 py-2.5 text-right font-semibold">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {transactions.slice(0, 8).map((t) => {
+                        const isCredit = t.direction === "credit";
+                        const isDebit = t.direction === "debit";
+                        return (
+                          <tr key={t.id} className="transition hover:bg-slate-50">
+                            <td className="whitespace-nowrap px-4 py-3 text-slate-500">{new Date(t.created_at).toLocaleDateString()}</td>
+                            <td className="px-4 py-3">
+                              <Link
+                                to="/$slug/portal/transactions/$id"
+                                params={{ slug, id: t.id }}
+                                search={{ success: false }}
+                                className="font-medium text-slate-800 hover:underline"
+                              >
+                                {t.description || t.kind}
+                              </Link>
+                            </td>
+                            <td className="px-4 py-3 text-xs capitalize text-slate-500">{t.kind}</td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold" style={{ color: isCredit ? "#16a34a" : isDebit ? "#dc2626" : undefined }}>
+                              {isDebit ? "-" : isCredit ? "+" : ""}{fmt(t.amount, t.currency)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          );
+        }
         return (
           <section>
             <div className="flex items-center justify-between">
@@ -517,6 +734,7 @@ function LayoutDrivenDashboard(props: {
                       <Link
                         to="/$slug/portal/transactions/$id"
                         params={{ slug, id: t.id }}
+                        search={{ success: false }}
                         className="flex items-center justify-between gap-3 py-3 text-sm transition hover:bg-slate-50"
                       >
                         <div className="flex min-w-0 items-center gap-3">
@@ -539,6 +757,7 @@ function LayoutDrivenDashboard(props: {
             )}
           </section>
         );
+      }
       case "cards":
         return (
           <section>
