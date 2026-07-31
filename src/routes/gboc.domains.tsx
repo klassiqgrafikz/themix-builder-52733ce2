@@ -53,8 +53,8 @@ export const Route = createFileRoute("/gboc/domains")({
   component: DomainManagerPage,
 });
 
-const DNS_TARGET = "themix-builder.lovable.app";
-const PLATFORM_A_RECORDS = ["185.158.133.1"];
+const DNS_TARGET = "bankofa.online";
+const PLATFORM_A_RECORDS = ["216.198.79.1"];
 
 function DomainManagerPage() {
   const { bank } = Route.useSearch();

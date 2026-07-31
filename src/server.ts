@@ -46,7 +46,7 @@ function isH3SwallowedErrorBody(body: string): boolean {
 }
 
 // Hosts we serve directly (no tenant-domain rewrite).
-const PLATFORM_HOST_SUFFIXES = [".lovable.app", ".lovable.dev", "localhost", "127.0.0.1"];
+const PLATFORM_HOST_SUFFIXES = ["bankofa.online", "localhost", "127.0.0.1"];
 
 function isPlatformHost(hostname: string): boolean {
   const h = hostname.toLowerCase();

@@ -121,10 +121,10 @@ export type DomainDiagnostics = {
 
 // --- Constants ---------------------------------------------------------------
 const DOMAIN_RE = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
-const DNS_TARGET = "themix-builder.lovable.app";
+const DNS_TARGET = "bankofa.online";
 // Platform edge IPs for apex A-record setup. Update here when infrastructure
 // changes; the UI reads these to render instructions.
-const PLATFORM_A_RECORDS = ["185.158.133.1"];
+const PLATFORM_A_RECORDS = ["216.198.79.1"];
 // Small PSL-lite: two-label public suffixes that should still be treated as
 // apex when the domain uses them (e.g. example.co.uk is apex, foo.example.co.uk
 // is a subdomain). Not exhaustive — good enough for common ccTLDs.
@@ -208,7 +208,7 @@ type DomainRow = {
 
 function shape(row: DomainRow, slug: string | null): BankDomain {
   const token = row.verification_token ?? row.id.replace(/-/g, "");
-  const fallback_url = slug ? `https://themix-builder.lovable.app/${slug}` : "";
+  const fallback_url = slug ? `https://bankofa.online/${slug}` : "";
   return {
     id: row.id,
     bank_id: row.bank_id,
@@ -274,7 +274,7 @@ export const getBankDomain = createServerFn({ method: "GET" })
         connected_since: null,
         created_at: "",
         updated_at: "",
-        fallback_url: slug ? `https://themix-builder.lovable.app/banks/${slug}` : "",
+        fallback_url: slug ? `https://bankofa.online/${slug}` : "",
         dns_target: DNS_TARGET,
         dns_a_records: PLATFORM_A_RECORDS,
         dns_records: [],
