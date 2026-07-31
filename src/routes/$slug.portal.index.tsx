@@ -264,7 +264,7 @@ const WIDTH_SPAN: Record<WidthSize, string> = {
 type Restr = { id: string; types: string[]; reason: string | null; end_at: string | null };
 type Tx = { id: string; created_at: string; balance_after: number; amount: number; currency: string; direction: string; kind: string; description: string | null };
 type Bene = { id: string; name?: string; account_number?: string; nickname?: string | null };
-type Card = { id: string; masked_number?: string | null; card_type?: string | null };
+type Card = { id: string; masked_number?: string | null; card_type?: string | null; card_holder?: string | null; brand?: string | null; expiry_month?: number | null; expiry_year?: number | null };
 
 function LayoutDrivenDashboard(props: {
   layout: DashboardLayout;
@@ -381,6 +381,48 @@ function LayoutDrivenDashboard(props: {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><div className="text-slate-500 text-xs">Account</div><div className="font-mono">{acctMasked}</div></div>
                 <div><div className="text-slate-500 text-xs">Holder</div><div>{session.customer.first_name} {session.customer.last_name}</div></div>
+              </div>
+            </section>
+          );
+        }
+        if (style === "card") {
+          const size = readStr(p, "size", "standard");
+          const primaryCard = cards[0];
+          const expiry =
+            primaryCard?.expiry_month && primaryCard?.expiry_year
+              ? `${String(primaryCard.expiry_month).padStart(2, "0")}/${String(primaryCard.expiry_year).slice(-2)}`
+              : "••/••";
+          const holderName = `${session.customer.first_name} ${session.customer.last_name}`.trim().toUpperCase() || "CARD HOLDER";
+          return (
+            <section className="flex justify-center">
+              <div
+                className={`relative w-full overflow-hidden rounded-2xl text-white shadow-xl ${size === "large" ? "max-w-md" : "max-w-sm"}`}
+                style={{ background: "linear-gradient(135deg, var(--tenant-primary), var(--tenant-dark, var(--tenant-primary)))" }}
+              >
+                <div className="flex items-center justify-between p-5">
+                  <span className="text-sm font-semibold tracking-wide opacity-90">{manifest.bank.name}</span>
+                  <CreditCard className="h-5 w-5 opacity-80" />
+                </div>
+                <div className="px-5">
+                  <div className="h-8 w-11 rounded-md" style={{ background: "linear-gradient(135deg, #d4af37, #b8860b)" }} />
+                  <div className="mt-4 font-mono text-lg tracking-[0.18em]">{acctMasked}</div>
+                  <div className="mt-4 flex items-end justify-between gap-3 pb-5">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-widest opacity-70">Card holder</p>
+                      <p className="truncate text-xs font-semibold">{holderName}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest opacity-70">Expires</p>
+                      <p className="text-xs font-semibold">{expiry}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase tracking-widest opacity-70">Balance</p>
+                      <button type="button" onClick={() => setBalanceVisible((v) => !v)} className="text-base font-bold hover:opacity-80">
+                        {balanceEl}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
           );
@@ -544,10 +586,23 @@ function LayoutDrivenDashboard(props: {
           <section>
             <h2 className="text-base font-semibold text-slate-900 md:text-lg">Cards</h2>
             <div className="mt-3 space-y-2">
-              {cards.length === 0 ? <p className="text-xs text-slate-500">No cards yet.</p> : cards.slice(0, 3).map((c) => (
-                <div key={c.id} className="flex items-center justify-between rounded-xl border p-3 text-sm" style={dividerColor}>
-                  <span className="font-mono">{c.masked_number || "•••• ••••"}</span>
-                  <span className="text-xs text-slate-500">{c.card_type || "Card"}</span>
+              {cards.length === 0 ? <p className="text-xs text-slate-500">No cards yet.</p> : cards.slice(0, 4).map((c) => (
+                <div
+                  key={c.id}
+                  className="relative overflow-hidden rounded-xl p-4 text-white"
+                  style={{ background: "linear-gradient(135deg, var(--tenant-primary), var(--tenant-dark, var(--tenant-primary)))" }}
+                >
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold tracking-wide">{c.brand || c.card_type || "Bank Card"}</span>
+                    <CreditCard className="h-4 w-4 opacity-80" />
+                  </div>
+                  <div className="mt-3 font-mono text-sm tracking-[0.15em]">{c.masked_number || "•••• •••• •••• ••••"}</div>
+                  <div className="mt-3 flex items-end justify-between text-[10px] uppercase tracking-widest opacity-80">
+                    <span className="truncate pr-2">{c.card_holder || "Card holder"}</span>
+                    <span className="flex-none">
+                      {c.expiry_month && c.expiry_year ? `${String(c.expiry_month).padStart(2, "0")}/${String(c.expiry_year).slice(-2)}` : "••/••"}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
