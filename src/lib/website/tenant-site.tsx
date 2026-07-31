@@ -135,7 +135,7 @@ function ModernGateway({ manifest }: { manifest: WebsiteManifest }) {
             className="rounded-full px-4 py-2 text-sm font-medium"
             style={{ color: theme.colors.primary, border: `1px solid ${theme.colors.primary}33` }}
           >
-            {actions.portalLabel}
+            <Rtf field={mc?.cta_secondary} fallback={actions.portalLabel} />
           </a>
           <a
             href={actions.registerHref}
@@ -183,7 +183,7 @@ function ModernGateway({ manifest }: { manifest: WebsiteManifest }) {
                 border: `1px solid ${theme.colors.primary}33`,
               }}
             >
-              {actions.portalLabel}
+              <Rtf field={mc?.cta_secondary} fallback={actions.portalLabel} />
             </a>
           </div>
         </div>
@@ -281,7 +281,7 @@ function CorporateGateway({ manifest }: { manifest: WebsiteManifest }) {
             {bank.country_code ?? "GLOBAL"} · {bank.currency ?? "USD"} · Est. corporate services
           </span>
           <div className="flex items-center gap-4 opacity-90">
-            <a href={actions.portalHref}>{actions.portalLabel}</a>
+            <a href={actions.portalHref}><Rtf field={cc?.cta_secondary} fallback={actions.portalLabel} /></a>
             <a href={`/${bank.slug}/forgot`}>Forgot password</a>
             <span>Rates &amp; fees</span>
           </div>
@@ -359,7 +359,7 @@ function CorporateGateway({ manifest }: { manifest: WebsiteManifest }) {
                 className="rounded border px-5 py-2.5 text-sm font-semibold"
                 style={{ borderColor: theme.colors.primary, color: theme.colors.primary }}
               >
-                {actions.portalLabel}
+                <Rtf field={cc?.cta_secondary} fallback={actions.portalLabel} />
               </a>
             </div>
           </div>
@@ -452,7 +452,7 @@ function PremiumGateway({ manifest }: { manifest: WebsiteManifest }) {
           <span>Advisory</span>
           <span>Concierge</span>
           <a href={actions.portalHref} className="hover:text-white">
-            {actions.portalLabel}
+            <Rtf field={pc?.cta_secondary} fallback={actions.portalLabel} />
           </a>
         </nav>
         <a
@@ -491,7 +491,7 @@ function PremiumGateway({ manifest }: { manifest: WebsiteManifest }) {
               className="border px-8 py-3.5 text-xs uppercase tracking-[0.25em] text-white/85"
               style={{ borderColor: "rgba(255,255,255,0.25)" }}
             >
-              {actions.portalLabel}
+              <Rtf field={pc?.cta_secondary} fallback={actions.portalLabel} />
             </a>
           </div>
         </div>
