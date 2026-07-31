@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { BUILD_STAMP } from "../lib/build-stamp";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -87,6 +88,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "TheMixWeb — Multi-Tenant Banking Platform" },
       { name: "twitter:description", content: "Create and manage professional digital banking experiences." },
+      { name: "build-stamp", content: BUILD_STAMP },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -114,6 +116,32 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function BuildStampGuard() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (sessionStorage.getItem("portal:stamp-reloaded")) return;
+    } catch {
+      return;
+    }
+    fetch("/api/build-stamp", { cache: "no-store" })
+      .then((r) => (r.ok ? (r.json() as Promise<{ stamp?: unknown }>) : null))
+      .then((d) => {
+        if (!d || typeof d.stamp !== "string" || d.stamp === BUILD_STAMP) return;
+        try {
+          sessionStorage.setItem("portal:stamp-reloaded", "1");
+        } catch {
+          /* ignore */
+        }
+        window.location.reload();
+      })
+      .catch(() => {
+        /* offline — leave the session alone */
+      });
+  }, []);
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -121,6 +149,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <BuildStampGuard />
       <Toaster />
     </QueryClientProvider>
   );

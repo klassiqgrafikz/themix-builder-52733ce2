@@ -3,6 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { resolveCustomDomainSlug } from "./lib/website/custom-domain-router.server";
+import { BUILD_STAMP } from "./lib/build-stamp";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -86,6 +87,14 @@ async function rewriteForCustomDomain(request: Request): Promise<Request> {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      // Build-stamp endpoint: lets stale cached sessions detect they are out of
+      // date and reload once against the current deployment.
+      const url = new URL(request.url);
+      if (url.pathname === "/api/build-stamp") {
+        return new Response(JSON.stringify({ stamp: BUILD_STAMP }), {
+          headers: { "content-type": "application/json", "cache-control": "no-store" },
+        });
+      }
       const handler = await getServerEntry();
       const routed = await rewriteForCustomDomain(request);
       const response = await handler.fetch(routed, env, ctx);

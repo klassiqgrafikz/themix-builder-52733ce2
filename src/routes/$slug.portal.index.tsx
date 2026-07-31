@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useMatch } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -21,7 +21,12 @@ import {
   customerListTransactions,
 } from "@/lib/customer/activity.functions";
 import { listBeneficiaries } from "@/lib/customer/beneficiaries.functions";
-import { listCards } from "@/lib/customer/cards.functions";
+import {
+  listCards,
+  updateCardStatus,
+  type CustomerCard,
+} from "@/lib/customer/cards.functions";
+import { BankCard, CardOptionsSheet } from "@/components/customer/bank-card";
 import {
   Accordion,
   AccordionContent,
@@ -266,7 +271,7 @@ const WIDTH_SPAN: Record<WidthSize, string> = {
 type Restr = { id: string; types: string[]; reason: string | null; end_at: string | null };
 type Tx = { id: string; created_at: string; balance_after: number; amount: number; currency: string; direction: string; kind: string; description: string | null };
 type Bene = { id: string; name?: string; account_number?: string; nickname?: string | null };
-type Card = { id: string; masked_number?: string | null; card_type?: string | null; expiry_month?: number | null; expiry_year?: number | null };
+type Card = CustomerCard;
 
 function LayoutDrivenDashboard(props: {
   layout: DashboardLayout;
@@ -298,6 +303,33 @@ function LayoutDrivenDashboard(props: {
   const dividerColor = { borderColor: "color-mix(in oklab, var(--tenant-primary) 55%, transparent)" };
   const labelText = "text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400";
   const [deckIndex, setDeckIndex] = useState(0);
+  const [deckCard, setDeckCard] = useState<CustomerCard | null>(null);
+
+  const doCardStatus = useServerFn(updateCardStatus);
+  const qc = useQueryClient();
+  const statusMut = useMutation({
+    mutationFn: (v: { id: string; action: "freeze" | "unfreeze" | "replace" }) =>
+      doCardStatus({ data: { slug, card_id: v.id, action: v.action } }),
+    onSuccess: (_d, v) => {
+      toast.success(
+        v.action === "freeze"
+          ? "Card frozen"
+          : v.action === "unfreeze"
+            ? "Card unfrozen"
+            : "New card issued",
+      );
+      qc.invalidateQueries({ queryKey: ["portal-cards", slug] });
+      if (v.action === "replace") setDeckCard(null);
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  // Keep the sheet card in sync with the refreshed list (e.g. after freeze).
+  useEffect(() => {
+    if (!deckCard) return;
+    const fresh = cards.find((c) => c.id === deckCard.id);
+    if (fresh && fresh !== deckCard) setDeckCard(fresh);
+  }, [cards, deckCard]);
 
   const readStr = (p: DashboardLayout["items"][number]["props"], k: string, fb: string): string => {
     const v = p?.[k]; return typeof v === "string" ? v : fb;
@@ -473,10 +505,10 @@ function LayoutDrivenDashboard(props: {
           const idx = Math.min(deckIndex, Math.max(accts.length - 1, 0));
           const a = accts[idx];
           const holderName = `${session.customer.first_name} ${session.customer.last_name}`.trim().toUpperCase() || "CARD HOLDER";
-          const primaryCard = cards[0];
+          const crd = cards.find((c) => c.account_id === a?.id) ?? cards[0] ?? null;
           const expiry =
-            primaryCard?.expiry_month && primaryCard?.expiry_year
-              ? `${String(primaryCard.expiry_month).padStart(2, "0")}/${String(primaryCard.expiry_year).slice(-2)}`
+            crd?.expiry_month && crd?.expiry_year
+              ? `${String(crd.expiry_month).padStart(2, "0")}/${String(crd.expiry_year).slice(-2)}`
               : "••/••";
           return (
             <section className="flex flex-col items-center gap-3">
@@ -493,35 +525,68 @@ function LayoutDrivenDashboard(props: {
                   </button>
                 ))}
               </div>
-              <div
-                className="w-full max-w-sm overflow-hidden rounded-2xl text-white shadow-xl"
-                style={{ background: "linear-gradient(135deg, var(--tenant-primary), var(--tenant-dark, var(--tenant-primary)))" }}
-              >
-                <div className="flex items-center justify-between p-5">
-                  <span className="text-sm font-semibold tracking-wide opacity-90">{manifest.bank.name}</span>
-                  <CreditCard className="h-5 w-5 opacity-80" />
+              {crd ? (
+                <div className="w-full max-w-sm">
+                  <button
+                    type="button"
+                    onClick={() => setDeckCard(crd)}
+                    className="group w-full text-left transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none"
+                  >
+                    <BankCard card={crd} manifest={manifest} revealed={false} />
+                  </button>
+                  <p className="mt-2 text-center text-xs opacity-60">
+                    Tap the card to reveal details or manage it
+                  </p>
+                  <div className="mt-3 flex items-center justify-between rounded-xl border px-4 py-3 text-sm" style={dividerColor}>
+                    <span className="font-mono text-slate-500">{formatAccountNumber(a?.account_number ?? "")}</span>
+                    <button
+                      type="button"
+                      onClick={() => setBalanceVisible((v) => !v)}
+                      className="font-mono font-semibold text-slate-900 hover:opacity-80"
+                    >
+                      {balanceVisible && a ? fmt(a.available_balance ?? 0, a.currency ?? currency) : "••••••"}
+                    </button>
+                  </div>
                 </div>
-                <div className="px-5 pb-5">
-                  <div className="h-8 w-11 rounded-md" style={{ background: "linear-gradient(135deg, #d4af37, #b8860b)" }} />
-                  <div className="mt-4 font-mono text-lg tracking-[0.18em]">{a ? formatAccountNumber(a.account_number ?? "") : "—"}</div>
-                  <div className="mt-4 flex items-end justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[10px] uppercase tracking-widest opacity-70">Card holder</p>
-                      <p className="truncate text-xs font-semibold">{holderName}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest opacity-70">Expires</p>
-                      <p className="text-xs font-semibold">{expiry}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase tracking-widest opacity-70">Balance</p>
-                      <button type="button" onClick={() => setBalanceVisible((v) => !v)} className="text-base font-bold hover:opacity-80">
-                        {balanceVisible && a ? fmt(a.available_balance ?? 0, a.currency ?? currency) : "••••••"}
-                      </button>
+              ) : (
+                <div
+                  className="w-full max-w-sm overflow-hidden rounded-2xl text-white shadow-xl"
+                  style={{ background: "linear-gradient(135deg, var(--tenant-primary), var(--tenant-dark, var(--tenant-primary)))" }}
+                >
+                  <div className="flex items-center justify-between p-5">
+                    <span className="text-sm font-semibold tracking-wide opacity-90">{manifest.bank.name}</span>
+                    <CreditCard className="h-5 w-5 opacity-80" />
+                  </div>
+                  <div className="px-5 pb-5">
+                    <div className="h-8 w-11 rounded-md" style={{ background: "linear-gradient(135deg, #d4af37, #b8860b)" }} />
+                    <div className="mt-4 font-mono text-lg tracking-[0.18em]">{a ? formatAccountNumber(a.account_number ?? "") : "—"}</div>
+                    <div className="mt-4 flex items-end justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-widest opacity-70">Card holder</p>
+                        <p className="truncate text-xs font-semibold">{holderName}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest opacity-70">Expires</p>
+                        <p className="text-xs font-semibold">{expiry}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase tracking-widest opacity-70">Balance</p>
+                        <button type="button" onClick={() => setBalanceVisible((v) => !v)} className="text-base font-bold hover:opacity-80">
+                          {balanceVisible && a ? fmt(a.available_balance ?? 0, a.currency ?? currency) : "••••••"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
+              {!crd && (
+                <p className="text-xs text-slate-500">
+                  No card on this account yet.{" "}
+                  <Link to="/$slug/portal/cards" params={{ slug }} className="font-medium underline">
+                    Issue a card
+                  </Link>
+                </p>
+              )}
             </section>
           );
         }
@@ -857,6 +922,16 @@ function LayoutDrivenDashboard(props: {
             );
           })}
       </div>
+
+      <CardOptionsSheet
+        card={deckCard}
+        manifest={manifest}
+        onClose={() => setDeckCard(null)}
+        onFreeze={(id) => statusMut.mutate({ id, action: "freeze" })}
+        onUnfreeze={(id) => statusMut.mutate({ id, action: "unfreeze" })}
+        onReplace={(id) => statusMut.mutate({ id, action: "replace" })}
+        pending={statusMut.isPending}
+      />
     </div>
   );
 }

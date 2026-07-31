@@ -6,10 +6,20 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// Evaluated once per build and inlined (via `define`) into BOTH the client and
+// server bundles, so a stale cached session can detect it is out of date and
+// reload once against the current deployment.
+const BUILD_STAMP = Date.now().toString(36);
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+  },
+  vite: {
+    define: {
+      __BUILD_STAMP__: JSON.stringify(BUILD_STAMP),
+    },
   },
 });
