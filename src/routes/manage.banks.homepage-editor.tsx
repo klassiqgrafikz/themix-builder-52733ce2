@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import type { BankDraft } from "@/lib/bank-builder.types";
 import type { HomepageContent, CatalogContent, HomepageFeatureCard, WebsiteManifest } from "@/lib/rendering/types";
 import { defaultHomepageContent, defaultCatalogContent } from "@/lib/rendering/default-content";
 import { updateDraft } from "@/lib/bank-builder.functions";
@@ -42,26 +41,35 @@ function cloneContent(m: WebsiteManifest | null): EditorContent {
 
 export function HomepageEditor({
   manifest,
+  branding,
   draftId,
   onSaved,
 }: {
   manifest: WebsiteManifest | null;
+  branding: Record<string, unknown> | null;
   draftId: string;
   onSaved: () => void;
 }) {
-  const qc = useQueryClient();
   const updateFn = useServerFn(updateDraft);
   const [tab, setTab] = useState("gateway");
   const [content, setContent] = useState<EditorContent>(() => cloneContent(manifest));
 
+  useEffect(() => {
+    if (manifest) setContent(cloneContent(manifest));
+  }, [manifest]);
+
   const saveMut = useMutation({
     mutationFn: async () => {
-      const draft = qc.getQueryData<BankDraft>(["bb-draft", draftId]);
-      const updatedBranding = { ...(draft?.branding ?? {}), homepage_content: content.homepage, catalog_content: content.catalog };
-      const patch: Record<string, unknown> = { branding: updatedBranding };
-      if (draft?.manifest && typeof draft.manifest === "object" && "version" in draft.manifest) {
+      const patch: Record<string, unknown> = {
+        branding: {
+          ...(branding ?? {}),
+          homepage_content: content.homepage,
+          catalog_content: content.catalog,
+        },
+      };
+      if (manifest) {
         patch.manifest = {
-          ...draft.manifest,
+          ...manifest,
           homepage_content: content.homepage,
           catalog_content: content.catalog,
         };

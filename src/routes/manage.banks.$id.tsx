@@ -556,6 +556,7 @@ function BankOverview() {
 
         <HomepageEditor
           manifest={manifest}
+          branding={(draft.branding ?? {}) as Record<string, unknown> | null}
           draftId={id}
           onSaved={() => qc.invalidateQueries({ queryKey: ["bb-draft", id] })}
         />
