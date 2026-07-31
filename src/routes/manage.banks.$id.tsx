@@ -408,8 +408,6 @@ function BankOverview() {
 
         <DashboardStylePanel
           draftId={id}
-          manifest={manifest}
-          branding={(draft.branding ?? {}) as Record<string, unknown> | null}
           current={normalizeStyle((draft?.manifest as Record<string, unknown> | undefined)?.portal_layout_key ?? branding.portal_layout_key)}
           primaryColor={branding.primary_color ?? "#0a2540"}
           secondaryColor={branding.secondary_color ?? "#1e88e5"}
@@ -862,11 +860,11 @@ function ShortSlugEditor({
   );
 }
 
-type LayoutKey = "sidebar" | "topnav" | "premium" | "minimal" | "floating" | "card_wallet" | "ledger" | "card_center";
+type LayoutKey = "sidebar" | "topnav" | "premium" | "minimal" | "floating";
 
 function normalizeStyle(v: unknown): LayoutKey {
   const s = String(v ?? "").toLowerCase();
-  if (s === "sidebar" || s === "topnav" || s === "premium" || s === "minimal" || s === "floating" || s === "card_wallet" || s === "ledger" || s === "card_center") return s as LayoutKey;
+  if (s === "sidebar" || s === "topnav" || s === "premium" || s === "minimal" || s === "floating") return s as LayoutKey;
   return "sidebar";
 }
 
@@ -880,42 +878,33 @@ const LAYOUT_OPTIONS: {
   { key: "premium", title: "Premium", desc: "Dark sidebar with gold accents. Full dashboard with balance trend, cards and beneficiaries sections." },
   { key: "minimal", title: "Minimal", desc: "Thin header only — no persistent sidebar. Executive account summary and a large balance trend chart. Kiosk-friendly." },
   { key: "floating", title: "Floating", desc: "Minimal header with a floating bottom nav bar. Compact account summary, quick actions and cards. Mobile-first fintech feel." },
-  { key: "card_wallet", title: "Card Wallet · BOA", desc: "Bank of America inspired: your account number lives on a bank-card holder with chip and expiry, next to the balance trend and card visuals." },
-  { key: "ledger", title: "Ledger · HSBC", desc: "HSBC inspired: top navigation with a clean card-holder account summary, full-width transaction ledger and beneficiaries." },
-  { key: "card_center", title: "Card Center · KB", desc: "KB Kookmin inspired: one large card-holder card as the centerpiece, flanked by quick actions, cards and the balance trend." },
 ];
 
 function DashboardStylePanel({
   draftId,
-  manifest,
-  branding,
   current,
   primaryColor,
   secondaryColor,
   onSaved,
 }: {
   draftId: string;
-  manifest: WebsiteManifest | null;
-  branding: Record<string, unknown> | null;
   current: LayoutKey;
   primaryColor: string;
   secondaryColor: string;
   onSaved: () => void;
 }) {
+  const qc = useQueryClient();
   const [selected, setSelected] = useState<LayoutKey>(current);
   const updateFn = useServerFn(updateDraft);
 
   const saveMut = useMutation({
     mutationFn: async () => {
-      const patch: Record<string, unknown> = {
-        branding: {
-          ...(branding ?? {}),
-          portal_layout_key: selected,
-        },
-      };
-      if (manifest) {
+      const draft = qc.getQueryData<BankDraft>(["bb-draft", draftId]);
+      const branding = { ...(draft?.branding ?? {}), portal_layout_key: selected };
+      const patch: Record<string, unknown> = { branding };
+      if (draft?.manifest && typeof draft.manifest === "object" && "version" in draft.manifest) {
         patch.manifest = {
-          ...manifest,
+          ...draft.manifest,
           portal_layout_key: selected,
           dashboard_layout: getDashboardLayoutForKey(selected),
         };
@@ -1050,49 +1039,6 @@ function LayoutThumb({
           {[1,2,3,4].map((i) => (
             <div key={i} className="h-4 w-4 rounded-full" style={{ backgroundColor: i === 1 ? primaryColor : "#e2e8f0" }} />
           ))}
-        </div>
-      </div>
-    );
-  }
-  if (layout === "card_wallet" || layout === "ledger" || layout === "card_center") {
-    const isLedger = layout === "ledger";
-    const isCenter = layout === "card_center";
-    return (
-      <div className={`h-24 w-full bg-white p-3 ${isLedger ? "" : "flex"}`}>
-        {!isLedger && (
-          <div className="flex w-1/3 flex-col gap-1 border-r bg-slate-50 p-2">
-            <div className="h-2 w-10 rounded" style={{ backgroundColor: primaryColor }} />
-            <div className="h-2 rounded bg-slate-200" />
-            <div className="h-2 rounded bg-slate-200" />
-          </div>
-        )}
-        <div className={`flex-1 ${isLedger ? "" : "p-2"} ${isCenter ? "flex flex-col items-center" : ""}`}>
-          {isLedger && (
-            <div className="flex items-center gap-2 border-b pb-1.5">
-              <div className="h-3 w-3 rounded" style={{ backgroundColor: primaryColor }} />
-              <div className="h-1.5 flex-1 rounded bg-slate-200" />
-            </div>
-          )}
-          <div
-            className={`rounded-lg text-white p-2 ${isCenter ? "mx-auto w-3/5" : "w-full"}`}
-            style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="h-1.5 w-10 rounded bg-white/70" />
-              <div className="h-2 w-3.5 rounded-sm bg-yellow-300/90" />
-            </div>
-            <div className="mt-1.5 h-1.5 w-3/4 rounded bg-white/50" />
-            <div className="mt-1.5 flex items-end justify-between">
-              <div className="h-1 w-8 rounded bg-white/40" />
-              <div className="h-1.5 w-6 rounded bg-white/60" />
-            </div>
-          </div>
-          {!isCenter && (
-            <div className="mt-2 space-y-1">
-              <div className="h-1.5 w-full rounded bg-slate-100" />
-              <div className="h-1.5 w-2/3 rounded bg-slate-100" />
-            </div>
-          )}
         </div>
       </div>
     );

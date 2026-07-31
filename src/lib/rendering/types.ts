@@ -177,10 +177,10 @@ export type WebsiteManifest = {
     updated_at: string;
   };
   /**
-   * Which of the 8 portal layouts is active. Controls both the sidebar/nav
+   * Which of the 5 portal layouts is active. Controls both the sidebar/nav
    * shell and the dashboard section composition.
    */
-  portal_layout_key?: "sidebar" | "topnav" | "premium" | "minimal" | "floating" | "card_wallet" | "ledger" | "card_center";
+  portal_layout_key?: "sidebar" | "topnav" | "premium" | "minimal" | "floating";
   /** @deprecated Replaced by portal_layout_key. Kept for backward compat. */
   dashboard_style?: "classic" | "modern" | "minimal" | "premium" | "premium_card";
 
@@ -239,7 +239,7 @@ export type BankConfigurationInput = {
     border_radius?: number;
     dark_mode?: boolean;
     template_variant?: "modern" | "corporate" | "premium";
-    portal_layout_key?: "sidebar" | "topnav" | "premium" | "minimal" | "floating" | "card_wallet" | "ledger" | "card_center";
+    portal_layout_key?: "sidebar" | "topnav" | "premium" | "minimal" | "floating";
     dashboard_style?: "classic" | "modern" | "minimal" | "premium" | "premium_card";
     homepage_content?: HomepageContent;
     catalog_content?: CatalogContent;

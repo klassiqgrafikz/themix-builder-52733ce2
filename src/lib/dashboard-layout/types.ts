@@ -19,7 +19,7 @@ export type WidthSize = "full" | "half" | "third";
 export type ChartSize = "small" | "medium" | "large";
 
 export type HeaderStyle = "welcome" | "photo" | "minimal";
-export type SummaryStyle = "minimal" | "modern" | "executive" | "compact" | "card";
+export type SummaryStyle = "minimal" | "modern" | "executive" | "compact";
 export type QuickActionsColumns = 2 | 3 | 4;
 export type QuickActionsOrientation = "grid" | "horizontal";
 
@@ -41,15 +41,7 @@ export type DashboardLayout = {
   updated_at: string;
 };
 
-export type PortalLayoutKey =
-  | "sidebar"
-  | "topnav"
-  | "premium"
-  | "minimal"
-  | "floating"
-  | "card_wallet"
-  | "ledger"
-  | "card_center";
+export type PortalLayoutKey = "sidebar" | "topnav" | "premium" | "minimal" | "floating";
 
 export type LayoutDefinition = {
   shell_variant: PortalLayoutKey;
@@ -120,53 +112,6 @@ export function getLayoutDefinition(key: PortalLayoutKey): LayoutDefinition {
             { id: "account_summary", kind: "account_summary", width: "full", visible: true, props: { style: "compact" } },
             { id: "quick_actions", kind: "quick_actions", width: "full", visible: true, props: { columns: 2, orientation: "grid" } },
             { id: "cards", kind: "cards", width: "full", visible: true },
-          ],
-        },
-      };
-    case "card_wallet":
-      return {
-        shell_variant: "sidebar",
-        nav_items: full,
-        dashboard_layout: {
-          version: 1,
-          updated_at: new Date().toISOString(),
-          items: [
-            { id: "header", kind: "header", width: "full", visible: true, props: { style: "photo" } },
-            { id: "account_summary", kind: "account_summary", width: "full", visible: true, props: { style: "card" } },
-            { id: "balance_trend", kind: "balance_trend", width: "half", visible: true, props: { chart_size: "medium" } },
-            { id: "cards", kind: "cards", width: "half", visible: true },
-            { id: "recent_transactions", kind: "recent_transactions", width: "full", visible: true },
-          ],
-        },
-      };
-    case "ledger":
-      return {
-        shell_variant: "topnav",
-        nav_items: ["dashboard","accounts","transfer","transactions","cards","statements","support"],
-        dashboard_layout: {
-          version: 1,
-          updated_at: new Date().toISOString(),
-          items: [
-            { id: "header", kind: "header", width: "full", visible: true, props: { style: "welcome" } },
-            { id: "account_summary", kind: "account_summary", width: "full", visible: true, props: { style: "card" } },
-            { id: "recent_transactions", kind: "recent_transactions", width: "full", visible: true },
-            { id: "cards", kind: "cards", width: "half", visible: true },
-            { id: "beneficiaries", kind: "beneficiaries", width: "half", visible: true },
-          ],
-        },
-      };
-    case "card_center":
-      return {
-        shell_variant: "sidebar",
-        nav_items: ["dashboard","accounts","transfer","cards","statements","support"],
-        dashboard_layout: {
-          version: 1,
-          updated_at: new Date().toISOString(),
-          items: [
-            { id: "account_summary", kind: "account_summary", width: "full", visible: true, props: { style: "card", size: "large" } },
-            { id: "quick_actions", kind: "quick_actions", width: "full", visible: true, props: { columns: 2, orientation: "grid" } },
-            { id: "cards", kind: "cards", width: "half", visible: true },
-            { id: "balance_trend", kind: "balance_trend", width: "half", visible: true, props: { chart_size: "medium" } },
           ],
         },
       };
