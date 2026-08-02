@@ -226,6 +226,7 @@ export function CardOptionsSheet({
   const [revealed, setRevealed] = useState(false);
   const [confirmReveal, setConfirmReveal] = useState(false);
   const [confirmReplace, setConfirmReplace] = useState(false);
+  const [confirmUnfreeze, setConfirmUnfreeze] = useState(false);
 
   // Auto-hide reveal after ~30s.
   useEffect(() => {
@@ -240,6 +241,7 @@ export function CardOptionsSheet({
       setRevealed(false);
       setConfirmReveal(false);
       setConfirmReplace(false);
+      setConfirmUnfreeze(false);
     }
   }, [card]);
 
@@ -262,7 +264,13 @@ export function CardOptionsSheet({
   return (
     <>
       <Sheet open={!!card} onOpenChange={(o) => !o && onClose()}>
-        <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto rounded-t-3xl p-0">
+        <SheetContent
+          side="bottom"
+          className="max-h-[92vh] overflow-y-auto rounded-t-3xl p-0"
+          onInteractOutside={(e) => {
+            if (confirmReveal || confirmReplace || confirmUnfreeze) e.preventDefault();
+          }}
+        >
           {card && (
             <div className="p-5">
               <SheetHeader className="mb-4 text-left">
@@ -282,9 +290,9 @@ export function CardOptionsSheet({
                 <ActionRow
                   icon={revealed ? EyeOff : Eye}
                   label={revealed ? "Hide card details" : "Reveal card details"}
-                  disabled={frozen}
                   onClick={() => {
                     if (revealed) setRevealed(false);
+                    else if (frozen) setConfirmUnfreeze(true);
                     else setConfirmReveal(true);
                   }}
                 />
@@ -353,6 +361,28 @@ export function CardOptionsSheet({
               }}
             >
               Reveal
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmUnfreeze} onOpenChange={setConfirmUnfreeze}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Card is frozen</AlertDialogTitle>
+            <AlertDialogDescription>
+              This card is frozen. Unfreeze it to reveal the card number and CVV.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (card) onUnfreeze(card.id);
+                setConfirmUnfreeze(false);
+              }}
+            >
+              Unfreeze card
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
