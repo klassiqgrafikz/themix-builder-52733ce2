@@ -169,9 +169,13 @@ export const updateCardStatus = createServerFn({ method: "POST" })
         monthly_limit: card.monthly_limit,
       });
     } else if (data.action === "delete") {
-      await supabaseAdmin.from("bank_cards").update({ status: "deleted", frozen_at: null }).eq("id", card.id);
+      const { error: delErr } = await supabaseAdmin
+        .from("bank_cards")
+        .update({ status: "deleted", frozen_at: null })
+        .eq("id", card.id);
+      if (delErr) throw new Error(delErr.message);
     }
-    await supabaseAdmin.from("bank_notifications").insert({
+    const { error: notifErr } = await supabaseAdmin.from("bank_notifications").insert({
       bank_id: s.bank.id,
       customer_id: s.customer.id,
       kind: "card",
@@ -185,6 +189,7 @@ export const updateCardStatus = createServerFn({ method: "POST" })
               : "Card deleted",
       body: `Card ending in ${card.last4} was ${data.action}d.`,
     });
+    if (notifErr) throw new Error(notifErr.message);
     return { ok: true };
   });
 
