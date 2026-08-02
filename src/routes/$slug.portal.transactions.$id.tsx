@@ -170,7 +170,7 @@ function ReceiptPage() {
           </div>
         </div>
 
-        <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+        <dl className="mt-4 grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
           <Field label={t("tx.type")}>{friendlyKind(tx.kind)}</Field>
           <Field label={t("transfer.amount")}><span className="font-semibold">{fmt(tx.amount, { currency: tx.currency })}</span></Field>
           <Field label={t("transfer.currency")}>{tx.currency}</Field>

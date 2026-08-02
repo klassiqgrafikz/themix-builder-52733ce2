@@ -153,7 +153,7 @@ export function TransferSuccessReceipt({
         </div>
       </div>
 
-      <dl className="mt-6 grid gap-x-8 gap-y-4 border-t pt-5 text-sm md:grid-cols-2">
+      <dl className="mt-6 grid grid-cols-1 gap-x-8 gap-y-4 border-t pt-5 text-sm md:grid-cols-2">
         <Field label={t("tx.sender")}>{tx.customer_name}</Field>
         <Field label={t("tx.sender_account")}>{tx.account_number || "—"}</Field>
         <Field label={t("tx.recipient")}>{beneficiary?.name ?? (tx.direction === "credit" ? tx.customer_name : "—")}</Field>

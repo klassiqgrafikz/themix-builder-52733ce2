@@ -228,7 +228,7 @@ function TransferPage() {
       )}
 
       <BrandedCard manifest={bank.manifest} className={restricted ? "pointer-events-none opacity-60" : ""}>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {([
             { k: "own", label: "Own accounts", desc: "Move funds between your accounts." },
             { k: "domestic", label: "Domestic Transfer", desc: `Send within ${bank.manifest.bank.name}.` },
@@ -248,7 +248,7 @@ function TransferPage() {
       </BrandedCard>
 
       <BrandedCard manifest={bank.manifest} className={restricted ? "pointer-events-none opacity-60" : ""}>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label>From account</Label>
             <Select value={sourceId} onValueChange={setSourceId}>
