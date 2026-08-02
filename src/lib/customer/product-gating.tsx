@@ -170,6 +170,12 @@ export const DASHBOARD_KIND_NAV: Record<string, string | null> = {
   notifications: "notifications",
   faq: null,
   support: "support",
+  account_carousel: "accounts",
+  promo_card: null,
+  transfers_widget: "transfer",
+  account_accordions: "accounts",
+  search_bar: null,
+  tabs: null,
 };
 
 export function isDashboardKindEnabled(manifest: WebsiteManifest, kind: string): boolean {

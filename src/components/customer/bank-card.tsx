@@ -80,15 +80,18 @@ export function BankCard({
   card,
   manifest,
   revealed,
+  variant,
 }: {
   card: CustomerCard;
   manifest: WebsiteManifest;
   revealed: boolean;
+  variant?: "classic" | "wave";
 }) {
   const primary = manifest.theme.colors.primary;
   const secondary = manifest.theme.colors.secondary ?? primary;
   const logo = manifest.brand.dashboard_logo_url;
   const frozen = card.status === "frozen";
+  const wave = variant === "wave";
 
   const displayNumber = revealed ? fullPan(card) : card.masked_number;
   const displayCvv = revealed ? fullCvv(card) : "•••";
@@ -99,11 +102,37 @@ export function BankCard({
       <div
         className="relative flex h-full flex-col justify-between overflow-hidden rounded-2xl p-5 text-white shadow-xl"
         style={{
-          background: `linear-gradient(135deg, ${primary} 0%, color-mix(in oklab, ${secondary} 70%, black) 100%)`,
+          background: wave
+            ? `linear-gradient(140deg, color-mix(in oklab, ${primary} 65%, #10b981) 0%, ${primary} 45%, color-mix(in oklab, ${secondary} 70%, black) 100%)`
+            : `linear-gradient(135deg, ${primary} 0%, color-mix(in oklab, ${secondary} 70%, black) 100%)`,
         }}
       >
-        <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/10" />
-        <div className="pointer-events-none absolute -bottom-20 -left-10 h-52 w-52 rounded-full bg-white/5" />
+        {wave ? (
+          <svg
+            className="pointer-events-none absolute inset-0 h-full w-full"
+            viewBox="0 0 400 260"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M0 170 Q 50 110 100 150 T 200 150 T 300 150 T 400 150 V 260 H 0 Z"
+              fill="rgba(255,255,255,0.10)"
+            />
+            <path
+              d="M0 190 Q 60 140 120 175 T 260 175 T 400 175 V 260 H 0 Z"
+              fill="rgba(255,255,255,0.07)"
+            />
+            <path
+              d="M0 215 Q 80 165 150 205 T 330 205 T 400 200 V 260 H 0 Z"
+              fill="rgba(255,255,255,0.05)"
+            />
+          </svg>
+        ) : (
+          <>
+            <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/10" />
+            <div className="pointer-events-none absolute -bottom-20 -left-10 h-52 w-52 rounded-full bg-white/5" />
+          </>
+        )}
 
         <div className="relative flex items-start justify-between">
           <div className="flex items-center gap-2">

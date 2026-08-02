@@ -10,7 +10,7 @@ import type {
   WebsiteManifest,
 } from "./types";
 import { variantFromConfig } from "./template-variant";
-import { getDashboardLayoutForKey } from "@/lib/dashboard-layout/types";
+import { getDashboardLayoutForKey, normalizePortalLayoutKey } from "@/lib/dashboard-layout/types";
 import { defaultHomepageContent, defaultCatalogContent } from "./default-content";
 
 
@@ -51,8 +51,8 @@ export function buildManifest(args: {
     pages,
     navigation,
     products,
-    portal_layout_key: "sidebar",
-    dashboard_layout: getDashboardLayoutForKey("sidebar"),
+    portal_layout_key: normalizePortalLayoutKey(cfg.branding.portal_layout_key ?? "sidebar"),
+    dashboard_layout: getDashboardLayoutForKey(normalizePortalLayoutKey(cfg.branding.portal_layout_key ?? "sidebar")),
     homepage_content: cfg.branding.homepage_content ?? defaultHomepageContent(cfg),
     catalog_content: cfg.branding.catalog_content ?? defaultCatalogContent(cfg),
     metadata: {

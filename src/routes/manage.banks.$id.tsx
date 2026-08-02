@@ -37,7 +37,7 @@ import type {
   RenderStatus,
   WebsiteManifest,
 } from "@/lib/bank-builder.types";
-import { getDashboardLayoutForKey } from "@/lib/dashboard-layout/types";
+import { getDashboardLayoutForKey, normalizePortalLayoutKey, type PortalLayoutKey } from "@/lib/dashboard-layout/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -862,12 +862,10 @@ function ShortSlugEditor({
   );
 }
 
-type LayoutKey = "sidebar";
+type LayoutKey = PortalLayoutKey;
 
 function normalizeStyle(v: unknown): LayoutKey {
-  const s = String(v ?? "").toLowerCase();
-  if (s === "sidebar") return "sidebar";
-  return "sidebar";
+  return normalizePortalLayoutKey(v);
 }
 
 const LAYOUT_OPTIONS: {
@@ -876,6 +874,11 @@ const LAYOUT_OPTIONS: {
   desc: string;
 }[] = [
   { key: "sidebar", title: "Sidebar", desc: "Standard left sidebar with full navigation. Classic banking layout with all dashboard sections in a balanced grid." },
+  { key: "traditional", title: "Traditional Banking", desc: "Dark header banner with greeting, a horizontal row of account cards, square action buttons and a two-column transactions area." },
+  { key: "multi_account", title: "Multi-Account Summary", desc: "Mobile-first account summaries with a gradient dropdown, Accounts/Cards tabs and a fixed bottom navigation bar." },
+  { key: "secure_tools", title: "Secure Banking Tools", desc: "Clean utility strip with secure-tools banner, a solid balance card, pill actions and a compact transactions table." },
+  { key: "rewards", title: "Preferred Rewards", desc: "Mobile-first rewards dashboard with profile header, search, Banking/Credit Cards accordions and a bottom tab bar." },
+  { key: "neo", title: "Modern Neo-Bank", desc: "Mobile-first neo-bank style with greeting header, wave-pattern card, circular actions and a minimal bottom bar." },
 ];
 
 function DashboardStylePanel({
@@ -978,7 +981,7 @@ function DashboardStylePanel({
 }
 
 function LayoutThumb({
-  layout: _layout,
+  layout,
   primaryColor,
   secondaryColor,
 }: {
@@ -986,25 +989,124 @@ function LayoutThumb({
   primaryColor: string;
   secondaryColor: string;
 }) {
-  // sidebar (only layout)
-  return (
-    <div className="flex h-24 w-full bg-white">
-      <div className="flex w-1/3 flex-col gap-1 border-r bg-slate-50 p-2">
-        <div className="h-2 w-10 rounded" style={{ backgroundColor: primaryColor }} />
-        <div className="h-2 rounded bg-slate-200" />
-        <div className="h-2 rounded bg-slate-200" />
-        <div className="h-2 rounded bg-slate-200" />
-      </div>
-      <div className="flex-1 p-2">
-        <div className="h-2 w-16 rounded bg-slate-200" />
-        <div className="mt-2 h-4 w-24 rounded bg-slate-300" />
-        <div className="mt-2 flex gap-1">
-          <div className="h-6 flex-1 rounded bg-slate-100" />
-          <div className="h-6 flex-1 rounded bg-slate-100" />
+  const bar = (w: string, c?: string) => <div className={`h-1.5 rounded ${w}`} style={{ backgroundColor: c ?? "#e2e8f0" }} />;
+  switch (layout) {
+    case "traditional":
+      return (
+        <div className="flex h-24 w-full flex-col bg-white">
+          <div className="flex items-center gap-1.5 px-2 py-1.5" style={{ backgroundColor: primaryColor }}>
+            <div className="h-2.5 w-2.5 rounded-sm bg-white/80" />
+            <div className="h-1.5 flex-1 rounded bg-white/50" />
+          </div>
+          <div className="flex gap-1.5 p-2">
+            <div className="flex-1">
+              <div className="mb-1.5 h-4 rounded" style={{ backgroundColor: primaryColor }} />
+              <div className="flex gap-1">
+                <div className="h-5 flex-1 rounded bg-slate-100" />
+                <div className="h-5 flex-1 rounded bg-slate-100" />
+              </div>
+            </div>
+            <div className="w-1/3 space-y-1.5">
+              {bar("w-full")} {bar("w-full")}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  );
+      );
+    case "multi_account":
+      return (
+        <div className="flex h-24 w-full flex-col bg-white">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <div className="h-3.5 w-3.5 rounded-full bg-slate-200" />
+            <div className="h-1.5 w-10 rounded bg-slate-300" />
+            <div className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+          </div>
+          <div className="mx-2 flex gap-1.5">
+            {[primaryColor, secondaryColor].map((c, i) => (
+              <div key={i} className="h-6 flex-1 rounded" style={{ backgroundColor: c }} />
+            ))}
+          </div>
+          <div className="mt-1.5 flex items-center justify-around border-t px-2 py-1">
+            {[0, 1, 2, 3].map((i) => <div key={i} className="h-2 w-3 rounded bg-slate-200" />)}
+          </div>
+        </div>
+      );
+    case "secure_tools":
+      return (
+        <div className="flex h-24 w-full flex-col bg-white">
+          <div className="flex items-center justify-between px-2 py-1">
+            <div className="h-1.5 w-14 rounded bg-slate-200" />
+            <div className="h-1.5 w-6 rounded bg-slate-300" />
+          </div>
+          <div className="mx-2 rounded px-2 py-1.5" style={{ backgroundColor: primaryColor }}>
+            <div className="h-1.5 w-12 rounded bg-white/60" />
+            <div className="mt-1 h-2.5 w-16 rounded bg-white" />
+          </div>
+          <div className="flex gap-1 p-2">
+            {[0, 1, 2].map((i) => <div key={i} className="h-3 flex-1 rounded-full bg-slate-200" />)}
+          </div>
+        </div>
+      );
+    case "rewards":
+      return (
+        <div className="flex h-24 w-full flex-col bg-white">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <div className="h-2 w-2.5 rounded bg-slate-300" />
+            <div className="flex gap-1">
+              <div className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+              <div className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+            </div>
+            <div className="h-1.5 w-7 rounded bg-slate-200" />
+          </div>
+          <div className="flex items-center gap-1.5 px-2">
+            <div className="h-5 w-5 rounded-full" style={{ backgroundColor: primaryColor }} />
+            <div className="h-1.5 w-14 rounded bg-slate-200" />
+            <div className="ml-auto h-2.5 w-8 rounded" style={{ backgroundColor: primaryColor }} />
+          </div>
+          <div className="mt-1.5 space-y-1 px-2">
+            {bar("w-full")} {bar("w-5/6")}
+          </div>
+          <div className="mt-auto flex items-center justify-around border-t px-2 py-1">
+            {[0, 1, 2, 3].map((i) => <div key={i} className="h-2 w-3 rounded bg-slate-200" />)}
+          </div>
+        </div>
+      );
+    case "neo":
+      return (
+        <div className="flex h-24 w-full flex-col bg-white">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <div className="h-1.5 w-12 rounded bg-slate-300" />
+            <div className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+          </div>
+          <div className="mx-2 rounded-md px-2 py-1.5 text-white" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
+            <div className="h-1.5 w-10 rounded bg-white/60" />
+            <div className="mt-1 h-2.5 w-14 rounded bg-white" />
+          </div>
+          <div className="flex justify-center gap-1 p-1.5">
+            {[0, 1, 2, 3].map((i) => <div key={i} className="h-3 w-3 rounded-full border border-slate-200" />)}
+          </div>
+        </div>
+      );
+    case "sidebar":
+    default:
+      return (
+        <div className="flex h-24 w-full bg-white">
+          <div className="flex w-1/3 flex-col gap-1 border-r bg-slate-50 p-2">
+            <div className="h-2 w-10 rounded" style={{ backgroundColor: primaryColor }} />
+            <div className="h-2 rounded bg-slate-200" />
+            <div className="h-2 rounded bg-slate-200" />
+            <div className="h-2 rounded bg-slate-200" />
+          </div>
+          <div className="flex-1 p-2">
+            <div className="h-2 w-16 rounded bg-slate-200" />
+            <div className="mt-2 h-4 w-24 rounded bg-slate-300" />
+            <div className="mt-2 flex gap-1">
+              <div className="h-6 flex-1 rounded bg-slate-100" />
+              <div className="h-6 flex-1 rounded bg-slate-100" />
+            </div>
+          </div>
+        </div>
+      );
+  }
 }
 
 

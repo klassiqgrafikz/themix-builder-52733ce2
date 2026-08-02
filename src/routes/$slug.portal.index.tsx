@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import { defaultDashboardLayout, type DashboardComponentKind, type DashboardLayout, type WidthSize } from "@/lib/dashboard-layout/types";
-import type { CustomerSession } from "@/lib/customer/types";
+import type { CustomerAccount, CustomerSession } from "@/lib/customer/types";
 import { isNavEnabled, isDashboardKindEnabled } from "@/lib/customer/product-gating";
 import {
   customerListRestrictions,
@@ -26,6 +26,7 @@ import {
   updateCardStatus,
   type CustomerCard,
 } from "@/lib/customer/cards.functions";
+import { submitTransfer } from "@/lib/customer/transfers.functions";
 import { BankCard, CardOptionsSheet } from "@/components/customer/bank-card";
 import {
   Accordion,
@@ -33,9 +34,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowDownToLine,
-  Banknote,
+  ArrowRight,
+  ChevronDown,
   ChevronRight,
   CreditCard,
   Copy,
@@ -44,8 +47,14 @@ import {
   FileText,
   Landmark,
   ListOrdered,
+  MessageCircle,
+  ReceiptText,
+  ScanLine,
+  Search,
   Send,
   ShieldAlert,
+  SlidersHorizontal,
+  Star,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -95,6 +104,446 @@ const FAQS = [
     a: "Use the Support page in the sidebar to open a secure conversation with our team. In-app chat is monitored 24/7 for account-related issues.",
   },
 ];
+
+function relTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function AccountCarousel({
+  accounts,
+  currency,
+  balanceVisible,
+  theme,
+}: {
+  accounts: CustomerAccount[];
+  currency: string;
+  balanceVisible: boolean;
+  theme: WebsiteManifest["theme"];
+}) {
+  const total = accounts.reduce((s, a) => s + Number(a.available_balance ?? 0), 0);
+  return (
+    <section>
+      <div className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          className="flex min-w-[230px] flex-none flex-col justify-between rounded-2xl p-5 text-white shadow-lg"
+          style={{ background: `linear-gradient(135deg, var(--tenant-primary), var(--tenant-dark, var(--tenant-primary)))` }}
+        >
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-80">Total balance</p>
+            <p className="mt-1 text-2xl font-bold" style={{ fontFamily: theme.typography.heading }}>
+              {balanceVisible ? fmt(total, currency) : "••••••"}
+            </p>
+          </div>
+          <div className="mt-6 flex items-center gap-2 text-xs opacity-90">
+            <Landmark className="h-4 w-4" /> All accounts
+          </div>
+        </div>
+        {accounts.map((a) => (
+          <div
+            key={a.id}
+            className="flex min-w-[230px] flex-none flex-col justify-between rounded-2xl p-5 text-white shadow-lg"
+            style={{ background: `linear-gradient(135deg, var(--tenant-primary) 0%, color-mix(in oklab, var(--tenant-primary) 60%, var(--tenant-accent, var(--tenant-primary))) 100%)` }}
+          >
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-80">{a.account_type}</p>
+              <p className="mt-1 truncate text-sm font-semibold">{a.account_name}</p>
+              <p className="mt-0.5 font-mono text-xs opacity-80">{formatAccountNumber(a.account_number ?? "")}</p>
+            </div>
+            <p className="mt-6 text-xl font-bold" style={{ fontFamily: theme.typography.heading }}>
+              {balanceVisible ? fmt(a.available_balance ?? 0, a.currency ?? currency) : "••••••"}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PromoCard({ manifest, slug }: { manifest: WebsiteManifest; slug: string }) {
+  return (
+    <section className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-slate-900 md:text-lg">Remote deposits</h2>
+          <span className="grid h-10 w-10 flex-none place-items-center rounded-xl text-white" style={{ background: "var(--tenant-primary)" }}>
+            <ScanLine className="h-5 w-5" />
+          </span>
+        </div>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          Deposit checks in seconds with your phone camera — no branch visit needed. Funds are typically available the next business day.
+        </p>
+      </div>
+      <Link
+        to="/$slug/portal/accounts"
+        params={{ slug }}
+        className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold"
+        style={{ color: "var(--tenant-primary)" }}
+      >
+        Learn more <ArrowRight className="h-4 w-4" />
+      </Link>
+    </section>
+  );
+}
+
+function TransfersWidget({
+  accounts,
+  slug,
+  currency,
+  onDone,
+}: {
+  accounts: CustomerAccount[];
+  slug: string;
+  currency: string;
+  onDone: () => void;
+}) {
+  const usable = accounts.filter((a) => a.status === "active");
+  const [from, setFrom] = useState(usable[0]?.id ?? "");
+  const [to, setTo] = useState(usable[1]?.id ?? usable[0]?.id ?? "");
+  const [amount, setAmount] = useState("");
+  const doTransfer = useServerFn(submitTransfer);
+  const mut = useMutation({
+    mutationFn: () =>
+      doTransfer({
+        data: {
+          slug,
+          kind: "own",
+          source_account_id: from,
+          destination_account_id: to,
+          amount: Number(amount),
+          currency,
+          narration: "Quick transfer",
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Transfer completed");
+      setAmount("");
+      onDone();
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Transfer failed"),
+  });
+  const fieldCls = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-200";
+  const labelCls = "text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400";
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-base font-semibold text-slate-900 md:text-lg">Transfers</h2>
+      <div className="mt-4 space-y-3">
+        <div>
+          <label className={labelCls}>From</label>
+          <select className={fieldCls} value={from} onChange={(e) => setFrom(e.target.value)}>
+            {usable.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.account_name} · {a.account_number.slice(-4)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>To</label>
+          <select className={fieldCls} value={to} onChange={(e) => setTo(e.target.value)}>
+            {usable.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.account_name} · {a.account_number.slice(-4)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>Amount</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+            className={`${fieldCls} font-mono`}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => mut.mutate()}
+          disabled={mut.isPending || !from || !to || from === to || !Number(amount)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-40"
+          style={{ background: "var(--tenant-primary)" }}
+        >
+          <Send className="h-4 w-4" /> {mut.isPending ? "Sending…" : "Send"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function AccountAccordions({
+  accounts,
+  cards,
+  currency,
+  balanceVisible,
+  group,
+  showRouting,
+  onCardClick,
+  theme,
+}: {
+  accounts: CustomerAccount[];
+  cards: Card[];
+  currency: string;
+  balanceVisible: boolean;
+  group: string;
+  showRouting: boolean;
+  onCardClick: (c: CustomerCard) => void;
+  theme: WebsiteManifest["theme"];
+}) {
+  const groups = new Map<string, CustomerAccount[]>();
+  accounts.forEach((a) => {
+    const key = a.account_type || "Accounts";
+    groups.set(key, [...(groups.get(key) ?? []), a]);
+  });
+
+  const accountItems = [...groups.entries()].map(([type, list]) => (
+    <AccordionItem key={type} value={type} className="border-b">
+      <AccordionTrigger className="py-4 text-left text-sm font-semibold text-slate-800 hover:no-underline">
+        {type.charAt(0).toUpperCase() + type.slice(1)}
+      </AccordionTrigger>
+      <AccordionContent className="pb-3">
+        <div className="space-y-2">
+          {list.map((a) => (
+            <div key={a.id} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-800">{a.account_name}</p>
+                  <p className="font-mono text-xs text-slate-500">•••• {a.account_number.slice(-4)}</p>
+                  {showRouting && a.routing_number && (
+                    <p className="mt-0.5 text-[11px] text-slate-400">Routing {a.routing_number}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="font-mono text-sm font-semibold text-slate-900">
+                    {balanceVisible ? fmt(a.available_balance ?? 0, a.currency ?? currency) : "••••••"}
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    Current {balanceVisible ? fmt(a.current_balance ?? 0, a.currency ?? currency) : "••••••"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  ));
+
+  const cardsItem = (
+    <AccordionItem value="__cards" className="border-b">
+      <AccordionTrigger className="py-4 text-left text-sm font-semibold text-slate-800 hover:no-underline">
+        Credit Cards
+      </AccordionTrigger>
+      <AccordionContent className="pb-3">
+        {cards.length === 0 ? (
+          <p className="text-xs text-slate-500">No cards yet.</p>
+        ) : (
+          cards.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => onCardClick(c)}
+              className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm transition hover:bg-slate-50"
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="grid h-8 w-8 flex-none place-items-center rounded-lg text-white" style={{ background: "var(--tenant-primary)" }}>
+                  <CreditCard className="h-4 w-4" />
+                </span>
+                <span className="truncate font-mono text-slate-700">{c.masked_number || "•••• ••••"}</span>
+              </span>
+              <span className="ml-3 flex flex-none items-center gap-2 text-xs capitalize text-slate-500">
+                {c.card_type} <ChevronRight className="h-4 w-4 text-slate-300" />
+              </span>
+            </button>
+          ))
+        )}
+      </AccordionContent>
+    </AccordionItem>
+  );
+
+  return (
+    <section>
+      <Accordion type="single" collapsible className="w-full">
+        {group !== "cards" ? accountItems : null}
+        {group !== "accounts" ? cardsItem : null}
+      </Accordion>
+    </section>
+  );
+}
+
+function SearchBarSection({ placeholder }: { placeholder: string }) {
+  return (
+    <section className="relative">
+      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <input
+        type="search"
+        placeholder={placeholder}
+        className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
+      />
+    </section>
+  );
+}
+
+function SummaryDropdown({
+  accounts,
+  currency,
+  balanceVisible,
+  bankName,
+  theme,
+}: {
+  accounts: CustomerAccount[];
+  currency: string;
+  balanceVisible: boolean;
+  bankName: string;
+  theme: WebsiteManifest["theme"];
+}) {
+  const [open, setOpen] = useState(false);
+  const total = accounts.reduce((s, a) => s + Number(a.available_balance ?? 0), 0);
+  return (
+    <section
+      className="overflow-hidden rounded-2xl text-white shadow-lg"
+      style={{ background: "linear-gradient(135deg, var(--tenant-primary), var(--tenant-dark, var(--tenant-primary)))" }}
+    >
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.2em] opacity-80">Accounts summary</p>
+          <p className="truncate text-base font-semibold" style={{ fontFamily: theme.typography.heading }}>
+            {bankName}
+          </p>
+        </div>
+        <div className="flex flex-none items-center gap-3">
+          <p className="text-lg font-bold">{balanceVisible ? fmt(total, currency) : "••••••"}</p>
+          <ChevronDown className={`h-5 w-5 transition-transform ${open ? "rotate-180" : ""}`} />
+        </div>
+      </button>
+      {open && (
+        <div className="border-t border-white/15 px-5 py-3">
+          {accounts.length === 0 ? (
+            <p className="py-2 text-xs opacity-80">No accounts yet.</p>
+          ) : (
+            accounts.map((a) => (
+              <div key={a.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{a.account_name}</span>
+                  <span className="font-mono text-xs opacity-70">•••• {a.account_number.slice(-4)}</span>
+                </span>
+                <span className="flex-none font-mono font-semibold">
+                  {balanceVisible ? fmt(a.available_balance ?? 0, a.currency ?? currency) : "••••••"}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function TransactionsTable({
+  transactions,
+  currency,
+  slug,
+  searchable,
+  compact,
+}: {
+  transactions: Tx[];
+  currency: string;
+  slug: string;
+  searchable?: boolean;
+  compact?: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const rows = transactions.filter((t) => {
+    if (!q) return true;
+    const hay = `${t.description ?? ""} ${t.kind} ${t.amount}`.toLowerCase();
+    return hay.includes(q.toLowerCase());
+  });
+  return (
+    <section className="flex h-full flex-col">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-slate-900 md:text-lg">Recent transactions</h2>
+        <div className="flex items-center gap-2">
+          {searchable && (
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search…"
+                className="w-36 rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:w-44"
+              />
+            </div>
+          )}
+          {searchable && (
+            <button
+              type="button"
+              aria-label="Filter options"
+              className="rounded-lg border border-slate-200 p-1.5 text-slate-500 transition hover:bg-slate-50"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <Link to="/$slug/portal/transactions" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
+            <ListOrdered className="h-3.5 w-3.5" /> View all
+          </Link>
+        </div>
+      </div>
+      {rows.length === 0 ? (
+        <p className="py-6 text-center text-sm text-slate-500">No transactions yet.</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto rounded-xl border">
+          <table className={`w-full text-left text-sm ${compact ? "min-w-[360px]" : "min-w-[560px]"}`}>
+            <thead>
+              <tr className="text-[11px] uppercase tracking-wider text-slate-400">
+                <th className="px-4 py-2.5 font-semibold">Date</th>
+                <th className="px-4 py-2.5 font-semibold">Description</th>
+                {!compact && <th className="px-4 py-2.5 font-semibold">Type</th>}
+                {!compact && <th className="px-4 py-2.5 text-right font-semibold">Amount</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {rows.slice(0, 8).map((t) => {
+                const isCredit = t.direction === "credit";
+                const isDebit = t.direction === "debit";
+                return (
+                  <tr key={t.id} className="transition hover:bg-slate-50">
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-500">{new Date(t.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">
+                      <Link
+                        to="/$slug/portal/transactions/$id"
+                        params={{ slug, id: t.id }}
+                        search={{ success: false }}
+                        className="font-medium text-slate-800 hover:underline"
+                      >
+                        {t.description || t.kind}
+                      </Link>
+                    </td>
+                    {!compact && <td className="px-4 py-3 text-xs capitalize text-slate-500">{t.kind}</td>}
+                    {!compact && (
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold" style={{ color: isCredit ? "#16a34a" : isDebit ? "#dc2626" : undefined }}>
+                        {isDebit ? "-" : isCredit ? "+" : ""}{fmt(t.amount, t.currency)}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
 
 function buildTrend(
   transactions: { created_at: string; balance_after: number }[],
@@ -339,6 +788,9 @@ function LayoutDrivenDashboard(props: {
   const readNum = (p: DashboardLayout["items"][number]["props"], k: string, fb: number): number => {
     const v = p?.[k]; return typeof v === "number" ? v : fb;
   };
+  const readBool = (p: DashboardLayout["items"][number]["props"], k: string, fb: boolean): boolean => {
+    const v = p?.[k]; return typeof v === "boolean" ? v : fb;
+  };
 
   function renderKind(kind: DashboardComponentKind, p: DashboardLayout["items"][number]["props"]) {
     switch (kind) {
@@ -391,6 +843,30 @@ function LayoutDrivenDashboard(props: {
             </section>
           );
         }
+        if (style === "rewards") {
+          const initials = `${session.customer.first_name?.[0] ?? ""}${session.customer.last_name?.[0] ?? ""}`;
+          return (
+            <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 flex-none place-items-center rounded-full text-lg font-bold text-white" style={{ background: "var(--tenant-primary)" }}>{initials}</div>
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold text-slate-900">
+                    {session.customer.first_name} {session.customer.last_name}
+                  </p>
+                  <p className="truncate text-xs text-slate-500">{session.customer.email}</p>
+                </div>
+              </div>
+              <Link
+                to="/$slug/portal/accounts"
+                params={{ slug }}
+                className="inline-flex flex-none items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                style={{ background: "var(--tenant-primary)" }}
+              >
+                <Star className="h-4 w-4" /> Preferred rewards summary
+              </Link>
+            </section>
+          );
+        }
         return (
           <section className={align}>
             <p className={labelText}>Welcome back</p>
@@ -430,6 +906,34 @@ function LayoutDrivenDashboard(props: {
                 </button>
               </div>
             </section>
+          );
+        }
+        if (style === "solid") {
+          const acct = primaryAccount ?? session.accounts[0];
+          return (
+            <section className="rounded-2xl p-6 text-white" style={{ background: "var(--tenant-primary)" }}>
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-[0.18em] opacity-80">
+                  {acct?.account_type ?? "Checking"}
+                </p>
+                <button type="button" onClick={() => setBalanceVisible((v) => !v)} className="rounded-lg bg-white/15 px-2.5 py-1 text-[11px] font-semibold">
+                  {balanceVisible ? "Hide" : "Show"}
+                </button>
+              </div>
+              <p className="mt-2 text-4xl font-bold tracking-tight" style={{ fontFamily: theme.typography.heading }}>{balanceEl}</p>
+              <p className="mt-1 text-xs opacity-80">Available balance</p>
+            </section>
+          );
+        }
+        if (style === "dropdown") {
+          return (
+            <SummaryDropdown
+              accounts={session.accounts}
+              currency={currency}
+              balanceVisible={balanceVisible}
+              bankName={manifest.bank.name}
+              theme={theme}
+            />
           );
         }
         if (style === "executive") {
@@ -506,6 +1010,7 @@ function LayoutDrivenDashboard(props: {
           const accts = session.accounts;
           const idx = Math.min(deckIndex, Math.max(accts.length - 1, 0));
           const a = accts[idx];
+          const cardVariant = readStr(p, "card_variant", "classic") === "wave" ? ("wave" as const) : undefined;
           const holderName = `${session.customer.first_name} ${session.customer.last_name}`.trim().toUpperCase() || "CARD HOLDER";
           const usableCards = cards.filter(
             (c) => c.status !== "replaced" && c.status !== "expired" && c.status !== "deleted",
@@ -538,7 +1043,7 @@ function LayoutDrivenDashboard(props: {
                     onClick={() => setDeckCard(crd)}
                     className="group w-full text-left transition-transform duration-200 hover:-translate-y-0.5 focus:outline-none"
                   >
-                    <BankCard card={crd} manifest={manifest} revealed={false} />
+                    <BankCard card={crd} manifest={manifest} revealed={false} variant={cardVariant} />
                   </button>
                   <p className="mt-2 text-center text-xs opacity-60">
                     Tap the card to reveal details or manage it
@@ -625,18 +1130,73 @@ function LayoutDrivenDashboard(props: {
         const columns = readNum(p, "columns", 3);
         const orientation = readStr(p, "orientation", "grid");
         const enabled = manifest;
-        type QA = { icon: typeof Send; title: string; to: "/$slug/portal/transfer" | "/$slug/portal/accounts" | "/$slug/portal/beneficiaries" | "/$slug/portal/statements" | "/$slug/portal/cards" };
+        type QA = { icon: typeof Send; title: string; to: "/$slug/portal/transfer" | "/$slug/portal/accounts" | "/$slug/portal/beneficiaries" | "/$slug/portal/statements" | "/$slug/portal/cards" | "/$slug/portal/support" };
         const raw: (QA | null)[] = [
           isNavEnabled(enabled, "transfer") ? { icon: Send, title: "Send", to: "/$slug/portal/transfer" } : null,
-          { icon: ArrowDownToLine, title: "Receive", to: "/$slug/portal/accounts" },
-          isNavEnabled(enabled, "beneficiaries") ? { icon: Banknote, title: "Withdraw", to: "/$slug/portal/beneficiaries" } : null,
-          isNavEnabled(enabled, "statements") ? { icon: FileText, title: "Statements", to: "/$slug/portal/statements" } : null,
+          { icon: ArrowDownToLine, title: "Deposit", to: "/$slug/portal/accounts" },
+          isNavEnabled(enabled, "transfer") ? { icon: ReceiptText, title: "Pay a bill", to: "/$slug/portal/transfer" } : null,
+          isNavEnabled(enabled, "beneficiaries") ? { icon: Users, title: "Pay a person", to: "/$slug/portal/beneficiaries" } : null,
+          isNavEnabled(enabled, "support") ? { icon: MessageCircle, title: "Message", to: "/$slug/portal/support" } : null,
+          isNavEnabled(enabled, "statements") ? { icon: FileText, title: "eStatements", to: "/$slug/portal/statements" } : null,
           isNavEnabled(enabled, "cards") ? { icon: CreditCard, title: "Cards", to: "/$slug/portal/cards" } : null,
-          isNavEnabled(enabled, "beneficiaries") ? { icon: Users, title: "Beneficiaries", to: "/$slug/portal/beneficiaries" } : null,
         ];
         const items: QA[] = raw.filter((x): x is QA => x !== null);
         const colClass = ({ 2: "grid-cols-2", 3: "grid-cols-2 sm:grid-cols-3", 4: "grid-cols-2 sm:grid-cols-4" } as Record<number, string>)[columns] ?? "grid-cols-2 sm:grid-cols-3";
         const wrap = orientation === "horizontal" ? "flex flex-wrap gap-3" : `grid gap-4 ${colClass}`;
+        if (orientation === "pills") {
+          return (
+            <section>
+              <div className="flex flex-wrap gap-3">
+                {items.map((a) => (
+                  <Link
+                    key={a.title}
+                    to={a.to}
+                    params={{ slug }}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                  >
+                    <a.icon className="h-4 w-4" /> {a.title}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          );
+        }
+        if (orientation === "squares") {
+          return (
+            <section className="flex flex-wrap justify-center gap-5">
+              {items.map((a) => (
+                <Link key={a.title} to={a.to} params={{ slug }} className="flex w-[104px] flex-col items-center gap-2 text-center">
+                  <span
+                    className="grid h-14 w-14 place-items-center rounded-xl text-white shadow-md transition hover:-translate-y-0.5"
+                    style={{ background: "var(--tenant-primary)" }}
+                  >
+                    <a.icon className="h-6 w-6" />
+                  </span>
+                  <span className="text-xs font-semibold text-slate-700">{a.title}</span>
+                </Link>
+              ))}
+            </section>
+          );
+        }
+        if (orientation === "circle") {
+          return (
+            <section>
+              <div className="flex flex-wrap justify-center gap-6">
+                {items.map((a) => (
+                  <Link key={a.title} to={a.to} params={{ slug }} className="flex flex-col items-center gap-2">
+                    <span
+                      className="grid h-14 w-14 place-items-center rounded-full border-2 bg-white transition hover:bg-slate-50"
+                      style={{ borderColor: "color-mix(in oklab, var(--tenant-primary) 35%, transparent)", color: "var(--tenant-primary)" }}
+                    >
+                      <a.icon className="h-6 w-6" />
+                    </span>
+                    <span className="text-xs font-semibold text-slate-700">{a.title}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          );
+        }
         if (orientation === "tiles") {
           return (
             <section>
@@ -733,57 +1293,18 @@ function LayoutDrivenDashboard(props: {
         );
       case "recent_transactions": {
         const tStyle = readStr(p, "style", "list");
+        const searchable = readBool(p, "searchable", false);
+        const relative = readBool(p, "relative_time", false);
+        const compact = readStr(p, "variant", "standard") === "compact";
         if (tStyle === "table") {
           return (
-            <section>
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-slate-900 md:text-lg">Recent transactions</h2>
-                <Link to="/$slug/portal/transactions" params={{ slug }} className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
-                  <ListOrdered className="h-3.5 w-3.5" /> View all
-                </Link>
-              </div>
-              {transactions.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-500">No transactions yet.</p>
-              ) : (
-                <div className="mt-3 overflow-x-auto rounded-xl border">
-                  <table className="w-full min-w-[560px] text-left text-sm">
-                    <thead>
-                      <tr className="text-[11px] uppercase tracking-wider text-slate-400">
-                        <th className="px-4 py-2.5 font-semibold">Date</th>
-                        <th className="px-4 py-2.5 font-semibold">Description</th>
-                        <th className="px-4 py-2.5 font-semibold">Type</th>
-                        <th className="px-4 py-2.5 text-right font-semibold">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {transactions.slice(0, 8).map((t) => {
-                        const isCredit = t.direction === "credit";
-                        const isDebit = t.direction === "debit";
-                        return (
-                          <tr key={t.id} className="transition hover:bg-slate-50">
-                            <td className="whitespace-nowrap px-4 py-3 text-slate-500">{new Date(t.created_at).toLocaleDateString()}</td>
-                            <td className="px-4 py-3">
-                              <Link
-                                to="/$slug/portal/transactions/$id"
-                                params={{ slug, id: t.id }}
-                                search={{ success: false }}
-                                className="font-medium text-slate-800 hover:underline"
-                              >
-                                {t.description || t.kind}
-                              </Link>
-                            </td>
-                            <td className="px-4 py-3 text-xs capitalize text-slate-500">{t.kind}</td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold" style={{ color: isCredit ? "#16a34a" : isDebit ? "#dc2626" : undefined }}>
-                              {isDebit ? "-" : isCredit ? "+" : ""}{fmt(t.amount, t.currency)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
+            <TransactionsTable
+              transactions={transactions}
+              currency={currency}
+              slug={slug}
+              searchable={searchable}
+              compact={compact}
+            />
           );
         }
         return (
@@ -814,7 +1335,7 @@ function LayoutDrivenDashboard(props: {
                           </span>
                           <div className="min-w-0">
                             <div className="truncate font-medium text-slate-800">{t.description || t.kind}</div>
-                            <div className="text-xs text-slate-500">{new Date(t.created_at).toLocaleString()} · <span className="capitalize">{t.kind}</span></div>
+                            <div className="text-xs text-slate-500">{relative ? relTime(t.created_at) : new Date(t.created_at).toLocaleString()} · <span className="capitalize">{t.kind}</span></div>
                           </div>
                         </div>
                         <div className="ml-3 whitespace-nowrap font-mono text-sm font-semibold" style={{ color: isCredit ? "#16a34a" : isDebit ? "#dc2626" : undefined }}>
@@ -826,6 +1347,69 @@ function LayoutDrivenDashboard(props: {
                 })}
               </ul>
             )}
+          </section>
+        );
+      }
+      case "account_carousel":
+        return (
+          <AccountCarousel
+            accounts={session.accounts}
+            currency={currency}
+            balanceVisible={balanceVisible}
+            theme={theme}
+          />
+        );
+      case "promo_card":
+        return <PromoCard manifest={manifest} slug={slug} />;
+      case "transfers_widget":
+        return (
+          <TransfersWidget
+            accounts={session.accounts}
+            slug={slug}
+            currency={currency}
+            onDone={() => qc.invalidateQueries({ queryKey: ["portal-tx", slug] })}
+          />
+        );
+      case "account_accordions":
+        return (
+          <AccountAccordions
+            accounts={session.accounts}
+            cards={cards}
+            currency={currency}
+            balanceVisible={balanceVisible}
+            group={readStr(p, "group", "accounts")}
+            showRouting={readBool(p, "show_routing", false)}
+            onCardClick={setDeckCard}
+            theme={theme}
+          />
+        );
+      case "search_bar":
+        return <SearchBarSection placeholder={readStr(p, "placeholder", "Search")} />;
+      case "tabs": {
+        const accountLabel = readStr(p, "account_label", "Accounts");
+        const cardsLabel = readStr(p, "cards_label", "Cards");
+        const tabbed = layout.items.filter(
+          (it) => it.visible !== false && !!it.tab && isDashboardKindEnabled(manifest, it.kind),
+        );
+        const renderPane = (tab: string) => (
+          <div className="space-y-6">
+            {tabbed
+              .filter((it) => it.tab === tab)
+              .map((it) => (
+                <div key={it.id}>{renderKind(it.kind, it.props)}</div>
+              ))}
+          </div>
+        );
+        return (
+          <section>
+            <Tabs defaultValue="accounts">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="accounts">{accountLabel}</TabsTrigger>
+                <TabsTrigger value="cards">{cardsLabel}</TabsTrigger>
+              </TabsList>
+              <TabsContent value="accounts" className="mt-4">{renderPane("accounts")}</TabsContent>
+              <TabsContent value="cards" className="mt-4">{renderPane("cards")}</TabsContent>
+            </Tabs>
           </section>
         );
       }
@@ -912,21 +1496,50 @@ function LayoutDrivenDashboard(props: {
           </div>
         </div>
       )}
-      <div className="grid grid-cols-12 gap-6">
-        {layout.items
-          .filter((it) => it.visible !== false)
-          .filter((it) => isDashboardKindEnabled(manifest, it.kind))
-          .map((it) => {
-            const width = (it.width ?? "full") as WidthSize;
-            const kind = it.kind as DashboardComponentKind;
-            const node = renderKind(kind, it.props);
-            if (!node) return null;
-            return (
-              <div key={it.id} className={WIDTH_SPAN[width]}>
-                {node}
-              </div>
-            );
-          })}
+      <div className="space-y-6">
+        {(() => {
+          const visible = layout.items
+            .filter((it) => it.visible !== false)
+            .filter((it) => isDashboardKindEnabled(manifest, it.kind))
+            .filter((it) => !it.tab);
+          const withCols = visible.filter((it) => it.column);
+          const flat = visible.filter((it) => !it.column);
+          const stacks: Record<"left" | "right", typeof withCols> = { left: [], right: [] };
+          withCols.forEach((it) => stacks[it.column ?? "left"].push(it));
+          return (
+            <>
+              {flat.length > 0 && (
+                <div className="grid grid-cols-12 gap-6">
+                  {flat.map((it) => {
+                    const width = (it.width ?? "full") as WidthSize;
+                    const kind = it.kind as DashboardComponentKind;
+                    const node = renderKind(kind, it.props);
+                    if (!node) return null;
+                    return (
+                      <div key={it.id} className={WIDTH_SPAN[width]}>
+                        {node}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {(stacks.left.length > 0 || stacks.right.length > 0) && (
+                <div className="grid gap-6 md:grid-cols-2">
+                  {(["left", "right"] as const).map((col) => (
+                    <div key={col} className="space-y-6">
+                      {stacks[col].map((it) => {
+                        const kind = it.kind as DashboardComponentKind;
+                        const node = renderKind(kind, it.props);
+                        if (!node) return null;
+                        return <div key={it.id}>{node}</div>;
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       <CardOptionsSheet

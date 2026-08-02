@@ -13,15 +13,22 @@ export type DashboardComponentKind =
   | "beneficiaries"
   | "notifications"
   | "faq"
-  | "support";
+  | "support"
+  // Layouts added later (Traditional / Multi-Account / Secure Tools / Rewards / Neo):
+  | "account_carousel"
+  | "promo_card"
+  | "transfers_widget"
+  | "account_accordions"
+  | "search_bar"
+  | "tabs";
 
 export type WidthSize = "full" | "half" | "third";
 export type ChartSize = "small" | "medium" | "large";
 
-export type HeaderStyle = "welcome" | "photo" | "minimal" | "bar";
-export type SummaryStyle = "minimal" | "modern" | "executive" | "compact" | "list" | "boxes" | "card_stack";
+export type HeaderStyle = "welcome" | "photo" | "minimal" | "bar" | "rewards";
+export type SummaryStyle = "minimal" | "modern" | "executive" | "compact" | "list" | "boxes" | "card_stack" | "solid" | "dropdown";
 export type QuickActionsColumns = 2 | 3 | 4;
-export type QuickActionsOrientation = "grid" | "horizontal" | "tiles";
+export type QuickActionsOrientation = "grid" | "horizontal" | "tiles" | "pills" | "squares" | "circle";
 
 export type DashboardPropValue = string | number | boolean | null;
 
@@ -31,6 +38,12 @@ export type DashboardLayoutItem = {
   width?: WidthSize;
   visible?: boolean;
   locked?: boolean;
+  // Optional two-column placement. When any item carries a `column`, the
+  // composer renders left/right stacks instead of the flat width grid.
+  column?: "left" | "right";
+  // Optional tab membership: items with a `tab` render inside the matching
+  // pane of a `tabs` section instead of at top level.
+  tab?: string;
   // Free-form per-component props. Renderer picks the ones it recognizes.
   props?: { [key: string]: DashboardPropValue | undefined };
 };
@@ -41,10 +54,20 @@ export type DashboardLayout = {
   updated_at: string;
 };
 
-// Sidebar is the only portal layout. Older keys (topnav/premium/minimal/
-// floating/console/ledger/card_deck) were removed; stored manifests that
-// still carry them fall back to the sidebar shell.
-export type PortalLayoutKey = "sidebar";
+// Portal layouts selectable in the Bank Builder. `sidebar` is the classic
+// shell; the rest were added for the 2026 dashboard refresh.
+export type PortalLayoutKey =
+  | "sidebar"
+  | "traditional"
+  | "multi_account"
+  | "secure_tools"
+  | "rewards"
+  | "neo";
+
+const FULL_NAV: string[] = [
+  "dashboard","accounts","transfer","beneficiaries","transactions",
+  "cards","statements","support","security","profile",
+];
 
 export type LayoutDefinition = {
   shell_variant: PortalLayoutKey;
@@ -52,20 +75,119 @@ export type LayoutDefinition = {
   dashboard_layout: DashboardLayout;
 };
 
-export function getLayoutDefinition(_key: PortalLayoutKey): LayoutDefinition {
-  const full: string[] = [
-    "dashboard","accounts","transfer","beneficiaries","transactions",
-    "cards","statements","support","security","profile",
-  ];
-  return {
-    shell_variant: "sidebar",
-    nav_items: full,
-    dashboard_layout: defaultDashboardLayout(),
-  };
+export function getLayoutDefinition(key: PortalLayoutKey): LayoutDefinition {
+  switch (key) {
+    case "traditional":
+      return {
+        shell_variant: "traditional",
+        nav_items: FULL_NAV,
+        dashboard_layout: {
+          version: 1,
+          updated_at: new Date().toISOString(),
+          items: [
+            { id: "accts", kind: "account_carousel", width: "full", visible: true },
+            { id: "actions", kind: "quick_actions", width: "full", visible: true, props: { orientation: "squares", columns: 5 } },
+            { id: "tx", kind: "recent_transactions", width: "full", visible: true, props: { style: "table", searchable: true }, column: "left" },
+            { id: "promo", kind: "promo_card", width: "full", visible: true, column: "right" },
+            { id: "transfers", kind: "transfers_widget", width: "full", visible: true, column: "right" },
+          ],
+        },
+      };
+    case "multi_account":
+      return {
+        shell_variant: "multi_account",
+        nav_items: FULL_NAV,
+        dashboard_layout: {
+          version: 1,
+          updated_at: new Date().toISOString(),
+          items: [
+            { id: "summary", kind: "account_summary", width: "full", visible: true, props: { style: "dropdown" } },
+            { id: "tabs", kind: "tabs", width: "full", visible: true, props: { account_label: "Accounts", cards_label: "Cards" } },
+            { id: "acc", kind: "account_accordions", width: "full", visible: true, props: { group: "accounts", show_routing: true }, tab: "accounts" },
+            { id: "crd", kind: "account_accordions", width: "full", visible: true, props: { group: "cards" }, tab: "cards" },
+          ],
+        },
+      };
+    case "secure_tools":
+      return {
+        shell_variant: "secure_tools",
+        nav_items: FULL_NAV,
+        dashboard_layout: {
+          version: 1,
+          updated_at: new Date().toISOString(),
+          items: [
+            { id: "header", kind: "header", width: "full", visible: true, props: { style: "welcome" } },
+            { id: "summary", kind: "account_summary", width: "full", visible: true, props: { style: "solid" } },
+            { id: "actions", kind: "quick_actions", width: "full", visible: true, props: { orientation: "pills", columns: 3 } },
+            { id: "tx", kind: "recent_transactions", width: "full", visible: true, props: { style: "table", variant: "compact" } },
+          ],
+        },
+      };
+    case "rewards":
+      return {
+        shell_variant: "rewards",
+        nav_items: FULL_NAV,
+        dashboard_layout: {
+          version: 1,
+          updated_at: new Date().toISOString(),
+          items: [
+            { id: "header", kind: "header", width: "full", visible: true, props: { style: "rewards" } },
+            { id: "search", kind: "search_bar", width: "full", visible: true, props: { placeholder: "How can we help?" } },
+            { id: "acc", kind: "account_accordions", width: "full", visible: true, props: { group: "accounts", show_routing: false } },
+            { id: "crd", kind: "account_accordions", width: "full", visible: true, props: { group: "cards" } },
+          ],
+        },
+      };
+    case "neo":
+      return {
+        shell_variant: "neo",
+        nav_items: FULL_NAV,
+        dashboard_layout: {
+          version: 1,
+          updated_at: new Date().toISOString(),
+          items: [
+            { id: "summary", kind: "account_summary", width: "full", visible: true, props: { style: "modern" } },
+            { id: "deck", kind: "account_summary", width: "full", visible: true, props: { style: "card_stack", card_variant: "wave" } },
+            { id: "search", kind: "search_bar", width: "full", visible: true, props: { placeholder: "Search transactions" } },
+            { id: "actions", kind: "quick_actions", width: "full", visible: true, props: { orientation: "circle", columns: 4 } },
+            { id: "tx", kind: "recent_transactions", width: "full", visible: true, props: { relative_time: true } },
+          ],
+        },
+      };
+    case "sidebar":
+    default:
+      return {
+        shell_variant: "sidebar",
+        nav_items: FULL_NAV,
+        dashboard_layout: defaultDashboardLayout(),
+      };
+  }
 }
 
 export function getDashboardLayoutForKey(key?: PortalLayoutKey | null): DashboardLayout {
   return getLayoutDefinition(key ?? "sidebar").dashboard_layout;
+}
+
+/** Map any stored key (including removed legacy keys) to a valid layout key. */
+export function normalizePortalLayoutKey(v: unknown): PortalLayoutKey {
+  const s = String(v ?? "").toLowerCase();
+  switch (s) {
+    case "sidebar": return "sidebar";
+    case "traditional": return "traditional";
+    case "multi_account": return "multi_account";
+    case "secure_tools": return "secure_tools";
+    case "rewards": return "rewards";
+    case "neo": return "neo";
+    // Removed legacy layouts → closest current design.
+    case "topnav": return "traditional";
+    case "ledger": return "multi_account";
+    case "minimal": return "secure_tools";
+    case "premium": return "rewards";
+    case "card_deck": return "neo";
+    case "floating": return "neo";
+    case "console": return "sidebar";
+    default: return "sidebar";
+  }
 }
 
 export function defaultDashboardLayout(): DashboardLayout {

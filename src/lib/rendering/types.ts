@@ -1,5 +1,7 @@
 // Rendering engine types — kept independent from UI and DB layers.
 
+import type { PortalLayoutKey } from "@/lib/dashboard-layout/types";
+
 export type RenderStatus =
   | "draft"
   | "rendering"
@@ -177,10 +179,10 @@ export type WebsiteManifest = {
     updated_at: string;
   };
   /**
-   * Which portal layout is active. Only "sidebar" exists; older layout keys
-   * were removed and fall back to the sidebar shell.
+   * Which portal layout is active. Stored keys may be legacy (topnav, premium,
+   * etc.) and are normalized to the closest current layout at render time.
    */
-  portal_layout_key?: "sidebar";
+  portal_layout_key?: PortalLayoutKey;
   /** @deprecated Replaced by portal_layout_key. Kept for backward compat. */
   dashboard_style?: "classic" | "modern" | "minimal" | "premium" | "premium_card";
 
@@ -239,7 +241,7 @@ export type BankConfigurationInput = {
     border_radius?: number;
     dark_mode?: boolean;
     template_variant?: "modern" | "corporate" | "premium";
-    portal_layout_key?: "sidebar";
+    portal_layout_key?: PortalLayoutKey;
     dashboard_style?: "classic" | "modern" | "minimal" | "premium" | "premium_card";
     homepage_content?: HomepageContent;
     catalog_content?: CatalogContent;

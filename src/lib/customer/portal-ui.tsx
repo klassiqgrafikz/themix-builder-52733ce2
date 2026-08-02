@@ -8,21 +8,27 @@ import type { CustomerProfile } from "./types";
 import { logoutCustomer } from "./customer.functions";
 import { isNavEnabled, activePathToNavKey, ModuleNotEnabled } from "./product-gating";
 import type { PortalLayoutKey } from "@/lib/dashboard-layout/types";
-import { getLayoutDefinition } from "@/lib/dashboard-layout/types";
+import { getLayoutDefinition, normalizePortalLayoutKey } from "@/lib/dashboard-layout/types";
 import { toast } from "sonner";
 import {
-  LayoutDashboard,
-  Wallet,
-  Send,
-  Users,
-  ListOrdered,
+  BarChart3,
   CreditCard,
   FileText,
+  Inbox,
+  LayoutDashboard,
+  LayoutGrid,
   LifeBuoy,
-  ShieldCheck,
-  User,
+  ListOrdered,
+  Lock,
   LogOut,
   Menu,
+  Package,
+  ScanLine,
+  Send,
+  ShieldCheck,
+  User,
+  Users,
+  Wallet,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -177,6 +183,107 @@ function SidebarBody({
   );
 }
 
+// ---------- Shared shell primitives ----------
+
+function ShellDrawer({
+  open,
+  onClose,
+  manifest,
+  customer,
+  activePath,
+  slug,
+  onLogout,
+  loggingOut,
+}: {
+  open: boolean;
+  onClose: () => void;
+  manifest: WebsiteManifest;
+  customer: CustomerProfile;
+  activePath: string;
+  slug: string;
+  onLogout: () => void;
+  loggingOut: boolean;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-y-0 left-0 w-72 overflow-y-auto bg-white p-4 shadow-xl">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-2 top-2 z-10 rounded-lg bg-white/80 p-2 text-slate-500 hover:bg-slate-100"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <SidebarBody
+          manifest={manifest}
+          customer={customer}
+          activePath={activePath}
+          slug={slug}
+          onNavigate={onClose}
+          onLogout={onLogout}
+          loggingOut={loggingOut}
+        />
+      </div>
+    </div>
+  );
+}
+
+function BottomNav({
+  items,
+  activePath,
+  slug,
+  onMenu,
+}: {
+  items: { key: string; tKey: TranslationKey; path?: string; icon: LucideIcon; menu?: boolean }[];
+  activePath: string;
+  slug: string;
+  onMenu: () => void;
+}) {
+  const t = useT();
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+      <div className="mx-auto flex w-full max-w-md items-center justify-around px-2 py-1.5">
+        {items.map((n) => {
+          const Icon = n.icon;
+          const active = !n.menu && activePath === (n.path ?? "");
+          const cls = `flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[10px] font-semibold transition ${
+            active ? "text-[var(--tenant-primary)]" : "text-slate-500 hover:text-slate-800"
+          }`;
+          if (n.menu) {
+            return (
+              <button key={n.key} type="button" onClick={onMenu} className={cls}>
+                <Icon className="h-5 w-5" />
+                {t(n.tKey)}
+              </button>
+            );
+          }
+          return (
+            <Link
+              key={n.key}
+              to={n.path === "" || !n.path ? "/$slug/portal" : `/$slug/portal${n.path}`}
+              params={{ slug }}
+              className={cls}
+            >
+              <Icon className="h-5 w-5" />
+              {t(n.tKey)}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+function greetingFor(t: ReturnType<typeof useT>, name: string): string {
+  const h = new Date().getHours();
+  if (h < 12) return t("shell.good_morning", { name });
+  if (h < 18) return t("shell.good_afternoon", { name });
+  return t("shell.good_evening", { name });
+}
+
 // ---------- Restriction helpers ----------
 
 const RestrictionsContext = createContext<CustomerRestriction[]>([]);
@@ -269,7 +376,7 @@ function PortalShellInner({
   const primary = theme.colors.primary || "#061938";
   const tenantDark = shade(primary, 0.55);
   const tenantDeep = shade(primary, 0.7);
-  const portalLayoutKey: PortalLayoutKey = "sidebar";
+  const portalLayoutKey = normalizePortalLayoutKey(manifest.portal_layout_key);
 
   const slug = manifest.bank.slug;
   const navigate = useNavigate();
@@ -324,15 +431,251 @@ function PortalShellInner({
     </RestrictionsContext.Provider>
   );
 
-  return (
+  const shellBase = {
+    ...cssVars,
+    fontFamily: theme.typography.body,
+    minHeight: "100vh",
+    backgroundColor: "#F8FAFC",
+    color: "#0f172a",
+  } as CSSProperties;
+
+  const initials = `${customer.first_name?.[0] ?? ""}${customer.last_name?.[0] ?? ""}`.toUpperCase();
+  const drawer = (
+    <ShellDrawer
+      open={drawerOpen}
+      onClose={() => setDrawerOpen(false)}
+      manifest={manifest}
+      customer={customer}
+      activePath={activePath}
+      slug={slug}
+      onLogout={() => logoutMut.mutate()}
+      loggingOut={logoutMut.isPending}
+    />
+  );
+
+  switch (portalLayoutKey) {
+    case "traditional":
+      return (
+        <div style={shellBase} className="flex min-h-screen w-full flex-col" data-layout="traditional">
+          <header
+            className="relative overflow-hidden"
+            style={{ background: `linear-gradient(120deg, var(--tenant-deep) 0%, var(--tenant-primary) 60%, var(--tenant-accent, var(--tenant-primary)) 100%)` }}
+          >
+            {manifest.brand.dashboard_logo_url && (
+              <div
+                className="absolute inset-0 opacity-15"
+                style={{ backgroundImage: `url(${manifest.brand.dashboard_logo_url})`, backgroundSize: "cover", backgroundPosition: "center" }}
+              />
+            )}
+            <div className="relative mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4 px-6 py-6 md:px-10 md:py-8">
+              <div className="flex min-w-0 items-center gap-4">
+                <button
+                  type="button"
+                  aria-label={t("shell.menu")}
+                  onClick={() => setDrawerOpen(true)}
+                  className="flex-none rounded-xl bg-white/15 p-2.5 text-white transition hover:bg-white/25"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+                <div className="min-w-0 text-left">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/70">
+                    {manifest.bank.name} · {t("shell.online_banking")}
+                  </p>
+                  <h1 className="mt-1 truncate text-2xl font-bold text-white md:text-3xl" style={{ fontFamily: theme.typography.heading }}>
+                    {t("shell.hello", { name: customer.first_name })}
+                  </h1>
+                </div>
+              </div>
+              <NotificationBell slug={slug} tone="dark" />
+            </div>
+          </header>
+          <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8 md:px-10 md:py-10">{content}</main>
+          {drawer}
+        </div>
+      );
+    case "secure_tools":
+      return (
+        <div style={shellBase} className="flex min-h-screen w-full flex-col" data-layout="secure-tools">
+          <div className="border-b border-slate-200 bg-white">
+            <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-3 px-6 py-2 md:px-10">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <Lock className="h-3.5 w-3.5" /> {t("shell.secure_banking")}
+              </p>
+              <p className="hidden truncate font-mono text-[11px] text-slate-400 sm:block">
+                {customer.customer_number}
+              </p>
+            </div>
+          </div>
+          <header className="border-b border-slate-200 bg-white">
+            <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4 px-6 py-4 md:px-10">
+              <Link to="/$slug/portal" params={{ slug }} className="flex min-w-0 items-center gap-2.5">
+                {manifest.brand.dashboard_logo_url ? (
+                  <img src={manifest.brand.dashboard_logo_url} alt="" className="h-9 w-9 flex-none rounded-lg object-contain" />
+                ) : (
+                  <span
+                    className="grid h-9 w-9 flex-none place-items-center rounded-lg text-sm font-bold text-white"
+                    style={{ background: "var(--tenant-primary)" }}
+                  >
+                    {manifest.bank.name.slice(0, 1)}
+                  </span>
+                )}
+                <span className="truncate text-[15px] font-semibold text-slate-900" style={{ fontFamily: theme.typography.heading }}>
+                  {manifest.bank.name}
+                </span>
+              </Link>
+              <nav className="hidden items-center gap-0.5 lg:flex">
+                {nav.map((n) => (
+                  <Link
+                    key={n.key}
+                    to={n.path === "" ? "/$slug/portal" : `/$slug/portal${n.path}`}
+                    params={{ slug }}
+                    className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                      activePath === n.path ? "text-[var(--tenant-primary)]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    }`}
+                  >
+                    {t(n.tKey)}
+                  </Link>
+                ))}
+              </nav>
+              <div className="flex flex-none items-center gap-2">
+                <NotificationBell slug={slug} tone="light" />
+                <button
+                  type="button"
+                  onClick={() => logoutMut.mutate()}
+                  disabled={logoutMut.isPending}
+                  className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 sm:flex"
+                >
+                  <LogOut className="h-4 w-4" /> {logoutMut.isPending ? t("shell.logging_out") : t("shell.logout")}
+                </button>
+                <button
+                  type="button"
+                  aria-label={t("shell.menu")}
+                  onClick={() => setDrawerOpen(true)}
+                  className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          </header>
+          <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8 md:px-10 md:py-10">{content}</main>
+          {drawer}
+        </div>
+      );
+    case "multi_account":
+      return (
+        <div style={shellBase} className="flex min-h-screen w-full flex-col" data-layout="multi-account">
+          <header className="border-b border-slate-200 bg-white">
+            <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3.5">
+              <Link
+                to="/$slug/portal/profile"
+                params={{ slug }}
+                aria-label="Profile"
+                className="grid h-9 w-9 flex-none place-items-center rounded-full text-sm font-bold text-white"
+                style={{ background: "var(--tenant-primary)" }}
+              >
+                {initials}
+              </Link>
+              <p className="min-w-0 truncate text-sm font-semibold text-slate-800">
+                {t("shell.hello", { name: customer.first_name })}
+              </p>
+              <NotificationBell slug={slug} tone="light" />
+            </div>
+          </header>
+          <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6 pb-24">{content}</main>
+          <BottomNav
+            slug={slug}
+            activePath={activePath}
+            onMenu={() => setDrawerOpen(true)}
+            items={[
+              { key: "menu", tKey: "shell.menu", icon: Menu, menu: true },
+              { key: "accounts", tKey: "nav.accounts", path: "/accounts", icon: Wallet },
+              { key: "quick", tKey: "shell.quick_links", path: "/cards", icon: LayoutGrid },
+              { key: "payments", tKey: "shell.payments", path: "/transfer", icon: Send },
+              { key: "services", tKey: "shell.services", path: "/support", icon: LifeBuoy },
+            ]}
+          />
+          {drawer}
+        </div>
+      );
+    case "rewards":
+      return (
+        <div style={shellBase} className="flex min-h-screen w-full flex-col" data-layout="rewards">
+          <header className="border-b border-slate-200 bg-white">
+            <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3.5">
+              <button
+                type="button"
+                aria-label={t("shell.menu")}
+                onClick={() => setDrawerOpen(true)}
+                className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <div className="flex items-center gap-1">
+                <Link to="/$slug/portal/notifications" params={{ slug }} className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label={t("shell.inbox")}>
+                  <Inbox className="h-5 w-5" />
+                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />
+                </Link>
+                <Link to="/$slug/portal/notifications" params={{ slug }} className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label={t("shell.products")}>
+                  <Package className="h-5 w-5" />
+                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />
+                </Link>
+              </div>
+              <button
+                type="button"
+                onClick={() => logoutMut.mutate()}
+                disabled={logoutMut.isPending}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              >
+                <LogOut className="h-4 w-4" /> {logoutMut.isPending ? t("shell.logging_out") : t("shell.log_out")}
+              </button>
+            </div>
+          </header>
+          <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6 pb-24">{content}</main>
+          <BottomNav
+            slug={slug}
+            activePath={activePath}
+            onMenu={() => setDrawerOpen(true)}
+            items={[
+              { key: "accounts", tKey: "nav.accounts", path: "/accounts", icon: Wallet },
+              { key: "pay", tKey: "shell.pay_transfer", path: "/transfer", icon: Send },
+              { key: "deposit", tKey: "shell.deposit_checks", path: "/cards", icon: ScanLine },
+              { key: "services", tKey: "shell.services", path: "/support", icon: LifeBuoy },
+            ]}
+          />
+          {drawer}
+        </div>
+      );
+    case "neo":
+      return (
+        <div style={shellBase} className="flex min-h-screen w-full flex-col" data-layout="neo">
+          <header className="border-b border-slate-200 bg-white">
+            <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3.5">
+              <p className="min-w-0 truncate text-sm font-semibold text-slate-800">
+                {greetingFor(t, customer.first_name)}
+              </p>
+              <NotificationBell slug={slug} tone="light" />
+            </div>
+          </header>
+          <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6 pb-24">{content}</main>
+          <BottomNav
+            slug={slug}
+            activePath={activePath}
+            onMenu={() => setDrawerOpen(true)}
+            items={[
+              { key: "home", tKey: "shell.home", path: "", icon: LayoutDashboard },
+              { key: "analytics", tKey: "shell.analytics", path: "/transactions", icon: BarChart3 },
+              { key: "profile", tKey: "nav.profile", path: "/profile", icon: User },
+            ]}
+          />
+          {drawer}
+        </div>
+      );
+    case "sidebar":
+    default:
+      return (
         <div
-          style={{
-            ...cssVars,
-            fontFamily: theme.typography.body,
-            minHeight: "100vh",
-            backgroundColor: "#F8FAFC",
-            color: "#0f172a",
-          }}
+          style={shellBase}
           className="flex w-full" data-layout="sidebar"
         >
           <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 md:block">
@@ -364,33 +707,12 @@ function PortalShellInner({
             <NotificationBell slug={slug} tone="light" />
           </header>
 
-          {drawerOpen && (
-            <div className="fixed inset-0 z-40 md:hidden">
-              <div className="absolute inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} />
-              <div className="absolute inset-y-0 left-0 w-72 bg-white p-4 shadow-xl">
-                <button
-                  onClick={() => setDrawerOpen(false)}
-                  className="absolute right-2 top-2 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-                  aria-label={t("shell.close")}
-                >
-                  <X className="h-5 w-5" />
-                </button>
-                <SidebarBody
-                  manifest={manifest}
-                  customer={customer}
-                  activePath={activePath}
-                  slug={slug}
-                  onNavigate={() => setDrawerOpen(false)}
-                  onLogout={() => logoutMut.mutate()}
-                  loggingOut={logoutMut.isPending}
-                />
-              </div>
-            </div>
-          )}
+          {drawer}
 
           <main className="min-w-0 flex-1 pt-16 md:ml-72 md:pt-0">
             <div className="mx-auto max-w-[1200px] px-6 py-8 md:px-10 md:py-10">{content}</div>
           </main>
         </div>
       );
+  }
 }
