@@ -51,8 +51,8 @@ export function buildManifest(args: {
     pages,
     navigation,
     products,
-    portal_layout_key: cfg.branding.portal_layout_key ?? "sidebar",
-    dashboard_layout: getDashboardLayoutForKey(cfg.branding.portal_layout_key ?? "sidebar"),
+    portal_layout_key: "sidebar",
+    dashboard_layout: getDashboardLayoutForKey("sidebar"),
     homepage_content: cfg.branding.homepage_content ?? defaultHomepageContent(cfg),
     catalog_content: cfg.branding.catalog_content ?? defaultCatalogContent(cfg),
     metadata: {

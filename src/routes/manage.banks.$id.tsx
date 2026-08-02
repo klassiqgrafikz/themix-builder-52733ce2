@@ -862,11 +862,11 @@ function ShortSlugEditor({
   );
 }
 
-type LayoutKey = "sidebar" | "topnav" | "premium" | "minimal" | "floating" | "console" | "ledger" | "card_deck";
+type LayoutKey = "sidebar";
 
 function normalizeStyle(v: unknown): LayoutKey {
   const s = String(v ?? "").toLowerCase();
-  if (s === "sidebar" || s === "topnav" || s === "premium" || s === "minimal" || s === "floating" || s === "console" || s === "ledger" || s === "card_deck") return s as LayoutKey;
+  if (s === "sidebar") return "sidebar";
   return "sidebar";
 }
 
@@ -876,13 +876,6 @@ const LAYOUT_OPTIONS: {
   desc: string;
 }[] = [
   { key: "sidebar", title: "Sidebar", desc: "Standard left sidebar with full navigation. Classic banking layout with all dashboard sections in a balanced grid." },
-  { key: "topnav", title: "Top Nav", desc: "Horizontal navigation bar, no sidebar. Focused dashboard: account summary, quick actions and recent transactions." },
-  { key: "premium", title: "Premium", desc: "Dark sidebar with gold accents. Full dashboard with balance trend, cards and beneficiaries sections." },
-  { key: "minimal", title: "Minimal", desc: "Thin header only — no persistent sidebar. Executive account summary and a large balance trend chart. Kiosk-friendly." },
-  { key: "floating", title: "Floating", desc: "Minimal header with a floating bottom nav bar. Compact account summary, quick actions and cards. Mobile-first fintech feel." },
-  { key: "console", title: "Console", desc: "Dense desktop banking console: status bar header, account list table, compact quick actions and a full transaction table." },
-  { key: "ledger", title: "Ledger", desc: "Corporate web banking feel: account boxes grid, full-width transaction ledger and rates side by side." },
-  { key: "card_deck", title: "Card Deck", desc: "Mobile-app feel with bottom nav: tabbed account card stack, big action tiles and card visuals." },
 ];
 
 function DashboardStylePanel({
@@ -985,7 +978,7 @@ function DashboardStylePanel({
 }
 
 function LayoutThumb({
-  layout,
+  layout: _layout,
   primaryColor,
   secondaryColor,
 }: {
@@ -993,144 +986,7 @@ function LayoutThumb({
   primaryColor: string;
   secondaryColor: string;
 }) {
-  if (layout === "premium") {
-    return (
-      <div className="relative h-24 w-full overflow-hidden bg-neutral-950 p-3">
-        <div className="text-[8px] uppercase tracking-[0.3em]" style={{ color: "#c9a84c" }}>Online Banking</div>
-        <div className="mt-1 h-1 w-8" style={{ backgroundColor: "#c9a84c" }} />
-        <div className="mt-2 h-10 w-full rounded" style={{ background: `linear-gradient(135deg, #1a1a22, #0d0d14)`, border: "1px solid rgba(201,168,76,0.35)" }} />
-      </div>
-    );
-  }
-  if (layout === "topnav") {
-    return (
-      <div className="h-24 w-full bg-white p-3">
-        <div className="flex items-center gap-2 border-b pb-2">
-          <div className="h-4 w-4 rounded" style={{ backgroundColor: primaryColor }} />
-          <div className="h-2 flex-1 rounded bg-slate-200" />
-        </div>
-        <div className="mt-2 flex gap-1">
-          {[1,2,3,4,5].map((i) => (
-            <div key={i} className="h-3 flex-1 rounded bg-slate-100" />
-          ))}
-        </div>
-        <div className="mt-3 h-10 rounded-lg bg-gradient-to-r p-2" style={{ background: `linear-gradient(135deg, ${primaryColor}22, ${secondaryColor}11)` }}>
-          <div className="h-2 w-16 rounded bg-slate-300" />
-          <div className="mt-1 h-3 w-24 rounded bg-slate-400" />
-        </div>
-      </div>
-    );
-  }
-  if (layout === "minimal") {
-    return (
-      <div className="h-24 w-full bg-white p-3">
-        <div className="flex items-center justify-between border-b pb-2">
-          <div className="h-3 w-16 rounded bg-slate-200" />
-          <div className="h-3 w-3 rounded-full bg-slate-200" />
-        </div>
-        <div className="mt-4 text-center">
-          <div className="text-[8px] uppercase tracking-widest text-slate-400">Balance</div>
-          <div className="mt-1 text-lg font-bold text-slate-900">$52,400</div>
-        </div>
-        <div className="mt-2 h-12 w-full rounded bg-slate-50" />
-      </div>
-    );
-  }
-  if (layout === "floating") {
-    return (
-      <div className="relative h-24 w-full bg-white p-3">
-        <div className="flex items-center justify-between border-b pb-2">
-          <div className="h-3 w-12 rounded bg-slate-200" />
-          <div className="h-3 w-3 rounded-full bg-slate-200" />
-        </div>
-        <div className="mt-3 h-8 rounded-lg p-1" style={{ backgroundColor: `${primaryColor}15` }}>
-          <div className="h-2 w-20 rounded bg-slate-300" />
-        </div>
-        <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-2 rounded-full border bg-white px-3 py-1.5 shadow-sm">
-          {[1,2,3,4].map((i) => (
-            <div key={i} className="h-4 w-4 rounded-full" style={{ backgroundColor: i === 1 ? primaryColor : "#e2e8f0" }} />
-          ))}
-        </div>
-      </div>
-    );
-  }
-  if (layout === "console") {
-    return (
-      <div className="flex h-24 w-full bg-white">
-        <div className="flex w-1/3 flex-col gap-1 border-r bg-slate-50 p-2">
-          <div className="h-2 w-10 rounded" style={{ backgroundColor: primaryColor }} />
-          <div className="h-2 rounded bg-slate-200" />
-          <div className="h-2 rounded bg-slate-200" />
-        </div>
-        <div className="flex-1 p-2">
-          <div className="flex items-center justify-between rounded bg-slate-50 px-2 py-1">
-            <div className="h-1.5 w-10 rounded bg-slate-300" />
-            <div className="h-2 w-8 rounded" style={{ backgroundColor: primaryColor }} />
-          </div>
-          <div className="mt-1.5 space-y-1">
-            <div className="flex items-center justify-between rounded bg-slate-50 px-2 py-1">
-              <div className="h-1.5 w-12 rounded bg-slate-300" />
-              <div className="h-1.5 w-6 rounded bg-slate-300" />
-            </div>
-            <div className="flex items-center justify-between rounded bg-slate-50 px-2 py-1">
-              <div className="h-1.5 w-12 rounded bg-slate-300" />
-              <div className="h-1.5 w-6 rounded bg-slate-300" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  if (layout === "ledger") {
-    return (
-      <div className="h-24 w-full bg-white p-3">
-        <div className="flex items-center gap-2 border-b pb-2">
-          <div className="h-3 w-3 rounded" style={{ backgroundColor: primaryColor }} />
-          <div className="h-1.5 flex-1 rounded bg-slate-200" />
-        </div>
-        <div className="mt-2 grid grid-cols-2 gap-1.5">
-          <div className="rounded border p-1.5">
-            <div className="h-1 w-8 rounded bg-slate-200" />
-            <div className="mt-1 h-2 w-10 rounded bg-slate-300" />
-          </div>
-          <div className="rounded border p-1.5">
-            <div className="h-1 w-8 rounded bg-slate-200" />
-            <div className="mt-1 h-2 w-10 rounded bg-slate-300" />
-          </div>
-        </div>
-        <div className="mt-1.5 space-y-0.5">
-          <div className="h-1.5 w-full rounded bg-slate-100" />
-          <div className="h-1.5 w-full rounded bg-slate-100" />
-          <div className="h-1.5 w-2/3 rounded bg-slate-100" />
-        </div>
-      </div>
-    );
-  }
-  if (layout === "card_deck") {
-    return (
-      <div className="relative h-24 w-full bg-white p-3">
-        <div className="mx-auto w-4/5 rounded-lg p-2 text-white" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
-          <div className="flex items-center justify-between">
-            <div className="h-1.5 w-8 rounded bg-white/70" />
-            <div className="h-2 w-3 rounded-sm bg-yellow-300/90" />
-          </div>
-          <div className="mt-1.5 h-1.5 w-3/4 rounded bg-white/50" />
-          <div className="mt-1.5 h-1.5 w-6 rounded bg-white/40" />
-        </div>
-        <div className="mt-1.5 flex justify-center gap-1">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-1 w-4 rounded-full" style={{ backgroundColor: i === 1 ? primaryColor : "#e2e8f0" }} />
-          ))}
-        </div>
-        <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-2 rounded-full border bg-white px-3 py-1.5 shadow-sm">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-4 w-4 rounded-full" style={{ backgroundColor: i === 1 ? primaryColor : "#e2e8f0" }} />
-          ))}
-        </div>
-      </div>
-    );
-  }
-  // sidebar (default)
+  // sidebar (only layout)
   return (
     <div className="flex h-24 w-full bg-white">
       <div className="flex w-1/3 flex-col gap-1 border-r bg-slate-50 p-2">
