@@ -30,6 +30,7 @@ export type ReceiptStrings = {
   transactionReceipt: string;
   amount: string;
   status: string;
+  successful: string;
   transactionType: string;
   currency: string;
   sender: string;
@@ -44,8 +45,6 @@ export type ReceiptStrings = {
   channel: string;
   channelOnline: string;
   narration: string;
-  balanceBefore: string;
-  balanceAfter: string;
   footer: string;
 };
 
@@ -53,6 +52,7 @@ const DEFAULT_STRINGS: ReceiptStrings = {
   transactionReceipt: "Transaction Receipt",
   amount: "Amount",
   status: "Status",
+  successful: "Successful",
   transactionType: "Transaction Type",
   currency: "Currency",
   sender: "Sender",
@@ -67,8 +67,6 @@ const DEFAULT_STRINGS: ReceiptStrings = {
   channel: "Channel",
   channelOnline: "Online Banking",
   narration: "Narration",
-  balanceBefore: "Balance Before",
-  balanceAfter: "Balance After",
   footer: "This receipt is system generated and does not require a signature.",
 };
 
@@ -128,12 +126,6 @@ export async function buildReceiptPdf(
   y += 50;
 
   const d = new Date(t.created_at);
-  const balanceBefore =
-    t.direction === "credit"
-      ? t.balance_after - t.amount
-      : t.direction === "debit"
-        ? t.balance_after + t.amount
-        : t.balance_after;
 
   const fmtDate = (val: Date, o: Intl.DateTimeFormatOptions) => {
     try {
@@ -143,8 +135,13 @@ export async function buildReceiptPdf(
     }
   };
 
+  const statusLabel =
+    (t.status || "").toLowerCase() === "posted" || (t.status || "").toLowerCase() === "successful"
+      ? s.successful
+      : t.status || s.successful;
+
   const rows: [string, string][] = [
-    [s.status, (t.status || "successful").toUpperCase()],
+    [s.status, statusLabel.toUpperCase()],
     [s.transactionType, friendlyKind(t.kind)],
     [s.currency, t.currency],
     [s.sender, `${t.customer_name}`],
@@ -158,8 +155,6 @@ export async function buildReceiptPdf(
     [s.time, fmtDate(d, { timeStyle: "medium" })],
     [s.channel, s.channelOnline],
     [s.narration, t.description || "—"],
-    [s.balanceBefore, fmt(balanceBefore, t.currency, locale)],
-    [s.balanceAfter, fmt(t.balance_after, t.currency, locale)],
   ];
 
   doc.setFontSize(10);

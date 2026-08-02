@@ -11,6 +11,19 @@ function friendlyKind(k: string) {
   return k.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
+/** Map internal CBE statuses to customer-facing labels ("posted" -> "Successful"). */
+export function receiptStatus(t: ReturnType<typeof useT>, status: string): string {
+  switch ((status || "").toLowerCase()) {
+    case "posted":
+    case "successful":
+      return t("status.successful");
+    default:
+      return status
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (m) => m.toUpperCase());
+  }
+}
+
 type Beneficiary = { name?: string; account_number?: string; bank_name?: string };
 
 export function TransferSuccessReceipt({
@@ -32,6 +45,7 @@ export function TransferSuccessReceipt({
   const meta = tx.metadata as Record<string, unknown>;
   const beneficiary = (meta.beneficiary ?? meta.external_beneficiary) as Beneficiary | undefined;
   const d = new Date(tx.created_at);
+  const statusText = receiptStatus(t, tx.status);
 
   const pdfOpts = {
     locale: locale.code,
@@ -54,8 +68,6 @@ export function TransferSuccessReceipt({
       channel: t("tx.channel"),
       channelOnline: t("tx.channel_online"),
       narration: t("transfer.narration"),
-      balanceBefore: t("tx.balance_before"),
-      balanceAfter: t("tx.balance_after"),
       footer: t("tx.receipt_footer"),
     },
   };
@@ -66,7 +78,7 @@ export function TransferSuccessReceipt({
   const shareText = () => [
     `${tx.bank_name} — ${t("tx.transaction_receipt")}`,
     `${t("transfer.amount")}: ${fmtCur(tx.amount, { currency: tx.currency })}`,
-    `${t("tx.status")}: ${tx.status}`,
+    `${t("tx.status")}: ${statusText}`,
     `${t("tx.reference")}: ${tx.reference ?? tx.id}`,
     `${t("tx.date")}: ${fmtDate(d, { dateStyle: "medium", timeStyle: "short" })}`,
     beneficiary?.name ? `${t("tx.recipient")}: ${beneficiary.name}` : "",
@@ -96,28 +108,58 @@ export function TransferSuccessReceipt({
 
   return (
     <BrandedCard manifest={manifest} className="print:border-none print:shadow-none">
-      <div className="flex flex-col items-center text-center">
-        <div className="grid h-20 w-20 place-items-center rounded-full bg-emerald-100">
-          <CheckCircle2 className="h-14 w-14 text-emerald-600" />
+      <div className="flex items-start justify-between gap-4 border-b pb-5">
+        <div className="flex min-w-0 items-center gap-3">
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="h-11 w-11 flex-none rounded object-contain" />
+          ) : (
+            <div
+              className="grid h-11 w-11 flex-none place-items-center rounded-lg text-base font-bold text-white"
+              style={{ backgroundColor: primary }}
+            >
+              {tx.bank_name.slice(0, 1)}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="truncate text-lg font-semibold" style={{ color: primary }}>
+              {tx.bank_name}
+            </div>
+            <div className="text-xs uppercase tracking-[0.16em] opacity-70">
+              {t("tx.transaction_receipt")}
+            </div>
+          </div>
         </div>
-        <h1 className="mt-4 text-3xl font-bold text-emerald-700">{t("transfer.success")}</h1>
-        <div className="mt-1 text-xs uppercase tracking-wide opacity-60">
-          {friendlyKind(tx.kind)}
-        </div>
-        <div className="mt-4 text-5xl font-bold" style={{ color: primary }}>
-          {fmtCur(tx.amount, { currency: tx.currency })}
-        </div>
-        <div className="mt-2 text-sm capitalize text-emerald-700 font-medium">
-          {t("tx.status")}: {tx.status}
+        <div className="flex flex-none flex-col items-end gap-1.5 text-right">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+            <CheckCircle2 className="h-3.5 w-3.5" /> {statusText}
+          </span>
+          <span className="text-[11px] uppercase tracking-wide opacity-60">
+            {t("tx.transaction_ref")}: {tx.reference ?? "—"}
+          </span>
         </div>
       </div>
 
-      <dl className="mt-8 grid gap-3 border-t pt-6 text-sm md:grid-cols-2">
+      <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-[0.16em] opacity-60">
+            {t("transfer.amount")}
+          </div>
+          <div className="mt-1 text-4xl font-bold" style={{ color: primary }}>
+            {fmtCur(tx.amount, { currency: tx.currency })}
+          </div>
+        </div>
+        <div className="text-xs uppercase tracking-wide opacity-60">
+          {friendlyKind(tx.kind)} · {tx.currency}
+        </div>
+      </div>
+
+      <dl className="mt-6 grid gap-x-8 gap-y-4 border-t pt-5 text-sm md:grid-cols-2">
         <Field label={t("tx.sender")}>{tx.customer_name}</Field>
         <Field label={t("tx.sender_account")}>{tx.account_number || "—"}</Field>
         <Field label={t("tx.recipient")}>{beneficiary?.name ?? (tx.direction === "credit" ? tx.customer_name : "—")}</Field>
         <Field label={t("tx.recipient_account")}>{beneficiary?.account_number ?? "—"}</Field>
         <Field label={t("tx.recipient_bank")}>{beneficiary?.bank_name ?? tx.bank_name}</Field>
+        <Field label={t("tx.channel")}>{t("tx.channel_online")}</Field>
         <Field label={t("tx.date")}>{fmtDate(d, { dateStyle: "medium" })}</Field>
         <Field label={t("tx.time")}>{fmtDate(d, { timeStyle: "medium" })}</Field>
         <Field label={t("tx.transaction_ref")}>
@@ -132,7 +174,11 @@ export function TransferSuccessReceipt({
         </div>
       </dl>
 
-      <div className="mt-8 flex flex-wrap justify-center gap-2 print:hidden">
+      <div className="mt-6 border-t pt-3 text-center text-xs italic opacity-70">
+        {t("tx.receipt_footer")}
+      </div>
+
+      <div className="mt-6 flex flex-wrap justify-center gap-2 print:hidden">
         <Button variant="outline" onClick={doDownload}>
           <Download className="mr-1 h-4 w-4" />{t("action.download")}
         </Button>

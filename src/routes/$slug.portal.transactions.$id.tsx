@@ -1,13 +1,14 @@
-import { createFileRoute, Link, notFound, useMatch, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useMatch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import { BrandedCard } from "@/lib/customer/portal-ui";
 import { getTransactionDetail } from "@/lib/customer/transactions.functions";
+import { TransferSuccessReceipt, receiptStatus } from "@/lib/customer/transfer-success";
 import { buildReceiptPdf, downloadReceiptPdf } from "@/lib/customer/receipt-pdf";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Download, Printer, Share2, Mail, Home } from "lucide-react";
+import { Download, Printer, Share2, Mail } from "lucide-react";
 import { useT, useLocale, useFormatCurrency, useFormatDate } from "@/lib/i18n";
 
 const searchSchema = z.object({
@@ -35,7 +36,6 @@ function ReceiptPage() {
   const fmtDate = useFormatDate();
   const { slug, id } = Route.useParams();
   const { success } = Route.useSearch();
-  const navigate = useNavigate();
   const parent = useMatch({ from: "/$slug/portal" }).loaderData as {
     bank: { manifest: WebsiteManifest; slug: string };
   };
@@ -54,6 +54,7 @@ function ReceiptPage() {
   const meta = tx.metadata as Record<string, unknown>;
   const beneficiary = (meta.beneficiary ?? meta.external_beneficiary) as Beneficiary | undefined;
   const d = new Date(tx.created_at);
+  const statusText = receiptStatus(t, tx.status);
 
   const pdfOpts = {
     locale: locale.code,
@@ -62,6 +63,7 @@ function ReceiptPage() {
       transactionReceipt: t("tx.transaction_receipt"),
       amount: t("transfer.amount"),
       status: t("tx.status"),
+      successful: t("status.successful"),
       transactionType: t("tx.type"),
       currency: t("transfer.currency"),
       sender: t("tx.sender"),
@@ -76,8 +78,6 @@ function ReceiptPage() {
       channel: t("tx.channel"),
       channelOnline: t("tx.channel_online"),
       narration: t("transfer.narration"),
-      balanceBefore: t("tx.balance_before"),
-      balanceAfter: t("tx.balance_after"),
       footer: t("tx.receipt_footer"),
     },
   };
@@ -88,7 +88,7 @@ function ReceiptPage() {
   const shareText = () => [
     `${tx.bank_name} — ${t("tx.transaction_receipt")}`,
     `${t("transfer.amount")}: ${fmt(tx.amount, { currency: tx.currency })}`,
-    `${t("tx.status")}: ${tx.status}`,
+    `${t("tx.status")}: ${statusText}`,
     `${t("tx.reference")}: ${tx.reference ?? tx.id}`,
     `${t("tx.date")}: ${fmtDate(d, { dateStyle: "medium", timeStyle: "short" })}`,
     beneficiary?.name ? `${t("tx.recipient")}: ${beneficiary.name}` : "",
@@ -111,66 +111,10 @@ function ReceiptPage() {
     await navigator.clipboard.writeText(shareText());
   };
 
-  const goDashboard = () => navigate({ to: "/$slug/portal", params: { slug } });
-
   if (success) {
     return (
       <div className="space-y-4">
-        <BrandedCard manifest={manifest} className="print:border-none print:shadow-none">
-          <div className="flex flex-col items-center text-center">
-            <div className="grid h-20 w-20 place-items-center rounded-full bg-emerald-100">
-              <CheckCircle2 className="h-14 w-14 text-emerald-600" />
-            </div>
-            <h1 className="mt-4 text-3xl font-bold text-emerald-700">{t("transfer.success")}</h1>
-            <div className="mt-1 text-xs uppercase tracking-wide opacity-60">
-              {friendlyKind(tx.kind)}
-            </div>
-            <div className="mt-4 text-5xl font-bold" style={{ color: primary }}>
-              {fmt(tx.amount, { currency: tx.currency })}
-            </div>
-            <div className="mt-2 text-sm capitalize text-emerald-700 font-medium">
-              {t("tx.status")}: {tx.status}
-            </div>
-          </div>
-
-          <dl className="mt-8 grid gap-3 border-t pt-6 text-sm md:grid-cols-2">
-            <Field label={t("tx.sender")}>{tx.customer_name}</Field>
-            <Field label={t("tx.sender_account")}>{tx.account_number || "—"}</Field>
-            <Field label={t("tx.recipient")}>{beneficiary?.name ?? (tx.direction === "credit" ? tx.customer_name : "—")}</Field>
-            <Field label={t("tx.recipient_bank")}>{beneficiary?.bank_name ?? tx.bank_name}</Field>
-            <Field label={t("tx.recipient_account")}>{beneficiary?.account_number ?? "—"}</Field>
-            <Field label={t("tx.date")}>{fmtDate(d, { dateStyle: "medium" })}</Field>
-            <Field label={t("tx.time")}>{fmtDate(d, { timeStyle: "medium" })}</Field>
-            <Field label={t("tx.transaction_ref")}>
-              <span className="break-all font-mono text-xs">{tx.reference ?? "—"}</span>
-            </Field>
-            <Field label={t("tx.transaction_id")}>
-              <span className="break-all font-mono text-xs">{tx.id}</span>
-            </Field>
-            <div className="md:col-span-2">
-              <dt className="text-xs uppercase opacity-70">{t("transfer.narration")}</dt>
-              <dd>{tx.description}</dd>
-            </div>
-          </dl>
-
-          <div className="mt-8 flex flex-wrap justify-center gap-2 print:hidden">
-            <Button variant="outline" onClick={downloadPdf}>
-              <Download className="mr-1 h-4 w-4" />{t("action.download")}
-            </Button>
-            <Button variant="outline" onClick={printReceipt}>
-              <Printer className="mr-1 h-4 w-4" />{t("action.print")}
-            </Button>
-            <Button variant="outline" onClick={share}>
-              <Share2 className="mr-1 h-4 w-4" />{t("action.share")}
-            </Button>
-          </div>
-
-          <div className="mt-4 flex justify-center print:hidden">
-            <Button size="lg" onClick={goDashboard} style={{ backgroundColor: primary }}>
-              <Home className="mr-2 h-4 w-4" />{t("transfer.done_return")}
-            </Button>
-          </div>
-        </BrandedCard>
+        <TransferSuccessReceipt tx={tx} slug={slug} manifest={manifest} />
       </div>
     );
   }
@@ -222,43 +166,30 @@ function ReceiptPage() {
           </div>
           <div className="ml-auto text-right">
             <div className="text-xs uppercase opacity-70">{t("tx.status")}</div>
-            <div className="font-semibold capitalize text-emerald-700">{tx.status}</div>
+            <div className="font-semibold text-emerald-700">{statusText}</div>
           </div>
         </div>
 
-        {(() => {
-          const balanceBefore =
-            tx.direction === "credit"
-              ? tx.balance_after - tx.amount
-              : tx.direction === "debit"
-                ? tx.balance_after + tx.amount
-                : tx.balance_after;
-          return (
-            <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
-              <Field label={t("tx.type")}>{friendlyKind(tx.kind)}</Field>
-              <Field label={t("transfer.amount")}><span className="font-semibold">{fmt(tx.amount, { currency: tx.currency })}</span></Field>
-              <Field label={t("transfer.currency")}>{tx.currency}</Field>
-              <Field label={t("tx.direction")}><span className="capitalize">{tx.direction}</span></Field>
-              <Field label={t("tx.sender")}>{tx.customer_name}</Field>
-              <Field label={t("tx.sender_account")}>{tx.account_number || "—"}</Field>
-              <Field label={t("tx.recipient")}>{beneficiary?.name ?? (tx.direction === "credit" ? tx.customer_name : "—")}</Field>
-              <Field label={t("tx.recipient_account")}>{beneficiary?.account_number ?? "—"}</Field>
-              <Field label={t("tx.recipient_bank")}>{beneficiary?.bank_name ?? tx.bank_name}</Field>
-              <Field label={t("tx.channel")}>{t("tx.channel_online")}</Field>
-              <Field label={t("tx.date")}>{fmtDate(d, { dateStyle: "medium" })}</Field>
-              <Field label={t("tx.time")}>{fmtDate(d, { timeStyle: "medium" })}</Field>
-              <Field label={t("tx.transaction_id")}><span className="break-all font-mono text-xs">{tx.id}</span></Field>
-              <Field label={t("tx.transaction_ref")}><span className="break-all font-mono text-xs">{tx.reference ?? "—"}</span></Field>
-              <Field label={t("tx.balance_before")}>{fmt(balanceBefore, { currency: tx.currency })}</Field>
-              <Field label={t("tx.balance_after")}>{fmt(tx.balance_after, { currency: tx.currency })}</Field>
-              <Field label={t("tx.charges")}>{fmt(0, { currency: tx.currency })}</Field>
-              <div className="md:col-span-2">
-                <dt className="text-xs uppercase opacity-70">{t("transfer.narration")}</dt>
-                <dd>{tx.description}</dd>
-              </div>
-            </dl>
-          );
-        })()}
+        <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+          <Field label={t("tx.type")}>{friendlyKind(tx.kind)}</Field>
+          <Field label={t("transfer.amount")}><span className="font-semibold">{fmt(tx.amount, { currency: tx.currency })}</span></Field>
+          <Field label={t("transfer.currency")}>{tx.currency}</Field>
+          <Field label={t("tx.direction")}><span className="capitalize">{tx.direction}</span></Field>
+          <Field label={t("tx.sender")}>{tx.customer_name}</Field>
+          <Field label={t("tx.sender_account")}>{tx.account_number || "—"}</Field>
+          <Field label={t("tx.recipient")}>{beneficiary?.name ?? (tx.direction === "credit" ? tx.customer_name : "—")}</Field>
+          <Field label={t("tx.recipient_account")}>{beneficiary?.account_number ?? "—"}</Field>
+          <Field label={t("tx.recipient_bank")}>{beneficiary?.bank_name ?? tx.bank_name}</Field>
+          <Field label={t("tx.channel")}>{t("tx.channel_online")}</Field>
+          <Field label={t("tx.date")}>{fmtDate(d, { dateStyle: "medium" })}</Field>
+          <Field label={t("tx.time")}>{fmtDate(d, { timeStyle: "medium" })}</Field>
+          <Field label={t("tx.transaction_id")}><span className="break-all font-mono text-xs">{tx.id}</span></Field>
+          <Field label={t("tx.transaction_ref")}><span className="break-all font-mono text-xs">{tx.reference ?? "—"}</span></Field>
+          <div className="md:col-span-2">
+            <dt className="text-xs uppercase opacity-70">{t("transfer.narration")}</dt>
+            <dd>{tx.description}</dd>
+          </div>
+        </dl>
 
         <div className="mt-6 border-t pt-3 text-xs italic opacity-70">
           {t("tx.receipt_footer")}
