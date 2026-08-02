@@ -166,7 +166,6 @@ function SidebarBody({
           <div className="truncate font-medium text-white/85">
             {customer.first_name} {customer.last_name}
           </div>
-          <div className="truncate">{customer.customer_number}</div>
         </div>
         <button
           type="button"
@@ -509,9 +508,6 @@ function PortalShellInner({
             <div className="flex w-full items-center justify-between gap-3 px-6 py-2 md:px-10">
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                 <Lock className="h-3.5 w-3.5" /> {t("shell.secure_banking")}
-              </p>
-              <p className="hidden truncate font-mono text-[11px] text-slate-400 sm:block">
-                {customer.customer_number}
               </p>
             </div>
           </div>

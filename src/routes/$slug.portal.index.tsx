@@ -824,7 +824,9 @@ function LayoutDrivenDashboard(props: {
           return (
             <section className={align}>
               <p className={labelText}>Customer</p>
-              <p className="mt-1 font-mono text-lg text-slate-800">{session.customer.customer_number}</p>
+              <p className="mt-1 font-mono text-lg text-slate-800">
+                {session.customer.first_name} {session.customer.last_name}
+              </p>
             </section>
           );
         }
@@ -838,7 +840,6 @@ function LayoutDrivenDashboard(props: {
                   {session.customer.first_name} {session.customer.last_name}
                 </h1>
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Verified</span>
-                <div className="text-xs text-slate-500 mt-0.5">Member since {new Date(session.customer.created_at ?? Date.now()).getFullYear()}</div>
               </div>
             </section>
           );
@@ -873,9 +874,6 @@ function LayoutDrivenDashboard(props: {
             <h1 className="mt-0.5 text-xl font-semibold text-slate-900 md:text-2xl" style={{ fontFamily: theme.typography.heading }}>
               {session.customer.first_name} {session.customer.last_name}
             </h1>
-            <p className="mt-1 text-xs text-slate-500">
-              Customer № <span className="font-mono text-slate-700">{session.customer.customer_number}</span>
-            </p>
           </section>
         );
       }
