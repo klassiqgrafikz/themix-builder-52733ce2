@@ -17,7 +17,7 @@ export type CustomerCard = {
   last4: string;
   expiry_month: number;
   expiry_year: number;
-  status: "active" | "frozen" | "blocked" | "replaced" | "expired";
+  status: "active" | "frozen" | "blocked" | "replaced" | "expired" | "deleted";
   daily_limit: number;
   monthly_limit: number;
   currency: string;
@@ -123,12 +123,12 @@ export const issueCard = createServerFn({ method: "POST" })
 
 export const updateCardStatus = createServerFn({ method: "POST" })
   .inputValidator(
-    (d: { slug: string; card_id: string; action: "freeze" | "unfreeze" | "replace" }) =>
+    (d: { slug: string; card_id: string; action: "freeze" | "unfreeze" | "replace" | "delete" }) =>
       z
         .object({
           slug,
           card_id: z.string().uuid(),
-          action: z.enum(["freeze", "unfreeze", "replace"]),
+          action: z.enum(["freeze", "unfreeze", "replace", "delete"]),
         })
         .parse(d),
   )
@@ -168,6 +168,8 @@ export const updateCardStatus = createServerFn({ method: "POST" })
         daily_limit: card.daily_limit,
         monthly_limit: card.monthly_limit,
       });
+    } else if (data.action === "delete") {
+      await supabaseAdmin.from("bank_cards").update({ status: "deleted", frozen_at: null }).eq("id", card.id);
     }
     await supabaseAdmin.from("bank_notifications").insert({
       bank_id: s.bank.id,
@@ -178,7 +180,9 @@ export const updateCardStatus = createServerFn({ method: "POST" })
           ? "Card frozen"
           : data.action === "unfreeze"
             ? "Card activated"
-            : "Card replaced",
+            : data.action === "replace"
+              ? "Card replaced"
+              : "Card deleted",
       body: `Card ending in ${card.last4} was ${data.action}d.`,
     });
     return { ok: true };

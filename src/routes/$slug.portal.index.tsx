@@ -308,7 +308,7 @@ function LayoutDrivenDashboard(props: {
   const doCardStatus = useServerFn(updateCardStatus);
   const qc = useQueryClient();
   const statusMut = useMutation({
-    mutationFn: (v: { id: string; action: "freeze" | "unfreeze" | "replace" }) =>
+    mutationFn: (v: { id: string; action: "freeze" | "unfreeze" | "replace" | "delete" }) =>
       doCardStatus({ data: { slug, card_id: v.id, action: v.action } }),
     onSuccess: (_d, v) => {
       toast.success(
@@ -316,10 +316,12 @@ function LayoutDrivenDashboard(props: {
           ? "Card frozen"
           : v.action === "unfreeze"
             ? "Card unfrozen"
-            : "New card issued",
+            : v.action === "replace"
+              ? "New card issued"
+              : "Card deleted",
       );
       qc.invalidateQueries({ queryKey: ["portal-cards", slug] });
-      if (v.action === "replace") setDeckCard(null);
+      if (v.action === "replace" || v.action === "delete") setDeckCard(null);
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
@@ -505,7 +507,11 @@ function LayoutDrivenDashboard(props: {
           const idx = Math.min(deckIndex, Math.max(accts.length - 1, 0));
           const a = accts[idx];
           const holderName = `${session.customer.first_name} ${session.customer.last_name}`.trim().toUpperCase() || "CARD HOLDER";
-          const crd = cards.find((c) => c.account_id === a?.id) ?? cards[0] ?? null;
+          const usableCards = cards.filter(
+            (c) => c.status !== "replaced" && c.status !== "expired" && c.status !== "deleted",
+          );
+          const crd =
+            usableCards.find((c) => c.account_id === a?.id) ?? usableCards[0] ?? null;
           const expiry =
             crd?.expiry_month && crd?.expiry_year
               ? `${String(crd.expiry_month).padStart(2, "0")}/${String(crd.expiry_year).slice(-2)}`
@@ -930,6 +936,7 @@ function LayoutDrivenDashboard(props: {
         onFreeze={(id) => statusMut.mutate({ id, action: "freeze" })}
         onUnfreeze={(id) => statusMut.mutate({ id, action: "unfreeze" })}
         onReplace={(id) => statusMut.mutate({ id, action: "replace" })}
+        onDelete={(id) => statusMut.mutate({ id, action: "delete" })}
         pending={statusMut.isPending}
       />
     </div>

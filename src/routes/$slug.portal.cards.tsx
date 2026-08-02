@@ -68,7 +68,10 @@ function CardsPage() {
   });
 
   const visibleCards = useMemo(
-    () => (listQ.data ?? []).filter((c) => c.status !== "replaced" && c.status !== "expired"),
+    () =>
+      (listQ.data ?? []).filter(
+        (c) => c.status !== "replaced" && c.status !== "expired" && c.status !== "deleted",
+      ),
     [listQ.data],
   );
 
@@ -84,7 +87,7 @@ function CardsPage() {
   });
 
   const statusMut = useMutation({
-    mutationFn: (v: { id: string; action: "freeze" | "unfreeze" | "replace" }) =>
+    mutationFn: (v: { id: string; action: "freeze" | "unfreeze" | "replace" | "delete" }) =>
       doStatus({ data: { slug: bank.slug, card_id: v.id, action: v.action } }),
     onSuccess: (_d, v) => {
       toast.success(
@@ -92,10 +95,12 @@ function CardsPage() {
           ? "Card frozen"
           : v.action === "unfreeze"
             ? "Card unfrozen"
-            : "New card issued",
+            : v.action === "replace"
+              ? "New card issued"
+              : "Card deleted",
       );
       qc.invalidateQueries({ queryKey: ["cards", bank.slug] });
-      if (v.action === "replace") setActiveCard(null);
+      if (v.action === "replace" || v.action === "delete") setActiveCard(null);
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
@@ -226,6 +231,7 @@ function CardsPage() {
         onFreeze={(id) => statusMut.mutate({ id, action: "freeze" })}
         onUnfreeze={(id) => statusMut.mutate({ id, action: "unfreeze" })}
         onReplace={(id) => statusMut.mutate({ id, action: "replace" })}
+        onDelete={(id) => statusMut.mutate({ id, action: "delete" })}
         pending={statusMut.isPending}
       />
     </div>

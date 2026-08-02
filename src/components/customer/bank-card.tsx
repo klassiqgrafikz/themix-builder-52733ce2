@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { WebsiteManifest } from "@/lib/rendering/types";
 import type { CustomerCard } from "@/lib/customer/cards.functions";
-import { CreditCard, Copy, Eye, EyeOff, Lock, RefreshCcw, Snowflake, Play } from "lucide-react";
+import { CreditCard, Copy, Eye, EyeOff, Lock, RefreshCcw, Snowflake, Play, Trash2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -248,6 +248,7 @@ export function CardOptionsSheet({
   onFreeze,
   onUnfreeze,
   onReplace,
+  onDelete,
   pending,
 }: {
   card: CustomerCard | null;
@@ -256,12 +257,14 @@ export function CardOptionsSheet({
   onFreeze: (id: string) => void;
   onUnfreeze: (id: string) => void;
   onReplace: (id: string) => void;
+  onDelete: (id: string) => void;
   pending: boolean;
 }) {
   const [revealed, setRevealed] = useState(false);
   const [confirmReveal, setConfirmReveal] = useState(false);
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [confirmUnfreeze, setConfirmUnfreeze] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Auto-hide reveal after ~30s.
   useEffect(() => {
@@ -277,6 +280,7 @@ export function CardOptionsSheet({
       setConfirmReveal(false);
       setConfirmReplace(false);
       setConfirmUnfreeze(false);
+      setConfirmDelete(false);
     }
   }, [card]);
 
@@ -350,6 +354,18 @@ export function CardOptionsSheet({
                     setConfirmReplace(false);
                   }}
                 />
+              ) : confirmDelete ? (
+                <ConfirmPanel
+                  title="Delete this card?"
+                  description="The card will be permanently removed from your account and can no longer be used. Your account and balance are unchanged."
+                  confirmLabel="Delete"
+                  tone="danger"
+                  onCancel={() => setConfirmDelete(false)}
+                  onConfirm={() => {
+                    if (card) onDelete(card.id);
+                    setConfirmDelete(false);
+                  }}
+                />
               ) : (
                 <div className="grid gap-2">
                   <ActionRow
@@ -393,6 +409,13 @@ export function CardOptionsSheet({
                     icon={RefreshCcw}
                     label="Replace card"
                     onClick={() => setConfirmReplace(true)}
+                    disabled={pending}
+                    tone="danger"
+                  />
+                  <ActionRow
+                    icon={Trash2}
+                    label="Delete card"
+                    onClick={() => setConfirmDelete(true)}
                     disabled={pending}
                     tone="danger"
                   />
