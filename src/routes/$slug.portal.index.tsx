@@ -1509,7 +1509,7 @@ function LayoutDrivenDashboard(props: {
           return (
             <>
               {flat.length > 0 && (
-                <div className="grid grid-cols-12 gap-6">
+                <div className="grid grid-cols-12 gap-4 sm:gap-6">
                   {flat.map((it) => {
                     const width = (it.width ?? "full") as WidthSize;
                     const kind = it.kind as DashboardComponentKind;
@@ -1524,7 +1524,7 @@ function LayoutDrivenDashboard(props: {
                 </div>
               )}
               {(stacks.left.length > 0 || stacks.right.length > 0) && (
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
                   {(["left", "right"] as const).map((col) => (
                     <div key={col} className="space-y-6">
                       {stacks[col].map((it) => {

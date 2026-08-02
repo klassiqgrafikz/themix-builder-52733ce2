@@ -476,7 +476,7 @@ function PortalShellInner({
                 style={{ backgroundImage: `url(${manifest.brand.dashboard_logo_url})`, backgroundSize: "cover", backgroundPosition: "center" }}
               />
             )}
-            <div className="relative mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4 px-6 py-6 md:px-10 md:py-8">
+            <div className="relative flex w-full items-center justify-between gap-4 px-6 py-6 md:px-10 md:py-8">
               <div className="flex min-w-0 items-center gap-4">
                 <button
                   type="button"
@@ -498,7 +498,7 @@ function PortalShellInner({
               <NotificationBell slug={slug} tone="dark" />
             </div>
           </header>
-          <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8 md:px-10 md:py-10">{content}</main>
+          <main className="w-full flex-1 px-6 py-8 md:px-10 md:py-10">{content}</main>
           {drawer}
         </div>
       );
@@ -506,7 +506,7 @@ function PortalShellInner({
       return (
         <div style={shellBase} className="flex min-h-screen w-full flex-col" data-layout="secure-tools">
           <div className="border-b border-slate-200 bg-white">
-            <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-3 px-6 py-2 md:px-10">
+            <div className="flex w-full items-center justify-between gap-3 px-6 py-2 md:px-10">
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                 <Lock className="h-3.5 w-3.5" /> {t("shell.secure_banking")}
               </p>
@@ -516,7 +516,7 @@ function PortalShellInner({
             </div>
           </div>
           <header className="border-b border-slate-200 bg-white">
-            <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4 px-6 py-4 md:px-10">
+            <div className="flex w-full items-center justify-between gap-4 px-6 py-4 md:px-10">
               <Link to="/$slug/portal" params={{ slug }} className="flex min-w-0 items-center gap-2.5">
                 {manifest.brand.dashboard_logo_url ? (
                   <img src={manifest.brand.dashboard_logo_url} alt="" className="h-9 w-9 flex-none rounded-lg object-contain" />
@@ -567,7 +567,7 @@ function PortalShellInner({
               </div>
             </div>
           </header>
-          <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8 md:px-10 md:py-10">{content}</main>
+          <main className="w-full flex-1 px-6 py-8 md:px-10 md:py-10">{content}</main>
           {drawer}
         </div>
       );
@@ -575,7 +575,7 @@ function PortalShellInner({
       return (
         <div style={shellBase} className="flex min-h-screen w-full flex-col" data-layout="multi-account">
           <header className="border-b border-slate-200 bg-white">
-            <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3.5">
+            <div className="flex w-full items-center justify-between gap-3 px-5 py-3.5">
               <Link
                 to="/$slug/portal/profile"
                 params={{ slug }}
@@ -591,7 +591,7 @@ function PortalShellInner({
               <NotificationBell slug={slug} tone="light" />
             </div>
           </header>
-          <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6 pb-24">{content}</main>
+          <main className="w-full flex-1 px-5 py-6 pb-24">{content}</main>
           <BottomNav
             slug={slug}
             activePath={activePath}
@@ -611,7 +611,7 @@ function PortalShellInner({
       return (
         <div style={shellBase} className="flex min-h-screen w-full flex-col" data-layout="rewards">
           <header className="border-b border-slate-200 bg-white">
-            <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3.5">
+            <div className="flex w-full items-center justify-between gap-3 px-5 py-3.5">
               <button
                 type="button"
                 aria-label={t("shell.menu")}
@@ -640,7 +640,7 @@ function PortalShellInner({
               </button>
             </div>
           </header>
-          <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6 pb-24">{content}</main>
+          <main className="w-full flex-1 px-5 py-6 pb-24">{content}</main>
           <BottomNav
             slug={slug}
             activePath={activePath}
@@ -659,14 +659,14 @@ function PortalShellInner({
       return (
         <div style={shellBase} className="flex min-h-screen w-full flex-col" data-layout="neo">
           <header className="border-b border-slate-200 bg-white">
-            <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3.5">
+            <div className="flex w-full items-center justify-between gap-3 px-5 py-3.5">
               <p className="min-w-0 truncate text-sm font-semibold text-slate-800">
                 {greetingFor(t, customer.first_name)}
               </p>
               <NotificationBell slug={slug} tone="light" />
             </div>
           </header>
-          <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6 pb-24">{content}</main>
+          <main className="w-full flex-1 px-5 py-6 pb-24">{content}</main>
           <BottomNav
             slug={slug}
             activePath={activePath}
@@ -719,7 +719,7 @@ function PortalShellInner({
           {drawer}
 
           <main className="min-w-0 flex-1 pt-16 md:ml-72 md:pt-0">
-            <div className="mx-auto max-w-[1200px] px-6 py-8 md:px-10 md:py-10">{content}</div>
+            <div className="w-full px-4 py-6 sm:px-6 md:px-8 lg:px-10">{content}</div>
           </main>
         </div>
       );
