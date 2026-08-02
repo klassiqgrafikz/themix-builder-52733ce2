@@ -207,12 +207,21 @@ function ShellDrawer({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute inset-y-0 left-0 w-72 overflow-y-auto bg-white p-4 shadow-xl">
+      <div
+        className="absolute inset-0 bg-black/40 animate-in fade-in-0"
+        onClick={onClose}
+      />
+      <div
+        className="absolute inset-y-0 left-0 z-10 w-72 overflow-y-auto shadow-xl animate-in fade-in-0 slide-in-from-left-full"
+        style={{
+          background: "linear-gradient(180deg, var(--tenant-deep) 0%, var(--tenant-dark) 100%)",
+          boxShadow: "8px 0 24px -12px rgba(0,0,0,.45)",
+        }}
+      >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-2 top-2 z-10 rounded-lg bg-white/80 p-2 text-slate-500 hover:bg-slate-100"
+          className="absolute right-2 top-2 z-10 rounded-lg bg-white/10 p-2 text-white transition hover:bg-white/20"
           aria-label="Close"
         >
           <X className="h-5 w-5" />
