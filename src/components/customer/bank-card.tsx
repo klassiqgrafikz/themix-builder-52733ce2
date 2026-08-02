@@ -12,16 +12,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 /* ---------- deterministic full number & CVV from card id ---------- */
 
@@ -206,6 +196,51 @@ function ActionRow({
   );
 }
 
+function ConfirmPanel({
+  title,
+  description,
+  confirmLabel,
+  onCancel,
+  onConfirm,
+  tone = "default",
+}: {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  tone?: "default" | "success" | "danger";
+}) {
+  const confirmClass =
+    tone === "danger"
+      ? "bg-rose-600 hover:bg-rose-700"
+      : tone === "success"
+        ? "bg-emerald-600 hover:bg-emerald-700"
+        : "bg-slate-900 hover:bg-slate-800";
+  return (
+    <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 animate-fade-in">
+      <p className="text-sm font-semibold">{title}</p>
+      <p className="mt-1 text-xs opacity-70">{description}</p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${confirmClass}`}
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function CardOptionsSheet({
   card,
   manifest,
@@ -264,13 +299,7 @@ export function CardOptionsSheet({
   return (
     <>
       <Sheet open={!!card} onOpenChange={(o) => !o && onClose()}>
-        <SheetContent
-          side="bottom"
-          className="max-h-[92vh] overflow-y-auto rounded-t-3xl p-0"
-          onInteractOutside={(e) => {
-            if (confirmReveal || confirmReplace || confirmUnfreeze) e.preventDefault();
-          }}
-        >
+        <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto rounded-t-3xl p-0">
           {card && (
             <div className="p-5">
               <SheetHeader className="mb-4 text-left">
@@ -286,52 +315,89 @@ export function CardOptionsSheet({
                 <BankCard card={card} manifest={manifest} revealed={revealed && !frozen} />
               </div>
 
-              <div className="grid gap-2">
-                <ActionRow
-                  icon={revealed ? EyeOff : Eye}
-                  label={revealed ? "Hide card details" : "Reveal card details"}
-                  onClick={() => {
-                    if (revealed) setRevealed(false);
-                    else if (frozen) setConfirmUnfreeze(true);
-                    else setConfirmReveal(true);
+              {confirmReveal ? (
+                <ConfirmPanel
+                  title="Reveal full card details?"
+                  description="The full card number and CVV will be visible for about 30 seconds. Make sure no one else can see your screen."
+                  confirmLabel="Reveal"
+                  onCancel={() => setConfirmReveal(false)}
+                  onConfirm={() => {
+                    setRevealed(true);
+                    setConfirmReveal(false);
                   }}
                 />
-                <ActionRow
-                  icon={Copy}
-                  label="Copy card number"
-                  disabled={frozen || !revealed}
-                  onClick={() => copy(fullPan(card).replace(/\s/g, ""), "Card number")}
+              ) : confirmUnfreeze ? (
+                <ConfirmPanel
+                  title="Card is frozen"
+                  description="This card is frozen. Unfreeze it to reveal the card number and CVV."
+                  confirmLabel="Unfreeze card"
+                  tone="success"
+                  onCancel={() => setConfirmUnfreeze(false)}
+                  onConfirm={() => {
+                    if (card) onUnfreeze(card.id);
+                    setConfirmUnfreeze(false);
+                  }}
                 />
-                <ActionRow
-                  icon={Copy}
-                  label="Copy CVV"
-                  disabled={frozen || !revealed}
-                  onClick={() => copy(fullCvv(card), "CVV")}
-                />
-                {frozen ? (
-                  <ActionRow
-                    icon={Play}
-                    label={pending ? "Unfreezing…" : "Unfreeze card"}
-                    onClick={() => onUnfreeze(card.id)}
-                    disabled={pending}
-                    tone="success"
-                  />
-                ) : (
-                  <ActionRow
-                    icon={Snowflake}
-                    label={pending ? "Freezing…" : "Freeze card"}
-                    onClick={() => onFreeze(card.id)}
-                    disabled={pending}
-                  />
-                )}
-                <ActionRow
-                  icon={RefreshCcw}
-                  label="Replace card"
-                  onClick={() => setConfirmReplace(true)}
-                  disabled={pending}
+              ) : confirmReplace ? (
+                <ConfirmPanel
+                  title="Replace this card?"
+                  description="A new card number, CVV and expiry will be generated. The current card becomes permanently inactive. Your account and balance are unchanged."
+                  confirmLabel="Replace"
                   tone="danger"
+                  onCancel={() => setConfirmReplace(false)}
+                  onConfirm={() => {
+                    if (card) onReplace(card.id);
+                    setConfirmReplace(false);
+                  }}
                 />
-              </div>
+              ) : (
+                <div className="grid gap-2">
+                  <ActionRow
+                    icon={revealed ? EyeOff : Eye}
+                    label={revealed ? "Hide card details" : "Reveal card details"}
+                    onClick={() => {
+                      if (revealed) setRevealed(false);
+                      else if (frozen) setConfirmUnfreeze(true);
+                      else setConfirmReveal(true);
+                    }}
+                  />
+                  <ActionRow
+                    icon={Copy}
+                    label="Copy card number"
+                    disabled={frozen || !revealed}
+                    onClick={() => copy(fullPan(card).replace(/\s/g, ""), "Card number")}
+                  />
+                  <ActionRow
+                    icon={Copy}
+                    label="Copy CVV"
+                    disabled={frozen || !revealed}
+                    onClick={() => copy(fullCvv(card), "CVV")}
+                  />
+                  {frozen ? (
+                    <ActionRow
+                      icon={Play}
+                      label={pending ? "Unfreezing…" : "Unfreeze card"}
+                      onClick={() => onUnfreeze(card.id)}
+                      disabled={pending}
+                      tone="success"
+                    />
+                  ) : (
+                    <ActionRow
+                      icon={Snowflake}
+                      label={pending ? "Freezing…" : "Freeze card"}
+                      onClick={() => onFreeze(card.id)}
+                      disabled={pending}
+                    />
+                  )}
+                  <ActionRow
+                    icon={RefreshCcw}
+                    label="Replace card"
+                    onClick={() => setConfirmReplace(true)}
+                    disabled={pending}
+                    tone="danger"
+                  />
+                </div>
+              )}
 
               {frozen && (
                 <div className="mt-4 flex items-center gap-2 rounded-xl bg-sky-50 p-3 text-xs text-sky-800 animate-fade-in">
@@ -342,74 +408,6 @@ export function CardOptionsSheet({
           )}
         </SheetContent>
       </Sheet>
-
-      <AlertDialog open={confirmReveal} onOpenChange={setConfirmReveal}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reveal full card details?</AlertDialogTitle>
-            <AlertDialogDescription>
-              The full card number and CVV will be visible for about 30 seconds.
-              Make sure no one else can see your screen.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setRevealed(true);
-                setConfirmReveal(false);
-              }}
-            >
-              Reveal
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={confirmUnfreeze} onOpenChange={setConfirmUnfreeze}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Card is frozen</AlertDialogTitle>
-            <AlertDialogDescription>
-              This card is frozen. Unfreeze it to reveal the card number and CVV.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (card) onUnfreeze(card.id);
-                setConfirmUnfreeze(false);
-              }}
-            >
-              Unfreeze card
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={confirmReplace} onOpenChange={setConfirmReplace}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Replace this card?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A new card number, CVV and expiry will be generated. The current
-              card becomes permanently inactive. Your account and balance are unchanged.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (card) onReplace(card.id);
-                setConfirmReplace(false);
-              }}
-            >
-              Replace
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
