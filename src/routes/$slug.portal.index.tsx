@@ -1535,6 +1535,37 @@ function LayoutDrivenDashboard(props: {
                   ))}
                 </div>
               )}
+              {(() => {
+                // Universal sections: shared across every layout template so the
+                // Balance Trend, Exchange Rates, Recent Transactions and FAQ
+                // sections always appear, even when the layout config omits them.
+                const UNIVERSAL: { kind: DashboardComponentKind; width: WidthSize }[] = [
+                  { kind: "balance_trend", width: "half" },
+                  { kind: "exchange_rates", width: "half" },
+                  { kind: "recent_transactions", width: "full" },
+                  { kind: "faq", width: "full" },
+                ];
+                const present = new Set(
+                  layout.items.filter((it) => it.visible !== false).map((it) => it.kind),
+                );
+                const missing = UNIVERSAL.filter(
+                  (u) => !present.has(u.kind) && isDashboardKindEnabled(manifest, u.kind),
+                );
+                if (missing.length === 0) return null;
+                return (
+                  <div className="grid grid-cols-12 gap-4 sm:gap-6">
+                    {missing.map((u) => {
+                      const node = renderKind(u.kind, {});
+                      if (!node) return null;
+                      return (
+                        <div key={u.kind} className={WIDTH_SPAN[u.width]}>
+                          {node}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </>
           );
         })()}
