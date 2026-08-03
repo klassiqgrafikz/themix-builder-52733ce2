@@ -9,8 +9,10 @@ import {
   getBankDomain,
   saveBankDomain,
   removeBankDomain,
-  forceConnectBankDomain,
+  connectBankDomain,
+  diagnoseBankDomain,
   type BankDomain,
+  type DomainDiagnostics,
 } from "@/lib/gboc/domains.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -53,8 +55,8 @@ export const Route = createFileRoute("/gboc/domains")({
   component: DomainManagerPage,
 });
 
-const DNS_TARGET = "bankofa.online";
-const PLATFORM_A_RECORDS = ["216.198.79.1"];
+const DNS_TARGET = "cname.vercel-dns.com";
+const PLATFORM_A_RECORDS = ["76.76.21.21"];
 
 function DomainManagerPage() {
   const { bank } = Route.useSearch();
@@ -145,7 +147,8 @@ function DomainEditor({
   const getFn = useServerFn(getBankDomain);
   const saveFn = useServerFn(saveBankDomain);
   const removeFn = useServerFn(removeBankDomain);
-  const forceConnectFn = useServerFn(forceConnectBankDomain);
+  const connectFn = useServerFn(connectBankDomain);
+  const diagnoseFn = useServerFn(diagnoseBankDomain);
 
   const q = useQuery({
     queryKey: ["gboc", "domain", bankId],
@@ -155,6 +158,9 @@ function DomainEditor({
   const row: BankDomain | null = q.data ?? null;
   const [domain, setDomain] = useState(row?.domain ?? "");
   const [isPrimary, setIsPrimary] = useState(row?.is_primary ?? true);
+  const [lastDiagnostics, setLastDiagnostics] = useState<DomainDiagnostics | null>(null);
+  const [vercelStatus, setVercelStatus] = useState<string | null>(null);
+  const [vercelRecords, setVercelRecords] = useState<Array<{ type: string; value: string }>>([]);
 
   const saveMut = useMutation({
     mutationFn: () => saveFn({ data: { bank_id: bankId, domain: domain.trim(), is_primary: isPrimary } }),
@@ -166,12 +172,31 @@ function DomainEditor({
   });
 
   const connectMut = useMutation({
-    mutationFn: () => forceConnectFn({ data: { bank_id: bankId } }),
-    onSuccess: () => {
-      toast.success("Domain connected!");
+    mutationFn: () => connectFn({ data: { bank_id: bankId } }),
+    onSuccess: (r) => {
+      setLastDiagnostics(r.diagnostics);
+      const vercelStatus = r.vercel?.status ?? "valid";
+      setVercelStatus(vercelStatus);
+      setVercelRecords(
+        (r.vercel?.verification ?? []).map((v) => ({ type: v.type, value: v.value })),
+      );
+      toast.success(
+        vercelStatus === "valid"
+          ? "Domain connected to Vercel!"
+          : "Domain attached — Vercel is verifying DNS (pending).",
+      );
       qc.invalidateQueries({ queryKey: ["gboc", "domain", bankId] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to connect"),
+  });
+
+  const diagnoseMut = useMutation({
+    mutationFn: () => diagnoseFn({ data: { bank_id: bankId } }),
+    onSuccess: (r) => {
+      if (r) setLastDiagnostics(r);
+      else toast.error("Save a domain before diagnosing");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Diagnostics failed"),
   });
 
   const removeMut = useMutation({
@@ -179,6 +204,9 @@ function DomainEditor({
     onSuccess: () => {
       toast.success("Domain removed");
       setDomain("");
+      setLastDiagnostics(null);
+      setVercelStatus(null);
+      setVercelRecords([]);
       qc.invalidateQueries({ queryKey: ["gboc", "domain", bankId] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to remove"),
@@ -278,7 +306,7 @@ function DomainEditor({
           <CardHeader>
             <CardTitle className="text-base">DNS Records</CardTitle>
             <CardDescription>
-              Add these records at your domain registrar (GoDaddy, Namecheap, etc.). Your bank will start working at <strong>{row.domain}</strong> once DNS propagates.
+              Add these records at your domain registrar (GoDaddy, Namecheap, etc.) so the domain points at the platform's hosting (Vercel). The bank will start working at <strong>{row.domain}</strong> once DNS propagates.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -286,18 +314,18 @@ function DomainEditor({
               type="TXT"
               host="_themix"
               value={`themix-verify=${row.verification_token ?? row.id.replace(/-/g, "")}`}
-              purpose="Proves domain ownership"
+              purpose="Proves domain ownership (optional)"
             />
             {kind === "apex" ? (
               <>
-                <DnsRecordRow type="A" host="@" value={PLATFORM_A_RECORDS[0]} purpose="Points apex to the platform" />
+                <DnsRecordRow type="A" host="@" value={PLATFORM_A_RECORDS[0]} purpose="Points apex to the hosting edge" />
                 <DnsRecordRow type="CNAME" host="www" value={DNS_TARGET} purpose="Redirects www to your domain" />
               </>
             ) : (
               <DnsRecordRow type="CNAME" host="@" value={DNS_TARGET} purpose="Points subdomain to your bank" />
             )}
             <p className="mt-2 text-xs text-muted-foreground">
-              After adding the records, click <strong>"Mark as Connected"</strong> above. DNS propagation can take a few minutes to a few hours.
+              After adding the records, click <strong>"Mark as Connected"</strong> — it attaches the domain to the hosting project and checks the live DNS. Propagation can take a few minutes to a few hours.
             </p>
           </CardContent>
         </Card>
@@ -318,6 +346,14 @@ function DomainEditor({
               <span className="text-muted-foreground">Status</span>
               <Badge variant={connected ? "default" : "secondary"}>{connected ? "Connected" : "Pending"}</Badge>
             </div>
+            {vercelStatus && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Vercel</span>
+                <Badge variant={vercelStatus === "valid" ? "default" : "secondary"} className="capitalize">
+                  {vercelStatus === "valid" ? "Valid" : "Pending DNS"}
+                </Badge>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Fallback URL</span>
               <span className="font-mono text-xs">{row.fallback_url}</span>
@@ -328,6 +364,53 @@ function DomainEditor({
                 <span>{new Date(row.connected_since).toLocaleDateString()}</span>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Diagnostics */}
+      {domainSaved && (
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">Live diagnostics</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => diagnoseMut.mutate()}
+              disabled={diagnoseMut.isPending}
+            >
+              {diagnoseMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              Re-check
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {!lastDiagnostics && (
+              <p className="text-sm text-muted-foreground">
+                Click "Mark as Connected" or "Re-check" to run live DNS + HTTPS checks.
+              </p>
+            )}
+            {lastDiagnostics?.checks.map((c) => (
+              <div key={c.key} className="flex items-start justify-between gap-2 text-sm">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+                        c.status === "pass"
+                          ? "bg-emerald-500"
+                          : c.status === "fail"
+                            ? "bg-destructive"
+                            : c.status === "warn"
+                              ? "bg-amber-500"
+                              : "bg-muted-foreground/40"
+                      }`}
+                    />
+                    <span className="font-medium">{c.label}</span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{c.message}</p>
+                </div>
+                <span className="shrink-0 text-xs uppercase text-muted-foreground">{c.status}</span>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}

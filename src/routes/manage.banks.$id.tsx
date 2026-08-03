@@ -13,6 +13,7 @@ import {
 } from "@/lib/bank-builder.functions";
 import { updateDraft } from "@/lib/bank-builder.functions";
 import { publishDraft, unpublishDraft, deleteBank, clearRenderingHistory } from "@/lib/website/registry.functions";
+import { getBankDomain } from "@/lib/gboc/domains.functions";
 import { Input } from "@/components/ui/input";
 import { sanitizeShortSlug, validateShortSlug } from "@/lib/website/reserved-slugs";
 import { TenantGateway } from "@/lib/website/tenant-gateway";
@@ -117,6 +118,11 @@ function BankOverview() {
     queryFn: () => getDraftFn({ data: { id } }),
   });
   const draft = draftQ.data as BankDraft | undefined;
+  const getDomainFn = useServerFn(getBankDomain);
+  const domainQ = useQuery({
+    queryKey: ["bb-custom-domain", id],
+    queryFn: () => getDomainFn({ data: { bank_id: id } }),
+  });
 
   const countriesQ = useQuery({ queryKey: ["bb-countries"], queryFn: () => listCountriesFn() });
   const modulesQ = useQuery({ queryKey: ["bb-modules"], queryFn: () => listModulesFn() });
@@ -188,6 +194,9 @@ function BankOverview() {
   const isPublished = renderStatus === "published" && !!publicRoute;
   const isReady = renderStatus === "ready";
   const busy = rerenderMut.isPending || publishMut.isPending || unpublishMut.isPending;
+  const bankDomain = domainQ.data ?? null;
+  const connectedHost =
+    bankDomain?.status === "connected" && bankDomain.domain ? bankDomain.domain : null;
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -385,7 +394,12 @@ function BankOverview() {
           </CardContent>
         </Card>
 
-        <ShortSlugEditor draftId={id} current={draft.short_slug ?? ""} onSaved={invalidate} />
+        <ShortSlugEditor
+          draftId={id}
+          current={draft.short_slug ?? ""}
+          onSaved={invalidate}
+          connectedHost={connectedHost}
+        />
 
 
         {manifest && manifest.pages.length > 0 && (
@@ -439,9 +453,10 @@ function BankOverview() {
             <Button
               className="justify-start"
               disabled={!isPublished}
-              onClick={() =>
-                publicRoute && window.open(publicRoute, "_blank", "noopener")
-              }
+              onClick={() => {
+                const target = connectedHost ? `https://${connectedHost}` : publicRoute;
+                if (target) window.open(target, "_blank", "noopener");
+              }}
               title={
                 isPublished
                   ? "Open the public banking website"
@@ -810,12 +825,15 @@ function ShortSlugEditor({
   draftId,
   current,
   onSaved,
+  connectedHost,
 }: {
   draftId: string;
   current: string;
   onSaved: () => void;
+  connectedHost: string | null;
 }) {
   const [value, setValue] = useState(current);
+  const [copied, setCopied] = useState<string | null>(null);
   const doUpdate = useServerFn(updateShortSlug);
   const mut = useMutation({
     mutationFn: () => doUpdate({ data: { id: draftId, short_slug: value } }),
@@ -857,11 +875,51 @@ function ShortSlugEditor({
           </Button>
         </div>
         {clientErr && <div className="text-xs text-destructive">{clientErr}</div>}
+        {connectedHost && (
+          <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Branded links (no bankofa.online) — send these to customers
+            </p>
+            <BrandedLinkRow label="Site" url={`https://${connectedHost}`} copied={copied} onCopy={setCopied} />
+            <BrandedLinkRow label="Login" url={`https://${connectedHost}/login`} copied={copied} onCopy={setCopied} />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
+
+function BrandedLinkRow({
+  label,
+  url,
+  copied,
+  onCopy,
+}: {
+  label: string;
+  url: string;
+  copied: string | null;
+  onCopy: (v: string | null) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 text-xs">
+      <span className="w-12 shrink-0 font-medium text-muted-foreground">{label}</span>
+      <span className="font-mono break-all">{url}</span>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="shrink-0"
+        onClick={() => {
+          navigator.clipboard.writeText(url);
+          onCopy(url);
+          setTimeout(() => onCopy(null), 2000);
+        }}
+      >
+        {copied === url ? "Copied" : "Copy"}
+      </Button>
+    </div>
+  );
+}
 type LayoutKey = PortalLayoutKey;
 
 function normalizeStyle(v: unknown): LayoutKey {

@@ -121,10 +121,12 @@ export type DomainDiagnostics = {
 
 // --- Constants ---------------------------------------------------------------
 const DOMAIN_RE = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
-const DNS_TARGET = "bankofa.online";
-// Platform edge IPs for apex A-record setup. Update here when infrastructure
-// changes; the UI reads these to render instructions.
-const PLATFORM_A_RECORDS = ["216.198.79.1"];
+// The platform is hosted on Vercel. Custom domains must be attached to the
+// Vercel project via the API (connectBankDomain) and their DNS must point at
+// Vercel's canonical targets for the domain to pass Vercel verification.
+const DNS_TARGET = "cname.vercel-dns.com";
+// Vercel's advertised edge IP for apex A-record setup.
+const PLATFORM_A_RECORDS = ["76.76.21.21"];
 // Small PSL-lite: two-label public suffixes that should still be treated as
 // apex when the domain uses them (e.g. example.co.uk is apex, foo.example.co.uk
 // is a subdomain). Not exhaustive — good enough for common ccTLDs.
@@ -172,7 +174,7 @@ function buildDnsRecords(domain: string, token: string): DnsRecord[] {
         host_fqdn: domain,
         value: ip,
         ttl: 3600,
-        purpose: "Points the apex domain to TheMixWeb's edge.",
+        purpose: "Points the apex domain to Vercel's edge.",
       })),
       txt,
     ];
@@ -184,7 +186,7 @@ function buildDnsRecords(domain: string, token: string): DnsRecord[] {
       host_fqdn: domain,
       value: DNS_TARGET,
       ttl: 3600,
-      purpose: "Routes the subdomain to your bank on TheMixWeb.",
+      purpose: "Routes the subdomain to your bank on the platform (Vercel edge).",
     },
     txt,
   ];
@@ -241,6 +243,134 @@ async function fetchSlug(
     .eq("id", bankId)
     .maybeSingle();
   return (data?.short_slug as string | null) ?? (data?.slug as string | null) ?? null;
+}
+
+// --- Vercel hosting integration ---------------------------------------------
+// Custom domains are attached to the project's Vercel deployment via the
+// Vercel REST API. Without this, Vercel's edge drops TLS for any host that
+// is not attached to the project, so the domain would never reach the app.
+// Requires a VERCEL_TOKEN env var; VERCEL_PROJECT_ID is auto-injected by
+// Vercel at runtime (fall back to an explicit var if set).
+type VercelVerificationRecord = {
+  type: string;
+  domain: string;
+  value: string;
+  reason: string;
+};
+
+type VercelAttachResult = {
+  status: string; // "pending" | "valid"
+  verification: VercelVerificationRecord[];
+  already: boolean;
+};
+
+function vercelProjectId(): string {
+  return process.env.VERCEL_PROJECT_ID ?? process.env.APP_VERCEL_PROJECT_ID ?? "";
+}
+
+function vercelBaseUrl(projectId: string): string {
+  return `https://api.vercel.com/v9/projects/${encodeURIComponent(projectId)}/domains`;
+}
+
+async function vercelHeaders(): Promise<Record<string, string>> {
+  const token = (process.env.VERCEL_TOKEN ?? "").trim();
+  if (!token) {
+    throw new Error(
+      "Vercel integration is not configured. Add the VERCEL_TOKEN environment variable so custom domains can be attached to the hosting project.",
+    );
+  }
+  return {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+}
+
+async function vercelApiError(
+  res: Response,
+  body: { error?: { message?: string }; message?: string },
+  action: string,
+  domain: string,
+): Promise<never> {
+  const detail = body?.error?.message ?? body?.message ?? `HTTP ${res.status}`;
+  throw new Error(`Vercel could not ${action} ${domain}: ${detail}`);
+}
+
+async function vercelDomainStatus(domain: string): Promise<{
+  status: string;
+  verification: VercelVerificationRecord[];
+} | null> {
+  const projectId = vercelProjectId();
+  if (!projectId) return null;
+  const res = await fetch(`${vercelBaseUrl(projectId)}/${encodeURIComponent(domain)}`, {
+    method: "GET",
+    headers: await vercelHeaders().catch(() => ({})),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) return null;
+  const body = (await res.json().catch(() => ({}))) as {
+    domain?: { status?: string; verification?: VercelVerificationRecord[] };
+  };
+  return {
+    status: body.domain?.status ?? "pending",
+    verification: body.domain?.verification ?? [],
+  };
+}
+
+async function vercelAttachDomain(domain: string): Promise<VercelAttachResult> {
+  const projectId = vercelProjectId();
+  if (!projectId) {
+    throw new Error(
+      "Vercel integration is not configured (project id not found). Add VERCEL_TOKEN and confirm the app is deployed on Vercel.",
+    );
+  }
+  const headers = await vercelHeaders();
+  const res = await fetch(`${vercelBaseUrl(projectId)}`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ name: domain }),
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    domain?: { status?: string; verification?: VercelVerificationRecord[] };
+    error?: { message?: string };
+    message?: string;
+  };
+  if (res.ok) {
+    return {
+      status: body.domain?.status ?? "pending",
+      verification: body.domain?.verification ?? [],
+      already: false,
+    };
+  }
+  if (res.status === 409) {
+    // Domain is already attached — either to this project (fine) or to
+    // another project on the account (which would orphan routing).
+    const existing = await vercelDomainStatus(domain);
+    if (existing) return { ...existing, already: true };
+  }
+  return vercelApiError(res, body as { error?: { message?: string }; message?: string }, "attach", domain);
+}
+
+async function vercelRemoveDomain(domain: string): Promise<{ ok: boolean; message?: string }> {
+  const projectId = vercelProjectId();
+  if (!projectId || !(process.env.VERCEL_TOKEN ?? "").trim()) {
+    // No integration configured — nothing to clean up on Vercel's side.
+    return { ok: true };
+  }
+  try {
+    const headers = await vercelHeaders();
+    const res = await fetch(`${vercelBaseUrl(projectId)}/${encodeURIComponent(domain)}`, {
+      method: "DELETE",
+      headers,
+    });
+    if (res.ok || res.status === 404) return { ok: true };
+    const body = (await res.json().catch(() => ({}))) as {
+      error?: { message?: string };
+      message?: string;
+    };
+    return { ok: false, message: body?.error?.message ?? body?.message ?? `HTTP ${res.status}` };
+  } catch (err) {
+    return { ok: false, message: (err as Error).message };
+  }
 }
 
 // --- Schemas ----------------------------------------------------------------
@@ -916,6 +1046,21 @@ export const removeBankDomain = createServerFn({ method: "POST" })
       .eq("bank_id", data.bank_id)
       .maybeSingle();
     const domain = (existing as { domain: string | null } | null)?.domain ?? null;
+
+    if (domain) {
+      const removed = await vercelRemoveDomain(domain);
+      if (!removed.ok) {
+        await logActivity(context.supabase, {
+          bank_id: data.bank_id,
+          domain,
+          action: "domain_removed",
+          result: "warning",
+          message: `Removed from the platform but Vercel detach failed: ${removed.message ?? "unknown error"}.`,
+          actor_id: context.userId,
+        });
+      }
+    }
+
     const { error } = await context.supabase
       .from("bank_custom_domains")
       .delete()
@@ -932,44 +1077,65 @@ export const removeBankDomain = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// --- Force Connect (bypass DNS verification) --------------------------------
-export const forceConnectBankDomain = createServerFn({ method: "POST" })
+// --- Connect (attach to Vercel, run diagnostics, mark connected) ------------
+export const connectBankDomain = createServerFn({ method: "POST" })
   .middleware([withPlatformServiceRole])
   .inputValidator((d: { bank_id: string }) => bankIdSchema.parse(d))
-  .handler(async ({ context, data }): Promise<BankDomain> => {
-    const { data: existing } = await context.supabase
-      .from("bank_custom_domains")
-      .select("*")
-      .eq("bank_id", data.bank_id)
-      .maybeSingle();
-    const row = existing as DomainRow | null;
-    if (!row || !row.domain) throw new Error("Save a domain before connecting.");
+  .handler(
+    async ({
+      context,
+      data,
+    }): Promise<{
+      domain: BankDomain;
+      diagnostics: DomainDiagnostics;
+      vercel: VercelAttachResult | null;
+    }> => {
+      const { data: existing, error: readErr } = await context.supabase
+        .from("bank_custom_domains")
+        .select("*")
+        .eq("bank_id", data.bank_id)
+        .maybeSingle();
+      if (readErr) throw new Error(readErr.message);
+      const existingRow = existing as DomainRow | null;
+      if (!existingRow || !existingRow.domain) throw new Error("Save a domain before connecting.");
 
-    const now = new Date().toISOString();
-    const { data: updated, error } = await context.supabase
-      .from("bank_custom_domains")
-      .update({
-        status: "connected",
-        dns_status: "verified",
-        ssl_status: "pending",
-        last_verified_at: now,
-        connected_since: row.connected_since ?? now,
-      })
-      .eq("bank_id", data.bank_id)
-      .select("*")
-      .single();
-    if (error) throw new Error(error.message);
+      // 1) Attach the domain to the Vercel project so the edge will accept it.
+      const vercel = await vercelAttachDomain(existingRow.domain);
 
-    const slug = await fetchSlug(context.supabase as never, data.bank_id);
+      // 2) Mark connected in the DB so the host->slug rewrite activates.
+      const now = new Date().toISOString();
+      const { data: updated, error } = await context.supabase
+        .from("bank_custom_domains")
+        .update({
+          status: "connected",
+          dns_status: "verified",
+          ssl_status: "pending",
+          last_verified_at: now,
+          connected_since: existingRow.connected_since ?? now,
+        })
+        .eq("bank_id", data.bank_id)
+        .select("*")
+        .single();
+      if (error) throw new Error(error.message);
 
-    await logActivity(context.supabase, {
-      bank_id: data.bank_id,
-      domain: row.domain,
-      action: "verification_passed",
-      result: "success",
-      message: `Domain ${row.domain} manually marked as connected.`,
-      actor_id: context.userId,
-    });
+      // 3) Run diagnostics so the user can see the real state of the domain.
+      const slug = await fetchSlug(context.supabase as never, data.bank_id);
+      const token = existingRow.verification_token ?? existingRow.id.replace(/-/g, "");
+      const diagnostics = await runDiagnostics(existingRow.domain, token, slug);
 
-    return shape(updated as DomainRow, slug);
-  });
+      await logActivity(context.supabase, {
+        bank_id: data.bank_id,
+        domain: existingRow.domain,
+        action: "verification_passed",
+        result: "success",
+        message: `Domain ${existingRow.domain} attached to hosting and connected (Vercel: ${vercel.status}${vercel.already ? ", already attached" : ""}).`,
+        actor_id: context.userId,
+      });
+
+      return {
+        domain: shape(updated as DomainRow, slug),
+        diagnostics,
+        vercel,
+      };
+    },
+  );
