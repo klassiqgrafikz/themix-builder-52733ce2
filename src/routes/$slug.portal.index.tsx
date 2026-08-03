@@ -717,6 +717,33 @@ const WIDTH_SPAN: Record<WidthSize, string> = {
   third: "col-span-12 md:col-span-4",
 };
 
+// Sections rendered with their own spacing + a faint grey divider line.
+const DIVIDED_SECTIONS = new Set<DashboardComponentKind>([
+  "balance_trend",
+  "exchange_rates",
+  "recent_transactions",
+  "faq",
+]);
+
+function wrapSection(
+  node: React.ReactNode,
+  kind: DashboardComponentKind,
+  width: WidthSize | undefined,
+  key: string,
+) {
+  if (!node) return null;
+  let cls = width ? WIDTH_SPAN[width] : "";
+  if (DIVIDED_SECTIONS.has(kind)) {
+    cls += " border-t border-slate-200 pt-6";
+    if (kind === "exchange_rates") cls += " md:border-l md:pl-6";
+  }
+  return (
+    <div key={key} className={cls}>
+      {node}
+    </div>
+  );
+}
+
 type Restr = { id: string; types: string[]; reason: string | null; end_at: string | null };
 type Tx = { id: string; created_at: string; balance_after: number; amount: number; currency: string; direction: string; kind: string; description: string | null };
 type Bene = { id: string; name?: string; account_number?: string; nickname?: string | null };
@@ -1393,9 +1420,7 @@ function LayoutDrivenDashboard(props: {
           <div className="space-y-6">
             {tabbed
               .filter((it) => it.tab === tab)
-              .map((it) => (
-                <div key={it.id}>{renderKind(it.kind, it.props)}</div>
-              ))}
+              .map((it) => wrapSection(renderKind(it.kind, it.props), it.kind, undefined, it.id))}
           </div>
         );
         return (
@@ -1511,13 +1536,7 @@ function LayoutDrivenDashboard(props: {
                   {flat.map((it) => {
                     const width = (it.width ?? "full") as WidthSize;
                     const kind = it.kind as DashboardComponentKind;
-                    const node = renderKind(kind, it.props);
-                    if (!node) return null;
-                    return (
-                      <div key={it.id} className={WIDTH_SPAN[width]}>
-                        {node}
-                      </div>
-                    );
+                    return wrapSection(renderKind(kind, it.props), kind, width, it.id);
                   })}
                 </div>
               )}
@@ -1527,9 +1546,7 @@ function LayoutDrivenDashboard(props: {
                     <div key={col} className="space-y-6">
                       {stacks[col].map((it) => {
                         const kind = it.kind as DashboardComponentKind;
-                        const node = renderKind(kind, it.props);
-                        if (!node) return null;
-                        return <div key={it.id}>{node}</div>;
+                        return wrapSection(renderKind(kind, it.props), kind, undefined, it.id);
                       })}
                     </div>
                   ))}
@@ -1554,15 +1571,9 @@ function LayoutDrivenDashboard(props: {
                 if (missing.length === 0) return null;
                 return (
                   <div className="grid grid-cols-12 gap-4 sm:gap-6">
-                    {missing.map((u) => {
-                      const node = renderKind(u.kind, {});
-                      if (!node) return null;
-                      return (
-                        <div key={u.kind} className={WIDTH_SPAN[u.width]}>
-                          {node}
-                        </div>
-                      );
-                    })}
+                    {missing.map((u) =>
+                      wrapSection(renderKind(u.kind, {}), u.kind, u.width, u.kind),
+                    )}
                   </div>
                 );
               })()}
